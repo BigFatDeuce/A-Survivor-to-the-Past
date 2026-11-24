@@ -74,3 +74,30 @@ Chaque jalon se termine par un point avec toi (démo + questions éventuelles).
   ondes du marteau, gel, brûlure, étourdissement, annonces d'attaque ennemie, flèches vers les coffres hors écran.
 - **Options d'essai** : `--demo` (pilote automatique), `--time 290`, `--give bow,quiver,chest`, `--menu options`,
   `--lang ja`.
+
+### Publication et confort : fait le 24/11/2026 (hors jalons)
+- **Écran titre** : fond `menubg` agrandi/rogné pour toutes les résolutions, logo au centre-droit, menu à gauche
+  (Jouer, Options, À propos, Quitter), étincelles sur le lac et l'épée, filtre SNES. Retour au titre depuis la pause
+  et l'écran de fin.
+- **À propos** : fan game non officiel, gratuit, revente interdite, assets de Nintendo, projet fait pour le plaisir ;
+  liens Discord, GitHub, site (`data/links.ron`).
+- **Filtres vidéo** (options, `settings.ron`) : Aucun, SNES (défaut : flou composite léger + fuite de chroma +
+  scanlines douces), CRT (courbure, masque, halo), Scanlines, GBA (grille LCD + couleurs), Game Boy (4 verts +
+  tramage) ; **format 4:3** (bandes latérales). **Filtres audio** : Aucun, Doux, SNES, GBA, Game Boy
+  (rééchantillonnage, réduction de bits, mono).
+- **Vérification automatique de l'interface** (`--uicheck`) : 7 langues × 6 formats de vue × tous les écrans ; textes
+  hors écran, chevauchements, débordements de cadre, caractères absents. État : 0 problème sur 882 écrans.
+  Majuscules accentuées (É È À Á…) composées dans la police.
+- **Icône B** (Link et la horde) : fenêtre, exe Windows, favicon (`research/tools/export_icon.py`).
+- **Dépôt GitHub public** avec README en 7 langues et captures (`research/tools/make_readme.py`) ; **site** en
+  7 langues sur le sous-domaine holy-c.men (`site/`, `research/tools/make_site.py`, déploiement `npx wrangler deploy`).
+
+## Idées du 24/11/2026 : propositions (à valider)
+| Idée | Proposition | Jalon proposé |
+|---|---|---|
+| **Classement en ligne** par map, avec pseudo | Petit service Cloudflare (Worker + base D1) sur le même domaine. La simulation est déterministe : le jeu envoie la graine et les entrées de la partie, le serveur rejoue la partie (simulation compilée en WASM) et n'enregistre que les scores vérifiés. Pseudo filtré, limite d'envois. | J8 |
+| **Mise à jour automatique** | Au lancement, lecture de la dernière version sur GitHub Releases ; si plus récente : proposer « Mettre à jour » (téléchargement + remplacement de l'exe) ou ouvrir la page des versions. Option pour désactiver. | J8 (avec les builds) |
+| **Export / import des sauvegardes** | Profil dans un seul fichier ; boutons Exporter / Importer (fichier, ou code à copier-coller pour le navigateur et Android). | J4 |
+| **Bestiaire, armurerie, statistiques** | Bestiaire (ennemis vus/vaincus, description, sprite animé), armurerie (armes, évolutions découvertes et leur recette), statistiques (parties, temps, ennemis vaincus, records par map). | J4 (profil) puis enrichi en J5–J6 |
+| **Toutes les plateformes** | Windows, Linux, macOS, Android, navigateur : **uniquement quand tu diras que le jeu est prêt**. Points à prévoir : commandes tactiles (Android), musiques en flux (navigateur, 50 Mo), signature macOS. | J9 (sur ton signal) |
+| Remappage des touches | Écran de réaffectation (les liaisons sont déjà en données). | J4 |
