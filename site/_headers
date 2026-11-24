@@ -9,3 +9,8 @@
 
 /img/*
   Cache-Control: public, max-age=604800
+
+# Version jouable : WebAssembly (wasm-unsafe-eval), paquet du jeu et musiques (meme origine)
+/play/*
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'

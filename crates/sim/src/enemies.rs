@@ -49,8 +49,10 @@ impl World {
         let can_hurt = self.player.alive && self.player.invuln <= 0.0 && !self.player.god;
         let mut contact: Option<f32> = None;
         let mut shots: Vec<ShotRequest> = Vec::new();
-        let mut summons: Vec<(u16, Vec2, u32)> = Vec::new();
+        let mut summons: Vec<(u16, Vec2, u32, u8)> = Vec::new();
         let mut windups: Vec<(Vec2, u16)> = Vec::new();
+        let mut slams: Vec<(Vec2, f32, f32)> = Vec::new();
+        let mut teleports: Vec<(Vec2, Vec2, u16)> = Vec::new();
         {
             let h = &mut self.horde;
             let grid = &self.grid;
@@ -221,10 +223,58 @@ impl World {
                                         }
                                     },
                                     BossAction::Summon { count, .. } => {
-                                        summons.push((kind, x, *count));
+                                        summons.push((kind, x, *count, step as u8));
                                         next = true;
                                         Vec2::ZERO
                                     }
+                                    BossAction::Leap { windup, time, radius, damage } => match h.state[i] {
+                                        ST_MOVE => {
+                                            h.state[i] = ST_WINDUP;
+                                            h.timer[i] = *windup;
+                                            windups.push((x, kind));
+                                            Vec2::ZERO
+                                        }
+                                        ST_WINDUP => {
+                                            if h.timer[i] <= 0.0 {
+                                                // vise la ou le joueur se trouve, sans le depasser de trop
+                                                h.state[i] = ST_ACT;
+                                                h.timer[i] = *time;
+                                                h.vel[i] = to.clamp_length_max(260.0) / time.max(0.05);
+                                            }
+                                            Vec2::ZERO
+                                        }
+                                        _ => {
+                                            let u = 1.0 - (h.timer[i] / time.max(0.05)).clamp(0.0, 1.0);
+                                            h.z[i] = 4.0 * u * (1.0 - u) * 40.0;
+                                            if h.timer[i] <= 0.0 {
+                                                h.z[i] = 0.0;
+                                                slams.push((x, *radius, damage * h.power[i]));
+                                                next = true;
+                                                Vec2::ZERO
+                                            } else {
+                                                h.vel[i]
+                                            }
+                                        }
+                                    },
+                                    BossAction::Teleport { windup, range } => match h.state[i] {
+                                        ST_MOVE => {
+                                            h.state[i] = ST_WINDUP;
+                                            h.timer[i] = *windup;
+                                            windups.push((x, kind));
+                                            Vec2::ZERO
+                                        }
+                                        _ => {
+                                            if h.timer[i] <= 0.0 {
+                                                let a = (t * 1.7 + ph * 5.0).sin() * std::f32::consts::PI + dirp.y.atan2(dirp.x);
+                                                let dest = pp + Vec2::from_angle(a + std::f32::consts::PI) * *range;
+                                                teleports.push((x, dest, kind));
+                                                h.pos[i] = dest;
+                                                h.prev[i] = dest;
+                                                next = true;
+                                            }
+                                            Vec2::ZERO
+                                        }
+                                    },
                                 };
                                 if next {
                                     h.step[i] = ((step + 1) % actions.len()) as u8;
@@ -236,6 +286,7 @@ impl World {
                         }
                     }
                 };
+                want *= self.mods.enemy_speed;
                 // sonne par un coup : ralenti
                 let kl = h.knock[i].length();
                 if kl > 25.0 {
@@ -289,9 +340,19 @@ impl World {
                     }
                 }
             }
+            let props = &self.map.props;
+            let solid = props.iter().any(|p| p.solid);
             for i in 0..n {
                 h.pos[i] += self.accel[i] * DT;
                 h.knock[i] *= 0.84;
+                if solid {
+                    let def = &defs[h.kind[i] as usize];
+                    // les volants passent au-dessus, les boss renversent tout
+                    if !def.flying && !def.boss {
+                        let side = if h.seed[i] & 2 == 0 { 1.0 } else { -1.0 };
+                        h.pos[i] = crate::props::resolve(props, self.prop_seed, h.pos[i], h.radius[i] * 0.8, pp - h.pos[i], side);
+                    }
+                }
             }
         }
         for (pos, kind) in windups {
@@ -300,8 +361,17 @@ impl World {
         for s in shots {
             self.enemy_fire(s);
         }
-        for (kind, at, count) in summons {
-            self.boss_summon(kind, at, count);
+        for (kind, at, count, step) in summons {
+            self.boss_summon(kind, at, count, step);
+        }
+        for (pos, radius, damage) in slams {
+            self.events.push(Event::BossSlam { pos, radius });
+            if can_hurt && (self.player.pos - pos).length() < radius + self.player.radius && !self.player.dashing() {
+                contact = Some(contact.unwrap_or(0.0).max(damage));
+            }
+        }
+        for (from, to, kind) in teleports {
+            self.events.push(Event::Teleport { from, to, kind });
         }
         if let Some(dmg) = contact {
             self.hurt_player(dmg);
@@ -325,9 +395,9 @@ impl World {
         let from = r.from - Vec2::new(0.0, 8.0);
         let base = (r.at - Vec2::new(0.0, 6.0) - from).normalize_or(Vec2::Y);
         let n = shot.count.max(1);
-        let spread = shot.spread.to_radians();
+        let spread = if shot.ring { std::f32::consts::TAU / n as f32 } else { shot.spread.to_radians() };
         for k in 0..n {
-            let off = (k as f32 - (n - 1) as f32 * 0.5) * spread;
+            let off = if shot.ring { k as f32 * spread } else { (k as f32 - (n - 1) as f32 * 0.5) * spread };
             let dir = Vec2::from_angle(base.y.atan2(base.x) + off);
             if shot.lob {
                 // bombes : visent la position du joueur (+ dispersion)
@@ -371,12 +441,12 @@ impl World {
         self.events.push(Event::EnemyShot { pos: r.from, kind: r.kind });
     }
 
-    fn boss_summon(&mut self, boss_kind: u16, at: Vec2, count: u32) {
+    fn boss_summon(&mut self, boss_kind: u16, at: Vec2, count: u32, step: u8) {
         let enemy = match &self.content.enemies[boss_kind as usize].behavior {
-            Behavior::Boss { actions } => actions.iter().find_map(|a| match a {
-                BossAction::Summon { enemy, .. } => Some(enemy.clone()),
+            Behavior::Boss { actions } => match actions.get(step as usize) {
+                Some(BossAction::Summon { enemy, .. }) => Some(enemy.clone()),
                 _ => None,
-            }),
+            },
             _ => None,
         };
         let Some(k) = enemy.and_then(|e| self.content.enemy_index(&e)) else { return };

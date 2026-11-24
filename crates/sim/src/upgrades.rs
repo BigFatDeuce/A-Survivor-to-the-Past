@@ -144,6 +144,9 @@ impl World {
     /// Recalcule les statistiques du joueur et des armes.
     pub fn recompute_stats(&mut self) {
         let mut st = Stats::default();
+        for &(s, v) in &self.mods.stats {
+            st.add(s, v);
+        }
         for p in &self.passives {
             let def = &self.content.passives[p.id as usize];
             for lv in def.levels.iter().take(p.level as usize) {

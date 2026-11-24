@@ -1,0 +1,52 @@
+// Plaine d'Hyrule sous l'orage
+// Stage 1 : la plaine, la pluie et les soldats du chateau
+// Le boss final apparait a 9:00 ; sa defaite ouvre la porte de sortie (victoire en la franchissant).
+// props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde).
+(
+    name: "Plaine d'Hyrule sous l'orage",
+    order: 1,
+    music: "hyrule_field_main_theme",
+    boss_music: "anger_of_the_guardians",
+    final_music: "anger_of_the_guardians",
+    ground: "grass",
+    weather: Rain,
+    ambience: Some("fierce_rainstorm"),
+    tint: None,
+    max_enemies: 3500,
+    duration: 540.0,
+    waves: [
+        (enemy: "soldier_green", from: 0.0, to: 900.0, rate: (0.9, 6.0), cap: 600),
+        (enemy: "rat", from: 15.0, to: 900.0, rate: (0.4, 3.5), cap: 250),
+        (enemy: "octorok", from: 40.0, to: 900.0, rate: (0.12, 1.2), cap: 40),
+        (enemy: "rope", from: 60.0, to: 900.0, rate: (0.3, 2.5), cap: 180),
+        (enemy: "keese", from: 90.0, to: 900.0, rate: (0.3, 2.5), cap: 120),
+        (enemy: "soldier_blue", from: 120.0, to: 900.0, rate: (0.2, 2.5), cap: 250),
+        (enemy: "buzz_blob", from: 160.0, to: 900.0, rate: (0.15, 1.4), cap: 80),
+        (enemy: "archer", from: 200.0, to: 900.0, rate: (0.1, 1.0), cap: 30),
+        (enemy: "crow", from: 240.0, to: 900.0, rate: (0.2, 1.8), cap: 90),
+        (enemy: "moblin", from: 320.0, to: 900.0, rate: (0.1, 1.2), cap: 50),
+    ],
+    bursts: [
+        (at: 40.0, enemy: "rat", count: 30, pattern: Pack),
+        (at: 70.0, enemy: "soldier_green", count: 40, pattern: Ring),
+        (at: 130.0, enemy: "keese", count: 40, pattern: Pack),
+        (at: 170.0, enemy: "soldier_green", count: 80, pattern: Ring),
+        (at: 230.0, enemy: "rope", count: 50, pattern: Ring),
+        (at: 330.0, enemy: "crow", count: 50, pattern: Ring),
+        (at: 400.0, enemy: "soldier_blue", count: 80, pattern: Ring),
+        (at: 480.0, enemy: "soldier_green", count: 180, pattern: Ring),
+    ],
+    elites: [
+        (at: 90.0, enemy: "soldier_blue"),
+        (at: 180.0, enemy: "moblin"),
+        (at: 330.0, enemy: "archer"),
+        (at: 450.0, enemy: "moblin"),
+    ],
+    boss: Some((at: 270.0, enemy: "hinox")),
+    final_boss: Some((at: 540.0, enemy: "armos_knight")),
+    props: [
+        (sprite: "prop_tree", density: 0.07, radius: 13.0, solid: true),
+        (sprite: "prop_bush", density: 0.08, radius: 6.0, solid: true),
+        (sprite: "prop_stump", density: 0.02, radius: 9.0, solid: true),
+    ],
+)

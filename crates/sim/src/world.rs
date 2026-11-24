@@ -51,9 +51,20 @@ pub enum Event {
     EnemyShot { pos: Vec2, kind: u16 },
     /// Bombe ennemie qui explose.
     ShotBlast { pos: Vec2, radius: f32 },
+    /// Atterrissage d'un boss apres un bond (onde de choc).
+    BossSlam { pos: Vec2, radius: f32 },
+    /// Boss qui disparait puis reapparait ailleurs.
+    Teleport { from: Vec2, to: Vec2, kind: u16 },
     EliteSpawned { pos: Vec2 },
-    BossSpawned { pos: Vec2, kind: u16 },
-    BossDied { pos: Vec2, kind: u16 },
+    /// `last` : boss final de la carte.
+    BossSpawned { pos: Vec2, kind: u16, last: bool },
+    BossDied { pos: Vec2, kind: u16, last: bool },
+    /// Une fee releve Link.
+    Revived { pos: Vec2 },
+    /// La porte de sortie apparait.
+    PortalOpened { pos: Vec2 },
+    /// Le joueur a franchi la porte : stage gagne.
+    Victory { pos: Vec2 },
     ChestDropped { pos: Vec2, big: bool },
     Frozen { pos: Vec2 },
 }
@@ -181,6 +192,8 @@ impl Player {
 
 pub struct World {
     pub content: Content,
+    /// Identifiant de la carte (nom du fichier).
+    pub map_id: String,
     pub map: MapDef,
     pub time: f32,
     pub ticks: u64,
@@ -204,11 +217,23 @@ pub struct World {
     pub shot_sprites: Vec<String>,
     /// Niveaux gagnes en attente de choix.
     pub pending_levels: u32,
+    /// Progression du joueur appliquee a la partie (voir `set_mods`).
+    pub mods: crate::mods::RunMods,
     /// Coffres ramasses en attente d'ouverture (vrai = grand coffre).
     pub pending_chests: Vec<bool>,
     /// Boss en vie (identifiant unique).
     pub boss_uid: Option<u32>,
     pub boss_defeated: bool,
+    /// Boss final (identifiant) et etat de la fin de partie.
+    pub final_uid: Option<u32>,
+    final_done: bool,
+    /// Porte de sortie et temps depuis son apparition.
+    pub portal: Option<Vec2>,
+    pub portal_t: f32,
+    /// Stage gagne (porte franchie).
+    pub won: bool,
+    /// Graine du decor (placement des arbres, rochers...).
+    pub prop_seed: u32,
     wave_acc: Vec<f32>,
     wave_kind: Vec<Option<u16>>,
     bursts_done: Vec<bool>,
@@ -218,9 +243,9 @@ pub struct World {
 }
 
 impl World {
-    pub fn new(content: Content, character: &str, map: &str, seed: u64) -> World {
+    pub fn new(content: Content, character: &str, map_id: &str, seed: u64) -> World {
         let c = content.characters.get(character).unwrap_or_else(|| panic!("personnage inconnu : {character}")).clone();
-        let map = content.maps.get(map).unwrap_or_else(|| panic!("carte inconnue : {map}")).clone();
+        let map = content.maps.get(map_id).unwrap_or_else(|| panic!("carte inconnue : {map_id}")).clone();
         let mut player = Player::new(&c);
         player.xp_next = content.rules.xp_first;
         let wave_kind = map
@@ -242,6 +267,7 @@ impl World {
             bursts_done: vec![false; map.bursts.len()],
             elites_done: vec![false; map.elites.len()],
             boss_done: false,
+            map_id: map_id.to_string(),
             map,
             time: 0.0,
             ticks: 0,
@@ -260,9 +286,16 @@ impl World {
             shots: Vec::new(),
             shot_sprites,
             pending_levels: 0,
+            mods: crate::mods::RunMods::default(),
             pending_chests: Vec::new(),
             boss_uid: None,
             boss_defeated: false,
+            final_uid: None,
+            final_done: false,
+            portal: None,
+            portal_t: 0.0,
+            won: false,
+            prop_seed: (seed as u32) ^ ((seed >> 32) as u32).wrapping_mul(0x9e37_79b9) ^ 0x2545_f491,
             accel: Vec::new(),
             content,
         };
@@ -282,6 +315,7 @@ impl World {
         for (i, e) in self.map.elites.iter().enumerate() {
             self.elites_done[i] = e.at < t;
         }
+        self.boss_done = self.map.boss.as_ref().is_some_and(|b| b.at < t);
     }
 
     /// Experience requise pour passer du niveau `level` au suivant.
@@ -294,9 +328,18 @@ impl World {
     /// Fait apparaitre un ennemi (vie croissante avec le temps).
     pub fn spawn_enemy(&mut self, kind: u16, pos: Vec2) -> usize {
         let def = &self.content.enemies[kind as usize];
-        let grow = if def.boss { 1.0 } else { 1.0 + self.time / 60.0 * self.content.rules.hp_growth };
+        let grow = if def.boss { self.mods.boss_hp } else { 1.0 + self.time / 60.0 * self.content.rules.hp_growth };
         let seed = self.rng.next_u32();
-        self.horde.spawn(kind, pos, def.hp * grow, def.radius, seed)
+        let i = self.horde.spawn(kind, pos, def.hp * grow * self.mods.enemy_hp, def.radius, seed);
+        self.horde.power[i] = self.mods.enemy_damage;
+        i
+    }
+
+    /// Applique la progression du joueur (a faire juste apres `World::new`).
+    pub fn set_mods(&mut self, m: crate::mods::RunMods) {
+        self.mods = m;
+        self.recompute_stats();
+        self.player.hp = self.player.max_hp;
     }
 
     /// Point aleatoire juste hors de l'ecran (dans la direction `bias` si fournie).
@@ -368,8 +411,37 @@ impl World {
         if self.spawning && self.player.alive {
             self.update_spawner();
         }
+        self.update_portal();
         self.recycle_far();
         self.remove_dead();
+    }
+
+    /// Porte de sortie : apparait a la mort du boss final (ou a la fin du temps s'il n'y en a pas) ;
+    /// l'atteindre gagne le stage.
+    fn update_portal(&mut self) {
+        if self.won {
+            return;
+        }
+        if self.portal.is_none() && self.map.final_boss.is_none() && self.time >= self.map.duration {
+            self.open_portal(self.player.pos + self.player.facing * 90.0);
+        }
+        let Some(at) = self.portal else { return };
+        self.portal_t += DT;
+        let p = &self.player;
+        if p.alive && self.portal_t > 1.2 && (p.pos - at).length() < 14.0 {
+            self.won = true;
+            self.player.invuln = f32::MAX;
+            self.events.push(Event::Victory { pos: at });
+        }
+    }
+
+    /// Ouvre la porte de sortie (hors des obstacles) et arrete les apparitions.
+    pub fn open_portal(&mut self, at: Vec2) {
+        let at = crate::props::resolve(&self.map.props, self.prop_seed, at, 16.0, Vec2::ZERO, 1.0);
+        self.portal = Some(at);
+        self.portal_t = 0.0;
+        self.spawning = false;
+        self.events.push(Event::PortalOpened { pos: at });
     }
 
     fn update_player(&mut self, input: &PlayerInput) {
@@ -406,6 +478,7 @@ impl World {
             p.vel = mv * p.speed;
         }
         p.pos += p.vel * DT;
+        p.pos = crate::props::resolve(&self.map.props, self.prop_seed, p.pos, p.radius, p.vel, 1.0);
         p.moving = mv.length_squared() > 0.01 || p.dash_t > 0.0;
         if p.moving {
             p.walk_t += DT * (p.vel.length() / p.speed).clamp(0.5, 1.6);
@@ -492,9 +565,17 @@ impl World {
             self.events.push(Event::EnemyKilled { pos, kind: k, dir, elite });
             self.player.kills += 1;
             if boss {
-                self.events.push(Event::BossDied { pos, kind: k });
-                self.boss_uid = None;
+                let uid = self.horde.uid[i];
+                let last = self.final_uid == Some(uid);
+                self.events.push(Event::BossDied { pos, kind: k, last });
+                if self.boss_uid == Some(uid) {
+                    self.boss_uid = None;
+                }
                 self.boss_defeated = true;
+                if last {
+                    self.final_uid = None;
+                    self.open_portal(pos + Vec2::new(0.0, 24.0));
+                }
                 self.pickups.spawn(PickupKind::BigChest, 0, pos, Vec2::ZERO, 120.0);
                 self.events.push(Event::ChestDropped { pos, big: true });
                 // pluie de rubis
@@ -556,7 +637,20 @@ impl World {
                 self.horde.knock[i] += d / l * 160.0 * (1.0 - l / 40.0);
             }
         }
-        if p.hp <= 0.0 {
+        if p.hp <= 0.0 && self.mods.revives > 0 {
+            // fee en bouteille : Link se releve
+            self.mods.revives -= 1;
+            p.hp = p.max_hp * 0.5;
+            p.invuln = 2.5;
+            self.events.push(Event::Revived { pos });
+            for i in 0..self.horde.len() {
+                let d = self.horde.pos[i] - pos;
+                let l = d.length();
+                if l < 90.0 && l > 0.01 {
+                    self.horde.knock[i] += d / l * 420.0 * (1.0 - l / 90.0);
+                }
+            }
+        } else if p.hp <= 0.0 {
             p.alive = false;
             p.swing = None;
             self.events.push(Event::PlayerDied { pos });
@@ -633,7 +727,7 @@ impl World {
         match kind {
             PickupKind::Heart => {
                 let p = &mut self.player;
-                p.hp = (p.hp + self.content.rules.heart_heal).min(p.max_hp);
+                p.hp = (p.hp + self.content.rules.heart_heal * self.mods.heal).min(p.max_hp);
             }
             PickupKind::Chest => self.pending_chests.push(false),
             PickupKind::BigChest => self.pending_chests.push(true),
@@ -643,7 +737,7 @@ impl World {
 
     pub(crate) fn gain_xp(&mut self, value: u32) {
         self.player.rupees += value;
-        self.player.xp += value as f32;
+        self.player.xp += value as f32 * self.mods.xp;
         while self.player.xp >= self.player.xp_next {
             self.player.xp -= self.player.xp_next;
             self.player.level += 1;
@@ -687,7 +781,7 @@ impl World {
                 continue;
             }
             let u = ((t - from) / (to - from).max(0.001)).clamp(0.0, 1.0);
-            self.wave_acc[w] += (rate.0 + (rate.1 - rate.0) * u) * DT * calm;
+            self.wave_acc[w] += (rate.0 + (rate.1 - rate.0) * u) * DT * calm * self.mods.spawn_rate;
             while self.wave_acc[w] >= 1.0 {
                 self.wave_acc[w] -= 1.0;
                 if self.horde.alive[kind as usize] < cap && self.horde.len() < max {
@@ -707,7 +801,8 @@ impl World {
                 (bd.enemy.clone(), bd.count, bd.pattern)
             };
             if let Some(k) = self.content.enemy_index(&enemy) {
-                self.spawn_burst(k, count, pattern);
+                let n = (count as f32 * self.mods.spawn_rate).round() as u32;
+                self.spawn_burst(k, n, pattern);
             }
         }
         for e in 0..self.map.elites.len() {
@@ -723,7 +818,7 @@ impl World {
                 self.horde.elite[i] = true;
                 self.horde.hp[i] *= r.elite_hp;
                 self.horde.max_hp[i] = self.horde.hp[i];
-                self.horde.power[i] = r.elite_damage;
+                self.horde.power[i] = r.elite_damage * self.mods.enemy_damage;
                 self.events.push(Event::EliteSpawned { pos: p });
             }
         }
@@ -736,7 +831,23 @@ impl World {
                         let p = self.player.pos + dir * 150.0;
                         let i = self.spawn_enemy(k, p);
                         self.boss_uid = Some(self.horde.uid[i]);
-                        self.events.push(Event::BossSpawned { pos: p, kind: k });
+                        self.events.push(Event::BossSpawned { pos: p, kind: k, last: false });
+                    }
+                }
+            }
+        }
+        if !self.final_done {
+            if let Some(b) = self.map.final_boss.clone() {
+                if t >= b.at {
+                    self.final_done = true;
+                    if let Some(k) = self.content.enemy_index(&b.enemy) {
+                        let dir = if self.player.facing.length_squared() > 0.1 { self.player.facing } else { Vec2::Y };
+                        let p = self.player.pos + dir * 160.0;
+                        let i = self.spawn_enemy(k, p);
+                        let uid = self.horde.uid[i];
+                        self.boss_uid = Some(uid);
+                        self.final_uid = Some(uid);
+                        self.events.push(Event::BossSpawned { pos: p, kind: k, last: true });
                     }
                 }
             }

@@ -1,304 +1,464 @@
 (
     image: "atlas.png",
-    width: 512,
-    height: 512,
+    width: 1024,
+    height: 1024,
     sprites: {
+        "agahnim": {
+            "cast_down": (frames: [(x: 506, y: 323, w: 32, h: 31, px: 16, py: 30)], fps: 8.0, mode: Loop),
+            "cast_side": (frames: [(x: 402, y: 323, w: 30, h: 32, px: 15, py: 31)], fps: 8.0, mode: Loop),
+            "cast_up": (frames: [(x: 602, y: 323, w: 28, h: 31, px: 14, py: 30)], fps: 8.0, mode: Loop),
+            "walk_down": (frames: [(x: 571, y: 323, w: 30, h: 31, px: 15, py: 30), (x: 981, y: 323, w: 28, h: 28, px: 14, py: 29)], fps: 3.0, mode: Loop),
+            "walk_side": (frames: [(x: 433, y: 323, w: 30, h: 32, px: 15, py: 31), (x: 631, y: 323, w: 25, h: 31, px: 12, py: 30)], fps: 3.0, mode: Loop),
+            "walk_up": (frames: [(x: 688, y: 323, w: 28, h: 30, px: 14, py: 29), (x: 164, y: 356, w: 26, h: 27, px: 13, py: 28)], fps: 3.0, mode: Loop),
+        },
         "archer": {
-            "walk_down": (frames: [(x: 1, y: 211, w: 22, h: 26, px: 11, py: 25), (x: 304, y: 181, w: 22, h: 27, px: 11, py: 26)], fps: 5.0, mode: Loop),
-            "walk_side": (frames: [(x: 231, y: 181, w: 26, h: 27, px: 13, py: 26), (x: 387, y: 181, w: 26, h: 26, px: 13, py: 25)], fps: 5.0, mode: Loop),
-            "walk_up": (frames: [(x: 447, y: 146, w: 25, h: 29, px: 12, py: 28), (x: 473, y: 146, w: 25, h: 29, px: 12, py: 28)], fps: 5.0, mode: Loop),
+            "walk_down": (frames: [(x: 466, y: 356, w: 22, h: 26, px: 11, py: 25), (x: 264, y: 356, w: 22, h: 27, px: 11, py: 26)], fps: 5.0, mode: Loop),
+            "walk_side": (frames: [(x: 191, y: 356, w: 26, h: 27, px: 13, py: 26), (x: 347, y: 356, w: 26, h: 26, px: 13, py: 25)], fps: 5.0, mode: Loop),
+            "walk_up": (frames: [(x: 862, y: 323, w: 25, h: 29, px: 12, py: 28), (x: 888, y: 323, w: 25, h: 29, px: 12, py: 28)], fps: 5.0, mode: Loop),
+        },
+        "armos_knight": {
+            "idle": (frames: [(x: 237, y: 323, w: 32, h: 32, px: 16, py: 31)], fps: 8.0, mode: Loop),
+        },
+        "armos_knight_red": {
+            "idle": (frames: [(x: 270, y: 323, w: 32, h: 32, px: 16, py: 31)], fps: 8.0, mode: Loop),
         },
         "beam_master": {
-            "0": (frames: [(x: 305, y: 281, w: 7, h: 16, px: 3, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 1016, y: 410, w: 7, h: 16, px: 3, py: 8)], fps: 8.0, mode: Loop),
         },
         "buzz_blob": {
-            "walk": (frames: [(x: 66, y: 263, w: 13, h: 17, px: 6, py: 16), (x: 258, y: 238, w: 12, h: 20, px: 6, py: 19), (x: 80, y: 263, w: 13, h: 17, px: 6, py: 16)], fps: 6.0, mode: PingPong),
+            "walk": (frames: [(x: 566, y: 385, w: 13, h: 17, px: 6, py: 16), (x: 256, y: 385, w: 12, h: 20, px: 6, py: 19), (x: 580, y: 385, w: 13, h: 17, px: 6, py: 16)], fps: 6.0, mode: PingPong),
         },
         "chest_big": {
-            "closed": (frames: [(x: 384, y: 211, w: 32, h: 24, px: 16, py: 23)], fps: 8.0, mode: Loop),
-            "open": (frames: [(x: 417, y: 211, w: 32, h: 24, px: 16, py: 23)], fps: 8.0, mode: Loop),
+            "closed": (frames: [(x: 849, y: 356, w: 32, h: 24, px: 16, py: 23)], fps: 8.0, mode: Loop),
+            "open": (frames: [(x: 882, y: 356, w: 32, h: 24, px: 16, py: 23)], fps: 8.0, mode: Loop),
         },
         "chest_small": {
-            "closed": (frames: [(x: 153, y: 263, w: 16, h: 16, px: 8, py: 15)], fps: 8.0, mode: Loop),
-            "open": (frames: [(x: 170, y: 263, w: 16, h: 16, px: 8, py: 15)], fps: 8.0, mode: Loop),
+            "closed": (frames: [(x: 755, y: 385, w: 16, h: 16, px: 8, py: 15)], fps: 8.0, mode: Loop),
+            "open": (frames: [(x: 772, y: 385, w: 16, h: 16, px: 8, py: 15)], fps: 8.0, mode: Loop),
         },
         "crow": {
-            "fly": (frames: [(x: 329, y: 281, w: 16, h: 15, px: 8, py: 7), (x: 119, y: 263, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
-            "idle": (frames: [(x: 401, y: 238, w: 16, h: 17, px: 8, py: 16)], fps: 8.0, mode: Loop),
+            "fly": (frames: [(x: 17, y: 427, w: 16, h: 15, px: 8, py: 7), (x: 721, y: 385, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
+            "idle": (frames: [(x: 399, y: 385, w: 16, h: 17, px: 8, py: 16)], fps: 8.0, mode: Loop),
         },
         "fairy": {
-            "0": (frames: [(x: 187, y: 263, w: 16, h: 16, px: 8, py: 8), (x: 204, y: 263, w: 16, h: 16, px: 8, py: 8)], fps: 10.0, mode: Loop),
+            "0": (frames: [(x: 789, y: 385, w: 16, h: 16, px: 8, py: 8), (x: 806, y: 385, w: 16, h: 16, px: 8, py: 8)], fps: 10.0, mode: Loop),
         },
         "fx_byrna": {
-            "0": (frames: [(x: 476, y: 263, w: 16, h: 16, px: 8, py: 8), (x: 493, y: 263, w: 16, h: 16, px: 8, py: 8), (x: 1, y: 281, w: 16, h: 16, px: 8, py: 8), (x: 18, y: 281, w: 16, h: 16, px: 8, py: 8)], fps: 12.0, mode: Loop),
+            "0": (frames: [(x: 69, y: 410, w: 16, h: 16, px: 8, py: 8), (x: 86, y: 410, w: 16, h: 16, px: 8, py: 8), (x: 103, y: 410, w: 16, h: 16, px: 8, py: 8), (x: 120, y: 410, w: 16, h: 16, px: 8, py: 8)], fps: 12.0, mode: Loop),
+        },
+        "fx_canopy": {
+            "0": (frames: [(x: 1, y: 1, w: 256, h: 256, px: 0, py: 0)], fps: 8.0, mode: Loop),
         },
         "fx_dust": {
-            "0": (frames: [(x: 170, y: 382, w: 8, h: 8, px: 4, py: 4), (x: 179, y: 382, w: 8, h: 8, px: 4, py: 4), (x: 188, y: 382, w: 8, h: 8, px: 4, py: 4)], fps: 14.0, mode: Once),
+            "0": (frames: [(x: 557, y: 472, w: 8, h: 8, px: 4, py: 4), (x: 566, y: 472, w: 8, h: 8, px: 4, py: 4), (x: 575, y: 472, w: 8, h: 8, px: 4, py: 4)], fps: 14.0, mode: Once),
         },
         "fx_explosion": {
-            "0": (frames: [(x: 73, y: 298, w: 14, h: 14, px: 7, py: 7), (x: 271, y: 146, w: 30, h: 30, px: 15, py: 15), (x: 341, y: 1, w: 39, h: 39, px: 19, py: 19), (x: 418, y: 146, w: 28, h: 30, px: 14, py: 15), (x: 88, y: 298, w: 14, h: 14, px: 7, py: 7)], fps: 14.0, mode: Once),
+            "0": (frames: [(x: 390, y: 427, w: 14, h: 14, px: 7, py: 7), (x: 657, y: 323, w: 30, h: 30, px: 15, py: 15), (x: 650, y: 258, w: 39, h: 39, px: 19, py: 19), (x: 833, y: 323, w: 28, h: 30, px: 14, py: 15), (x: 405, y: 427, w: 14, h: 14, px: 7, py: 7)], fps: 14.0, mode: Once),
         },
         "fx_flame": {
-            "0": (frames: [(x: 35, y: 281, w: 16, h: 16, px: 8, py: 15), (x: 52, y: 281, w: 16, h: 16, px: 8, py: 15)], fps: 10.0, mode: Loop),
+            "0": (frames: [(x: 137, y: 410, w: 16, h: 16, px: 8, py: 15), (x: 154, y: 410, w: 16, h: 16, px: 8, py: 15)], fps: 10.0, mode: Loop),
         },
         "fx_flame_fade": {
-            "0": (frames: [(x: 143, y: 382, w: 14, h: 8, px: 7, py: 15), (x: 242, y: 382, w: 13, h: 7, px: 6, py: 6)], fps: 8.0, mode: Once),
+            "0": (frames: [(x: 521, y: 472, w: 14, h: 8, px: 7, py: 15), (x: 656, y: 472, w: 13, h: 7, px: 6, py: 6)], fps: 8.0, mode: Once),
+        },
+        "fx_fog": {
+            "0": (frames: [(x: 258, y: 1, w: 256, h: 256, px: 0, py: 0)], fps: 8.0, mode: Loop),
         },
         "fx_ice_shatter": {
-            "0": (frames: [(x: 425, y: 263, w: 16, h: 16, px: 8, py: 8), (x: 442, y: 263, w: 16, h: 16, px: 8, py: 8)], fps: 12.0, mode: Once),
+            "0": (frames: [(x: 18, y: 410, w: 16, h: 16, px: 8, py: 8), (x: 35, y: 410, w: 16, h: 16, px: 8, py: 8)], fps: 12.0, mode: Once),
         },
         "fx_poof": {
-            "0": (frames: [(x: 197, y: 382, w: 8, h: 8, px: 4, py: 4), (x: 346, y: 281, w: 16, h: 15, px: 8, py: 7), (x: 58, y: 298, w: 14, h: 14, px: 7, py: 7), (x: 206, y: 382, w: 8, h: 8, px: 4, py: 4), (x: 215, y: 382, w: 8, h: 8, px: 4, py: 4)], fps: 16.0, mode: Once),
+            "0": (frames: [(x: 584, y: 472, w: 8, h: 8, px: 4, py: 4), (x: 34, y: 427, w: 16, h: 15, px: 8, py: 7), (x: 375, y: 427, w: 14, h: 14, px: 7, py: 7), (x: 593, y: 472, w: 8, h: 8, px: 4, py: 4), (x: 602, y: 472, w: 8, h: 8, px: 4, py: 4)], fps: 16.0, mode: Once),
+        },
+        "fx_rain_drop": {
+            "0": (frames: [(x: 1007, y: 410, w: 8, h: 16, px: 0, py: 16)], fps: 8.0, mode: Loop),
+        },
+        "fx_rain_splash": {
+            "0": (frames: [(x: 629, y: 472, w: 8, h: 8, px: 4, py: 4), (x: 638, y: 472, w: 8, h: 8, px: 4, py: 4), (x: 647, y: 472, w: 8, h: 8, px: 4, py: 4)], fps: 12.0, mode: Once),
         },
         "fx_spark": {
-            "0": (frames: [(x: 272, y: 263, w: 16, h: 16, px: 8, py: 8), (x: 224, y: 382, w: 8, h: 8, px: 4, py: 4)], fps: 20.0, mode: Once),
+            "0": (frames: [(x: 874, y: 385, w: 16, h: 16, px: 8, py: 8), (x: 611, y: 472, w: 8, h: 8, px: 4, py: 4)], fps: 20.0, mode: Once),
+        },
+        "ganon": {
+            "walk_down": (frames: [(x: 170, y: 258, w: 48, h: 41, px: 24, py: 40), (x: 454, y: 258, w: 48, h: 40, px: 24, py: 39), (x: 219, y: 258, w: 48, h: 41, px: 24, py: 40), (x: 503, y: 258, w: 48, h: 40, px: 24, py: 39)], fps: 5.0, mode: Loop),
+            "walk_side": (frames: [(x: 268, y: 258, w: 48, h: 41, px: 24, py: 40), (x: 552, y: 258, w: 48, h: 40, px: 24, py: 39), (x: 317, y: 258, w: 48, h: 41, px: 24, py: 40), (x: 601, y: 258, w: 48, h: 40, px: 24, py: 39)], fps: 5.0, mode: Loop),
+            "walk_up": (frames: [(x: 82, y: 258, w: 43, h: 42, px: 21, py: 41), (x: 366, y: 258, w: 43, h: 41, px: 21, py: 40), (x: 126, y: 258, w: 43, h: 42, px: 21, py: 41), (x: 410, y: 258, w: 43, h: 41, px: 21, py: 40)], fps: 5.0, mode: Loop),
         },
         "hardhat": {
-            "walk": (frames: [(x: 224, y: 238, w: 16, h: 22, px: 8, py: 21), (x: 241, y: 238, w: 16, h: 21, px: 8, py: 20)], fps: 5.0, mode: Loop),
+            "walk": (frames: [(x: 222, y: 385, w: 16, h: 22, px: 8, py: 21), (x: 239, y: 385, w: 16, h: 21, px: 8, py: 20)], fps: 5.0, mode: Loop),
         },
         "heart_big": {
-            "0": (frames: [(x: 437, y: 314, w: 14, h: 13, px: 7, py: 12)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 285, y: 444, w: 14, h: 13, px: 7, py: 12)], fps: 8.0, mode: Loop),
         },
         "heart_container": {
-            "0": (frames: [(x: 452, y: 314, w: 14, h: 13, px: 7, py: 12)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 300, y: 444, w: 14, h: 13, px: 7, py: 12)], fps: 8.0, mode: Loop),
         },
         "heart_small": {
-            "0": (frames: [(x: 256, y: 382, w: 8, h: 7, px: 4, py: 6)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 670, y: 472, w: 8, h: 7, px: 4, py: 6)], fps: 8.0, mode: Loop),
         },
         "hinox": {
-            "throw_down": (frames: [(x: 186, y: 146, w: 33, h: 32, px: 16, py: 31), (x: 116, y: 146, w: 34, h: 32, px: 17, py: 31)], fps: 6.0, mode: Loop),
-            "throw_side": (frames: [(x: 25, y: 181, w: 22, h: 29, px: 11, py: 28), (x: 1, y: 181, w: 23, h: 29, px: 11, py: 28)], fps: 6.0, mode: Loop),
-            "throw_up": (frames: [(x: 220, y: 146, w: 33, h: 32, px: 16, py: 31), (x: 151, y: 146, w: 34, h: 32, px: 17, py: 31)], fps: 6.0, mode: Loop),
-            "walk_down": (frames: [(x: 302, y: 146, w: 28, h: 30, px: 14, py: 29), (x: 331, y: 146, w: 28, h: 30, px: 14, py: 29)], fps: 4.0, mode: Loop),
-            "walk_side": (frames: [(x: 48, y: 181, w: 19, h: 29, px: 9, py: 28), (x: 68, y: 181, w: 19, h: 28, px: 9, py: 27)], fps: 4.0, mode: Loop),
-            "walk_up": (frames: [(x: 360, y: 146, w: 28, h: 30, px: 14, py: 29), (x: 389, y: 146, w: 28, h: 30, px: 14, py: 29)], fps: 4.0, mode: Loop),
+            "throw_down": (frames: [(x: 169, y: 323, w: 33, h: 32, px: 16, py: 31), (x: 99, y: 323, w: 34, h: 32, px: 17, py: 31)], fps: 6.0, mode: Loop),
+            "throw_side": (frames: [(x: 938, y: 323, w: 22, h: 29, px: 11, py: 28), (x: 914, y: 323, w: 23, h: 29, px: 11, py: 28)], fps: 6.0, mode: Loop),
+            "throw_up": (frames: [(x: 203, y: 323, w: 33, h: 32, px: 16, py: 31), (x: 134, y: 323, w: 34, h: 32, px: 17, py: 31)], fps: 6.0, mode: Loop),
+            "walk_down": (frames: [(x: 717, y: 323, w: 28, h: 30, px: 14, py: 29), (x: 746, y: 323, w: 28, h: 30, px: 14, py: 29)], fps: 4.0, mode: Loop),
+            "walk_side": (frames: [(x: 961, y: 323, w: 19, h: 29, px: 9, py: 28), (x: 1, y: 356, w: 19, h: 28, px: 9, py: 27)], fps: 4.0, mode: Loop),
+            "walk_up": (frames: [(x: 775, y: 323, w: 28, h: 30, px: 14, py: 29), (x: 804, y: 323, w: 28, h: 30, px: 14, py: 29)], fps: 4.0, mode: Loop),
         },
         "hud_heart": {
-            "empty": (frames: [(x: 265, y: 382, w: 7, h: 7, px: 0, py: 0)], fps: 8.0, mode: Loop),
-            "full": (frames: [(x: 273, y: 382, w: 7, h: 7, px: 0, py: 0)], fps: 8.0, mode: Loop),
-            "half": (frames: [(x: 281, y: 382, w: 7, h: 7, px: 0, py: 0)], fps: 8.0, mode: Loop),
+            "empty": (frames: [(x: 679, y: 472, w: 7, h: 7, px: 0, py: 0)], fps: 8.0, mode: Loop),
+            "full": (frames: [(x: 687, y: 472, w: 7, h: 7, px: 0, py: 0)], fps: 8.0, mode: Loop),
+            "half": (frames: [(x: 695, y: 472, w: 7, h: 7, px: 0, py: 0)], fps: 8.0, mode: Loop),
+        },
+        "icon_big_key": {
+            "0": (frames: [(x: 772, y: 410, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
+        },
+        "icon_blue_mail": {
+            "0": (frames: [(x: 324, y: 427, w: 16, h: 14, px: 8, py: 7)], fps: 8.0, mode: Loop),
+        },
+        "icon_blue_potion": {
+            "0": (frames: [(x: 171, y: 410, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_bomb": {
-            "0": (frames: [(x: 103, y: 298, w: 13, h: 14, px: 6, py: 7)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 420, y: 427, w: 13, h: 14, px: 6, py: 7)], fps: 8.0, mode: Loop),
         },
         "icon_boomerang": {
-            "0": (frames: [(x: 130, y: 356, w: 8, h: 12, px: 4, py: 6)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 502, y: 459, w: 8, h: 12, px: 4, py: 6)], fps: 8.0, mode: Loop),
         },
         "icon_boots": {
-            "0": (frames: [(x: 396, y: 281, w: 14, h: 15, px: 7, py: 7)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 151, y: 427, w: 14, h: 15, px: 7, py: 7)], fps: 8.0, mode: Loop),
+        },
+        "icon_bottle": {
+            "0": (frames: [(x: 787, y: 410, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_bow": {
-            "0": (frames: [(x: 313, y: 281, w: 7, h: 16, px: 3, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 1, y: 427, w: 7, h: 16, px: 3, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_bug_net": {
-            "0": (frames: [(x: 173, y: 281, w: 13, h: 16, px: 6, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 875, y: 410, w: 13, h: 16, px: 6, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_byrna": {
-            "0": (frames: [(x: 278, y: 281, w: 8, h: 16, px: 4, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 980, y: 410, w: 8, h: 16, px: 4, py: 8)], fps: 8.0, mode: Loop),
+        },
+        "icon_crystal": {
+            "0": (frames: [(x: 97, y: 444, w: 10, h: 14, px: 5, py: 7)], fps: 8.0, mode: Loop),
         },
         "icon_fairy": {
-            "0": (frames: [(x: 408, y: 263, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 1, y: 410, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
+        },
+        "icon_fairy_bottle": {
+            "0": (frames: [(x: 802, y: 410, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_fire_rod": {
-            "0": (frames: [(x: 287, y: 281, w: 8, h: 16, px: 4, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 989, y: 410, w: 8, h: 16, px: 4, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_glove": {
-            "0": (frames: [(x: 85, y: 281, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 712, y: 410, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
+        },
+        "icon_green_mail": {
+            "0": (frames: [(x: 341, y: 427, w: 16, h: 14, px: 8, py: 7)], fps: 8.0, mode: Loop),
+        },
+        "icon_green_potion": {
+            "0": (frames: [(x: 817, y: 410, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_half_magic": {
-            "0": (frames: [(x: 411, y: 281, w: 8, h: 15, px: 4, py: 7)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 166, y: 427, w: 8, h: 15, px: 4, py: 7)], fps: 8.0, mode: Loop),
         },
         "icon_hammer": {
-            "0": (frames: [(x: 420, y: 281, w: 8, h: 15, px: 4, py: 7)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 175, y: 427, w: 8, h: 15, px: 4, py: 7)], fps: 8.0, mode: Loop),
         },
         "icon_heart": {
-            "0": (frames: [(x: 467, y: 314, w: 14, h: 13, px: 7, py: 6)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 315, y: 444, w: 14, h: 13, px: 7, py: 6)], fps: 8.0, mode: Loop),
         },
         "icon_heart_container": {
-            "0": (frames: [(x: 482, y: 314, w: 14, h: 13, px: 7, py: 6)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 330, y: 444, w: 14, h: 13, px: 7, py: 6)], fps: 8.0, mode: Loop),
         },
         "icon_ice_rod": {
-            "0": (frames: [(x: 296, y: 281, w: 8, h: 16, px: 4, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 998, y: 410, w: 8, h: 16, px: 4, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_lamp": {
-            "0": (frames: [(x: 265, y: 281, w: 12, h: 16, px: 6, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 967, y: 410, w: 12, h: 16, px: 6, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_magic_boomerang": {
-            "0": (frames: [(x: 139, y: 356, w: 8, h: 12, px: 4, py: 6)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 511, y: 459, w: 8, h: 12, px: 4, py: 6)], fps: 8.0, mode: Loop),
         },
         "icon_master_sword": {
-            "0": (frames: [(x: 321, y: 281, w: 7, h: 16, px: 3, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 9, y: 427, w: 7, h: 16, px: 3, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_medallion_bombos": {
-            "0": (frames: [(x: 221, y: 263, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 823, y: 385, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_medallion_ether": {
-            "0": (frames: [(x: 238, y: 263, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 840, y: 385, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_medallion_quake": {
-            "0": (frames: [(x: 255, y: 263, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 857, y: 385, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_mirror_shield": {
-            "0": (frames: [(x: 100, y: 281, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 727, y: 410, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_moon_pearl": {
-            "0": (frames: [(x: 358, y: 329, w: 12, h: 12, px: 6, py: 6)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 728, y: 444, w: 12, h: 12, px: 6, py: 6)], fps: 8.0, mode: Loop),
+        },
+        "icon_pearl": {
+            "0": (frames: [(x: 793, y: 444, w: 12, h: 12, px: 6, py: 6)], fps: 8.0, mode: Loop),
+        },
+        "icon_pendant_courage": {
+            "0": (frames: [(x: 68, y: 427, w: 16, h: 15, px: 8, py: 7)], fps: 8.0, mode: Loop),
+        },
+        "icon_pendant_power": {
+            "0": (frames: [(x: 85, y: 427, w: 16, h: 15, px: 8, py: 7)], fps: 8.0, mode: Loop),
+        },
+        "icon_pendant_wisdom": {
+            "0": (frames: [(x: 102, y: 427, w: 16, h: 15, px: 8, py: 7)], fps: 8.0, mode: Loop),
         },
         "icon_quiver": {
-            "0": (frames: [(x: 115, y: 281, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 742, y: 410, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
+        },
+        "icon_red_mail": {
+            "0": (frames: [(x: 358, y: 427, w: 16, h: 14, px: 8, py: 7)], fps: 8.0, mode: Loop),
+        },
+        "icon_red_potion": {
+            "0": (frames: [(x: 832, y: 410, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_rupees": {
-            "0": (frames: [(x: 370, y: 314, w: 8, h: 14, px: 4, py: 7)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 189, y: 444, w: 8, h: 14, px: 4, py: 7)], fps: 8.0, mode: Loop),
         },
         "icon_silver_bow": {
-            "0": (frames: [(x: 380, y: 281, w: 15, h: 15, px: 7, py: 7)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 135, y: 427, w: 15, h: 15, px: 7, py: 7)], fps: 8.0, mode: Loop),
         },
         "icon_super_bomb": {
-            "0": (frames: [(x: 130, y: 281, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 757, y: 410, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
         },
         "icon_sword": {
-            "0": (frames: [(x: 36, y: 369, w: 6, h: 12, px: 3, py: 6)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 919, y: 459, w: 6, h: 12, px: 3, py: 6)], fps: 8.0, mode: Loop),
         },
         "keese": {
-            "fly": (frames: [(x: 159, y: 298, w: 12, h: 14, px: 6, py: 7), (x: 497, y: 314, w: 12, h: 13, px: 6, py: 6), (x: 420, y: 314, w: 16, h: 13, px: 8, py: 6)], fps: 12.0, mode: PingPong),
+            "fly": (frames: [(x: 476, y: 427, w: 12, h: 14, px: 6, py: 7), (x: 345, y: 444, w: 12, h: 13, px: 6, py: 6), (x: 268, y: 444, w: 16, h: 13, px: 8, py: 6)], fps: 12.0, mode: PingPong),
+        },
+        "kholdstare": {
+            "idle": (frames: [(x: 1, y: 258, w: 80, h: 64, px: 40, py: 63)], fps: 8.0, mode: Loop),
+        },
+        "lanmola": {
+            "head": (frames: [(x: 619, y: 385, w: 16, h: 16, px: 8, py: 15), (x: 636, y: 385, w: 16, h: 16, px: 8, py: 15), (x: 653, y: 385, w: 16, h: 16, px: 8, py: 15), (x: 670, y: 385, w: 16, h: 16, px: 8, py: 15), (x: 687, y: 385, w: 16, h: 16, px: 8, py: 15)], fps: 8.0, mode: Loop),
+        },
+        "lanmola_body": {
+            "0": (frames: [(x: 119, y: 427, w: 15, h: 15, px: 7, py: 14)], fps: 8.0, mode: Loop),
         },
         "link": {
-            "idle_down": (frames: [(x: 37, y: 238, w: 16, h: 24, px: 8, py: 23)], fps: 8.0, mode: Loop),
-            "idle_side": (frames: [(x: 475, y: 211, w: 17, h: 24, px: 8, py: 23)], fps: 8.0, mode: Loop),
-            "idle_up": (frames: [(x: 54, y: 238, w: 16, h: 24, px: 8, py: 23)], fps: 8.0, mode: Loop),
-            "walk_down": (frames: [(x: 71, y: 238, w: 16, h: 24, px: 8, py: 23), (x: 214, y: 211, w: 16, h: 25, px: 8, py: 24), (x: 24, y: 211, w: 16, h: 26, px: 8, py: 25), (x: 88, y: 238, w: 16, h: 24, px: 8, py: 23), (x: 105, y: 238, w: 16, h: 24, px: 8, py: 23), (x: 231, y: 211, w: 16, h: 25, px: 8, py: 24), (x: 41, y: 211, w: 16, h: 26, px: 8, py: 25), (x: 122, y: 238, w: 16, h: 24, px: 8, py: 23)], fps: 16.0, mode: Loop),
-            "walk_side": (frames: [(x: 178, y: 211, w: 17, h: 25, px: 8, py: 24), (x: 248, y: 211, w: 16, h: 25, px: 8, py: 24), (x: 493, y: 211, w: 17, h: 24, px: 8, py: 23), (x: 1, y: 238, w: 17, h: 24, px: 8, py: 23), (x: 196, y: 211, w: 17, h: 25, px: 8, py: 24), (x: 265, y: 211, w: 16, h: 25, px: 8, py: 24), (x: 139, y: 238, w: 16, h: 24, px: 8, py: 23), (x: 19, y: 238, w: 17, h: 24, px: 8, py: 23)], fps: 16.0, mode: Loop),
-            "walk_up": (frames: [(x: 156, y: 238, w: 16, h: 24, px: 8, py: 23), (x: 282, y: 211, w: 16, h: 25, px: 8, py: 24), (x: 299, y: 211, w: 16, h: 25, px: 8, py: 24), (x: 173, y: 238, w: 16, h: 24, px: 8, py: 23), (x: 190, y: 238, w: 16, h: 24, px: 8, py: 23), (x: 316, y: 211, w: 16, h: 25, px: 8, py: 24), (x: 333, y: 211, w: 16, h: 25, px: 8, py: 24), (x: 207, y: 238, w: 16, h: 24, px: 8, py: 23)], fps: 16.0, mode: Loop),
+            "idle_down": (frames: [(x: 1, y: 385, w: 16, h: 24, px: 8, py: 23)], fps: 8.0, mode: Loop),
+            "idle_side": (frames: [(x: 940, y: 356, w: 17, h: 24, px: 8, py: 23)], fps: 8.0, mode: Loop),
+            "idle_up": (frames: [(x: 18, y: 385, w: 16, h: 24, px: 8, py: 23)], fps: 8.0, mode: Loop),
+            "walk_down": (frames: [(x: 35, y: 385, w: 16, h: 24, px: 8, py: 23), (x: 679, y: 356, w: 16, h: 25, px: 8, py: 24), (x: 489, y: 356, w: 16, h: 26, px: 8, py: 25), (x: 52, y: 385, w: 16, h: 24, px: 8, py: 23), (x: 69, y: 385, w: 16, h: 24, px: 8, py: 23), (x: 696, y: 356, w: 16, h: 25, px: 8, py: 24), (x: 506, y: 356, w: 16, h: 26, px: 8, py: 25), (x: 86, y: 385, w: 16, h: 24, px: 8, py: 23)], fps: 16.0, mode: Loop),
+            "walk_side": (frames: [(x: 643, y: 356, w: 17, h: 25, px: 8, py: 24), (x: 713, y: 356, w: 16, h: 25, px: 8, py: 24), (x: 958, y: 356, w: 17, h: 24, px: 8, py: 23), (x: 976, y: 356, w: 17, h: 24, px: 8, py: 23), (x: 661, y: 356, w: 17, h: 25, px: 8, py: 24), (x: 730, y: 356, w: 16, h: 25, px: 8, py: 24), (x: 103, y: 385, w: 16, h: 24, px: 8, py: 23), (x: 994, y: 356, w: 17, h: 24, px: 8, py: 23)], fps: 16.0, mode: Loop),
+            "walk_up": (frames: [(x: 120, y: 385, w: 16, h: 24, px: 8, py: 23), (x: 747, y: 356, w: 16, h: 25, px: 8, py: 24), (x: 764, y: 356, w: 16, h: 25, px: 8, py: 24), (x: 137, y: 385, w: 16, h: 24, px: 8, py: 23), (x: 154, y: 385, w: 16, h: 24, px: 8, py: 23), (x: 781, y: 356, w: 16, h: 25, px: 8, py: 24), (x: 798, y: 356, w: 16, h: 25, px: 8, py: 24), (x: 171, y: 385, w: 16, h: 24, px: 8, py: 23)], fps: 16.0, mode: Loop),
         },
         "moblin": {
-            "walk_down": (frames: [(x: 88, y: 181, w: 16, h: 28, px: 8, py: 24), (x: 254, y: 146, w: 16, h: 32, px: 8, py: 24)], fps: 4.0, mode: Loop),
-            "walk_side": (frames: [(x: 450, y: 211, w: 24, h: 24, px: 8, py: 23), (x: 120, y: 211, w: 19, h: 25, px: 8, py: 24)], fps: 4.0, mode: Loop),
-            "walk_up": (frames: [(x: 140, y: 211, w: 18, h: 25, px: 9, py: 24), (x: 159, y: 211, w: 18, h: 25, px: 9, py: 24)], fps: 4.0, mode: Loop),
+            "walk_down": (frames: [(x: 21, y: 356, w: 16, h: 28, px: 8, py: 24), (x: 489, y: 323, w: 16, h: 32, px: 8, py: 24)], fps: 4.0, mode: Loop),
+            "walk_side": (frames: [(x: 915, y: 356, w: 24, h: 24, px: 8, py: 23), (x: 585, y: 356, w: 19, h: 25, px: 8, py: 24)], fps: 4.0, mode: Loop),
+            "walk_up": (frames: [(x: 605, y: 356, w: 18, h: 25, px: 9, py: 24), (x: 624, y: 356, w: 18, h: 25, px: 9, py: 24)], fps: 4.0, mode: Loop),
+        },
+        "mothula": {
+            "fly": (frames: [(x: 920, y: 258, w: 64, h: 32, px: 32, py: 35), (x: 1, y: 323, w: 48, h: 32, px: 24, py: 31), (x: 464, y: 323, w: 24, h: 32, px: 12, py: 33), (x: 50, y: 323, w: 48, h: 32, px: 24, py: 31)], fps: 10.0, mode: Loop),
         },
         "octorok": {
-            "shoot_down": (frames: [(x: 329, y: 238, w: 17, h: 17, px: 8, py: 16)], fps: 8.0, mode: Loop),
-            "shoot_side": (frames: [(x: 347, y: 238, w: 17, h: 17, px: 8, py: 16)], fps: 8.0, mode: Loop),
-            "shoot_up": (frames: [(x: 365, y: 238, w: 17, h: 17, px: 8, py: 16)], fps: 8.0, mode: Loop),
-            "walk_down": (frames: [(x: 418, y: 238, w: 16, h: 17, px: 8, py: 16), (x: 435, y: 238, w: 16, h: 17, px: 8, py: 16)], fps: 6.0, mode: Loop),
-            "walk_side": (frames: [(x: 452, y: 238, w: 16, h: 17, px: 8, py: 16), (x: 383, y: 238, w: 17, h: 17, px: 8, py: 16)], fps: 6.0, mode: Loop),
-            "walk_up": (frames: [(x: 469, y: 238, w: 16, h: 17, px: 8, py: 16), (x: 52, y: 263, w: 13, h: 17, px: 6, py: 16)], fps: 6.0, mode: Loop),
+            "shoot_down": (frames: [(x: 327, y: 385, w: 17, h: 17, px: 8, py: 16)], fps: 8.0, mode: Loop),
+            "shoot_side": (frames: [(x: 345, y: 385, w: 17, h: 17, px: 8, py: 16)], fps: 8.0, mode: Loop),
+            "shoot_up": (frames: [(x: 363, y: 385, w: 17, h: 17, px: 8, py: 16)], fps: 8.0, mode: Loop),
+            "walk_down": (frames: [(x: 416, y: 385, w: 16, h: 17, px: 8, py: 16), (x: 433, y: 385, w: 16, h: 17, px: 8, py: 16)], fps: 6.0, mode: Loop),
+            "walk_side": (frames: [(x: 450, y: 385, w: 16, h: 17, px: 8, py: 16), (x: 381, y: 385, w: 17, h: 17, px: 8, py: 16)], fps: 6.0, mode: Loop),
+            "walk_up": (frames: [(x: 467, y: 385, w: 16, h: 17, px: 8, py: 16), (x: 552, y: 385, w: 13, h: 17, px: 6, py: 16)], fps: 6.0, mode: Loop),
         },
         "popo": {
-            "walk": (frames: [(x: 486, y: 238, w: 16, h: 17, px: 8, py: 16), (x: 1, y: 263, w: 16, h: 17, px: 8, py: 16), (x: 18, y: 263, w: 16, h: 17, px: 8, py: 16), (x: 35, y: 263, w: 16, h: 17, px: 8, py: 16)], fps: 6.0, mode: Loop),
+            "walk": (frames: [(x: 484, y: 385, w: 16, h: 17, px: 8, py: 16), (x: 501, y: 385, w: 16, h: 17, px: 8, py: 16), (x: 518, y: 385, w: 16, h: 17, px: 8, py: 16), (x: 535, y: 385, w: 16, h: 17, px: 8, py: 16)], fps: 6.0, mode: Loop),
         },
         "proj_arrow": {
-            "0": (frames: [(x: 410, y: 382, w: 15, h: 5, px: 7, py: 2)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 824, y: 472, w: 15, h: 5, px: 7, py: 2)], fps: 8.0, mode: Loop),
         },
         "proj_bomb": {
-            "0": (frames: [(x: 131, y: 298, w: 13, h: 14, px: 6, py: 13)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 448, y: 427, w: 13, h: 14, px: 6, py: 13)], fps: 8.0, mode: Loop),
         },
         "proj_bomb_red": {
-            "0": (frames: [(x: 145, y: 298, w: 13, h: 14, px: 6, py: 13)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 462, y: 427, w: 13, h: 14, px: 6, py: 13)], fps: 8.0, mode: Loop),
         },
         "proj_boomerang": {
-            "0": (frames: [(x: 148, y: 356, w: 8, h: 12, px: 4, py: 6)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 520, y: 459, w: 8, h: 12, px: 4, py: 6)], fps: 8.0, mode: Loop),
         },
         "proj_fireball": {
-            "0": (frames: [(x: 371, y: 329, w: 12, h: 12, px: 6, py: 6), (x: 384, y: 329, w: 12, h: 12, px: 6, py: 6), (x: 397, y: 329, w: 12, h: 12, px: 6, py: 6), (x: 410, y: 329, w: 12, h: 12, px: 6, py: 6)], fps: 14.0, mode: Loop),
+            "0": (frames: [(x: 741, y: 444, w: 12, h: 12, px: 6, py: 6), (x: 754, y: 444, w: 12, h: 12, px: 6, py: 6), (x: 767, y: 444, w: 12, h: 12, px: 6, py: 6), (x: 780, y: 444, w: 12, h: 12, px: 6, py: 6)], fps: 14.0, mode: Loop),
         },
         "proj_ice": {
-            "0": (frames: [(x: 459, y: 263, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 52, y: 410, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
         },
         "proj_magic_boomerang": {
-            "0": (frames: [(x: 157, y: 356, w: 8, h: 12, px: 4, py: 6)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 529, y: 459, w: 8, h: 12, px: 4, py: 6)], fps: 8.0, mode: Loop),
+        },
+        "prop_boulder": {
+            "0": (frames: [(x: 539, y: 323, w: 31, h: 31, px: 15, py: 29)], fps: 8.0, mode: Loop),
+        },
+        "prop_bush": {
+            "0": (frames: [(x: 188, y: 410, w: 16, h: 16, px: 8, py: 15)], fps: 8.0, mode: Loop),
+        },
+        "prop_cactus": {
+            "0": (frames: [(x: 188, y: 385, w: 16, h: 24, px: 8, py: 23)], fps: 8.0, mode: Loop),
+        },
+        "prop_desert_plant": {
+            "0": (frames: [(x: 205, y: 385, w: 16, h: 24, px: 8, py: 23)], fps: 8.0, mode: Loop),
+        },
+        "prop_skull": {
+            "0": (frames: [(x: 303, y: 323, w: 32, h: 32, px: 16, py: 30)], fps: 8.0, mode: Loop),
+        },
+        "prop_stump": {
+            "0": (frames: [(x: 336, y: 323, w: 32, h: 32, px: 16, py: 30)], fps: 8.0, mode: Loop),
+        },
+        "prop_stump_dark": {
+            "0": (frames: [(x: 369, y: 323, w: 32, h: 32, px: 16, py: 30)], fps: 8.0, mode: Loop),
+        },
+        "prop_tree": {
+            "0": (frames: [(x: 855, y: 1, w: 64, h: 80, px: 32, py: 77)], fps: 8.0, mode: Loop),
+        },
+        "prop_tree_dark": {
+            "0": (frames: [(x: 920, y: 1, w: 64, h: 80, px: 32, py: 77)], fps: 8.0, mode: Loop),
         },
         "rat": {
-            "walk_down": (frames: [(x: 187, y: 281, w: 12, h: 16, px: 6, py: 15), (x: 200, y: 281, w: 12, h: 16, px: 6, py: 15)], fps: 8.0, mode: Loop),
-            "walk_side": (frames: [(x: 78, y: 369, w: 16, h: 11, px: 8, py: 10), (x: 341, y: 329, w: 16, h: 12, px: 8, py: 11)], fps: 8.0, mode: Loop),
-            "walk_up": (frames: [(x: 213, y: 281, w: 12, h: 16, px: 6, py: 15), (x: 226, y: 281, w: 12, h: 16, px: 6, py: 15)], fps: 8.0, mode: Loop),
+            "walk_down": (frames: [(x: 889, y: 410, w: 12, h: 16, px: 6, py: 15), (x: 902, y: 410, w: 12, h: 16, px: 6, py: 15)], fps: 8.0, mode: Loop),
+            "walk_side": (frames: [(x: 961, y: 459, w: 16, h: 11, px: 8, py: 10), (x: 698, y: 444, w: 16, h: 12, px: 8, py: 11)], fps: 8.0, mode: Loop),
+            "walk_up": (frames: [(x: 915, y: 410, w: 12, h: 16, px: 6, py: 15), (x: 928, y: 410, w: 12, h: 16, px: 6, py: 15)], fps: 8.0, mode: Loop),
         },
         "rope": {
-            "walk_down": (frames: [(x: 145, y: 281, w: 13, h: 16, px: 6, py: 15), (x: 159, y: 281, w: 13, h: 16, px: 6, py: 15)], fps: 6.0, mode: Loop),
-            "walk_side": (frames: [(x: 69, y: 281, w: 15, h: 16, px: 7, py: 15), (x: 136, y: 263, w: 16, h: 16, px: 8, py: 15)], fps: 6.0, mode: Loop),
-            "walk_up": (frames: [(x: 239, y: 281, w: 12, h: 16, px: 6, py: 15), (x: 252, y: 281, w: 12, h: 16, px: 6, py: 15)], fps: 6.0, mode: Loop),
+            "walk_down": (frames: [(x: 847, y: 410, w: 13, h: 16, px: 6, py: 15), (x: 861, y: 410, w: 13, h: 16, px: 6, py: 15)], fps: 6.0, mode: Loop),
+            "walk_side": (frames: [(x: 681, y: 410, w: 15, h: 16, px: 7, py: 15), (x: 738, y: 385, w: 16, h: 16, px: 8, py: 15)], fps: 6.0, mode: Loop),
+            "walk_up": (frames: [(x: 941, y: 410, w: 12, h: 16, px: 6, py: 15), (x: 954, y: 410, w: 12, h: 16, px: 6, py: 15)], fps: 6.0, mode: Loop),
         },
         "rupee_blue": {
-            "0": (frames: [(x: 289, y: 314, w: 8, h: 14, px: 4, py: 13), (x: 298, y: 314, w: 8, h: 14, px: 4, py: 13), (x: 307, y: 314, w: 8, h: 14, px: 4, py: 13)], fps: 6.0, mode: PingPong),
+            "0": (frames: [(x: 108, y: 444, w: 8, h: 14, px: 4, py: 13), (x: 117, y: 444, w: 8, h: 14, px: 4, py: 13), (x: 126, y: 444, w: 8, h: 14, px: 4, py: 13)], fps: 6.0, mode: PingPong),
         },
         "rupee_green": {
-            "0": (frames: [(x: 316, y: 314, w: 8, h: 14, px: 4, py: 13), (x: 325, y: 314, w: 8, h: 14, px: 4, py: 13), (x: 334, y: 314, w: 8, h: 14, px: 4, py: 13)], fps: 6.0, mode: PingPong),
+            "0": (frames: [(x: 135, y: 444, w: 8, h: 14, px: 4, py: 13), (x: 144, y: 444, w: 8, h: 14, px: 4, py: 13), (x: 153, y: 444, w: 8, h: 14, px: 4, py: 13)], fps: 6.0, mode: PingPong),
         },
         "rupee_red": {
-            "0": (frames: [(x: 343, y: 314, w: 8, h: 14, px: 4, py: 13), (x: 352, y: 314, w: 8, h: 14, px: 4, py: 13), (x: 361, y: 314, w: 8, h: 14, px: 4, py: 13)], fps: 6.0, mode: PingPong),
+            "0": (frames: [(x: 162, y: 444, w: 8, h: 14, px: 4, py: 13), (x: 171, y: 444, w: 8, h: 14, px: 4, py: 13), (x: 180, y: 444, w: 8, h: 14, px: 4, py: 13)], fps: 6.0, mode: PingPong),
         },
         "shadow": {
-            "0": (frames: [(x: 375, y: 382, w: 12, h: 6, px: 6, py: 3)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 789, y: 472, w: 12, h: 6, px: 6, py: 3)], fps: 8.0, mode: Loop),
         },
         "shot_bomb": {
-            "0": (frames: [(x: 117, y: 298, w: 13, h: 14, px: 6, py: 13)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 434, y: 427, w: 13, h: 14, px: 6, py: 13)], fps: 8.0, mode: Loop),
+        },
+        "shot_energy_ball": {
+            "0": (frames: [(x: 704, y: 385, w: 16, h: 16, px: 8, py: 8)], fps: 8.0, mode: Loop),
+        },
+        "shot_fire_bat": {
+            "0": (frames: [(x: 239, y: 444, w: 28, h: 13, px: 14, py: 6)], fps: 8.0, mode: Loop),
+        },
+        "shot_flame": {
+            "0": (frames: [(x: 697, y: 410, w: 14, h: 16, px: 7, py: 8)], fps: 8.0, mode: Loop),
+        },
+        "shot_moth_ring": {
+            "0": (frames: [(x: 715, y: 444, w: 12, h: 12, px: 6, py: 6)], fps: 8.0, mode: Loop),
         },
         "shot_rock": {
-            "0": (frames: [(x: 233, y: 382, w: 8, h: 8, px: 4, py: 4)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 548, y: 472, w: 8, h: 8, px: 4, py: 4), (x: 620, y: 472, w: 8, h: 8, px: 4, py: 4)], fps: 8.0, mode: Loop),
         },
         "shot_spear": {
-            "0": (frames: [(x: 450, y: 382, w: 13, h: 4, px: 6, py: 2)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 864, y: 472, w: 13, h: 4, px: 6, py: 2)], fps: 8.0, mode: Loop),
         },
         "soldier_blue": {
-            "walk_down": (frames: [(x: 24, y: 146, w: 22, h: 33, px: 11, py: 23), (x: 381, y: 1, w: 22, h: 38, px: 11, py: 24), (x: 473, y: 1, w: 22, h: 34, px: 11, py: 23), (x: 427, y: 1, w: 22, h: 35, px: 11, py: 24)], fps: 8.0, mode: Loop),
-            "walk_side": (frames: [(x: 171, y: 181, w: 29, h: 27, px: 11, py: 26), (x: 327, y: 181, w: 29, h: 26, px: 11, py: 25), (x: 105, y: 181, w: 32, h: 27, px: 11, py: 26)], fps: 8.0, mode: PingPong),
-            "walk_up": (frames: [(x: 258, y: 181, w: 22, h: 27, px: 11, py: 26), (x: 414, y: 181, w: 22, h: 26, px: 11, py: 25), (x: 437, y: 181, w: 22, h: 26, px: 11, py: 25), (x: 47, y: 146, w: 22, h: 33, px: 11, py: 32)], fps: 8.0, mode: Loop),
+            "walk_down": (frames: [(x: 828, y: 258, w: 22, h: 33, px: 11, py: 23), (x: 690, y: 258, w: 22, h: 38, px: 11, py: 24), (x: 782, y: 258, w: 22, h: 34, px: 11, py: 23), (x: 736, y: 258, w: 22, h: 35, px: 11, py: 24)], fps: 8.0, mode: Loop),
+            "walk_side": (frames: [(x: 104, y: 356, w: 29, h: 27, px: 11, py: 26), (x: 287, y: 356, w: 29, h: 26, px: 11, py: 25), (x: 38, y: 356, w: 32, h: 27, px: 11, py: 26)], fps: 8.0, mode: PingPong),
+            "walk_up": (frames: [(x: 218, y: 356, w: 22, h: 27, px: 11, py: 26), (x: 374, y: 356, w: 22, h: 26, px: 11, py: 25), (x: 397, y: 356, w: 22, h: 26, px: 11, py: 25), (x: 851, y: 258, w: 22, h: 33, px: 11, py: 32)], fps: 8.0, mode: Loop),
         },
         "soldier_green": {
-            "walk_down": (frames: [(x: 70, y: 146, w: 22, h: 33, px: 11, py: 23), (x: 404, y: 1, w: 22, h: 38, px: 11, py: 24), (x: 1, y: 146, w: 22, h: 34, px: 11, py: 23), (x: 450, y: 1, w: 22, h: 35, px: 11, py: 24)], fps: 8.0, mode: Loop),
-            "walk_side": (frames: [(x: 201, y: 181, w: 29, h: 27, px: 11, py: 26), (x: 357, y: 181, w: 29, h: 26, px: 11, py: 25), (x: 138, y: 181, w: 32, h: 27, px: 11, py: 26)], fps: 8.0, mode: PingPong),
-            "walk_up": (frames: [(x: 281, y: 181, w: 22, h: 27, px: 11, py: 26), (x: 460, y: 181, w: 22, h: 26, px: 11, py: 25), (x: 483, y: 181, w: 22, h: 26, px: 11, py: 25), (x: 93, y: 146, w: 22, h: 33, px: 11, py: 32)], fps: 8.0, mode: Loop),
+            "walk_down": (frames: [(x: 874, y: 258, w: 22, h: 33, px: 11, py: 23), (x: 713, y: 258, w: 22, h: 38, px: 11, py: 24), (x: 805, y: 258, w: 22, h: 34, px: 11, py: 23), (x: 759, y: 258, w: 22, h: 35, px: 11, py: 24)], fps: 8.0, mode: Loop),
+            "walk_side": (frames: [(x: 134, y: 356, w: 29, h: 27, px: 11, py: 26), (x: 317, y: 356, w: 29, h: 26, px: 11, py: 25), (x: 71, y: 356, w: 32, h: 27, px: 11, py: 26)], fps: 8.0, mode: PingPong),
+            "walk_up": (frames: [(x: 241, y: 356, w: 22, h: 27, px: 11, py: 26), (x: 420, y: 356, w: 22, h: 26, px: 11, py: 25), (x: 443, y: 356, w: 22, h: 26, px: 11, py: 25), (x: 897, y: 258, w: 22, h: 33, px: 11, py: 32)], fps: 8.0, mode: Loop),
         },
         "stalfos": {
-            "walk_down": (frames: [(x: 350, y: 211, w: 16, h: 25, px: 8, py: 24), (x: 58, y: 211, w: 16, h: 26, px: 8, py: 25)], fps: 6.0, mode: Loop),
-            "walk_side": (frames: [(x: 107, y: 211, w: 12, h: 26, px: 6, py: 25), (x: 92, y: 211, w: 14, h: 26, px: 7, py: 25)], fps: 6.0, mode: Loop),
-            "walk_up": (frames: [(x: 367, y: 211, w: 16, h: 25, px: 8, py: 24), (x: 75, y: 211, w: 16, h: 26, px: 8, py: 25)], fps: 6.0, mode: Loop),
+            "walk_down": (frames: [(x: 815, y: 356, w: 16, h: 25, px: 8, py: 24), (x: 523, y: 356, w: 16, h: 26, px: 8, py: 25)], fps: 6.0, mode: Loop),
+            "walk_side": (frames: [(x: 572, y: 356, w: 12, h: 26, px: 6, py: 25), (x: 557, y: 356, w: 14, h: 26, px: 7, py: 25)], fps: 6.0, mode: Loop),
+            "walk_up": (frames: [(x: 832, y: 356, w: 16, h: 25, px: 8, py: 24), (x: 540, y: 356, w: 16, h: 26, px: 8, py: 25)], fps: 6.0, mode: Loop),
         },
         "sword1": {
-            "h": (frames: [(x: 109, y: 382, w: 16, h: 8, px: 1, py: 4)], fps: 8.0, mode: Loop),
+            "h": (frames: [(x: 487, y: 472, w: 16, h: 8, px: 1, py: 4)], fps: 8.0, mode: Loop),
         },
         "sword2": {
-            "h": (frames: [(x: 126, y: 382, w: 16, h: 8, px: 1, py: 4)], fps: 8.0, mode: Loop),
+            "h": (frames: [(x: 504, y: 472, w: 16, h: 8, px: 1, py: 4)], fps: 8.0, mode: Loop),
         },
         "tektite": {
-            "idle": (frames: [(x: 271, y: 238, w: 28, h: 17, px: 14, py: 16), (x: 300, y: 238, w: 28, h: 17, px: 14, py: 16)], fps: 4.0, mode: Loop),
-            "jump": (frames: [(x: 94, y: 263, w: 24, h: 16, px: 12, py: 15)], fps: 8.0, mode: Loop),
+            "idle": (frames: [(x: 269, y: 385, w: 28, h: 17, px: 14, py: 16), (x: 298, y: 385, w: 28, h: 17, px: 14, py: 16)], fps: 4.0, mode: Loop),
+            "jump": (frames: [(x: 594, y: 385, w: 24, h: 16, px: 12, py: 15)], fps: 8.0, mode: Loop),
         },
         "title_bg": {
-            "0": (frames: [(x: 1, y: 1, w: 256, h: 144, px: 0, py: 0)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 515, y: 1, w: 256, h: 144, px: 0, py: 0)], fps: 8.0, mode: Loop),
         },
         "title_logo": {
-            "0": (frames: [(x: 258, y: 1, w: 82, h: 128, px: 41, py: 64)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 772, y: 1, w: 82, h: 128, px: 41, py: 64)], fps: 8.0, mode: Loop),
         },
         "vulture": {
-            "fly": (frames: [(x: 7, y: 298, w: 16, h: 14, px: 8, py: 7), (x: 24, y: 298, w: 16, h: 14, px: 8, py: 7), (x: 41, y: 298, w: 16, h: 14, px: 8, py: 7), (x: 363, y: 281, w: 16, h: 15, px: 8, py: 7)], fps: 8.0, mode: PingPong),
+            "fly": (frames: [(x: 273, y: 427, w: 16, h: 14, px: 8, py: 7), (x: 290, y: 427, w: 16, h: 14, px: 8, py: 7), (x: 307, y: 427, w: 16, h: 14, px: 8, py: 7), (x: 51, y: 427, w: 16, h: 15, px: 8, py: 7)], fps: 8.0, mode: PingPong),
         },
         "white": {
-            "0": (frames: [(x: 471, y: 382, w: 4, h: 4, px: 0, py: 0)], fps: 8.0, mode: Loop),
+            "0": (frames: [(x: 885, y: 472, w: 4, h: 4, px: 0, py: 0)], fps: 8.0, mode: Loop),
         },
     },
     fonts: {
         "hud": (
-            glyphs: {'0': (x: 297, y: 382, w: 7, h: 7, oy: 0), '1': (x: 361, y: 382, w: 6, h: 7, oy: 0), '2': (x: 305, y: 382, w: 7, h: 7, oy: 0), '3': (x: 368, y: 382, w: 6, h: 7, oy: 0), '4': (x: 313, y: 382, w: 7, h: 7, oy: 0), '5': (x: 321, y: 382, w: 7, h: 7, oy: 0), '6': (x: 329, y: 382, w: 7, h: 7, oy: 0), '7': (x: 337, y: 382, w: 7, h: 7, oy: 0), '8': (x: 345, y: 382, w: 7, h: 7, oy: 0), '9': (x: 353, y: 382, w: 7, h: 7, oy: 0)},
+            glyphs: {'0': (x: 711, y: 472, w: 7, h: 7, oy: 0), '1': (x: 775, y: 472, w: 6, h: 7, oy: 0), '2': (x: 719, y: 472, w: 7, h: 7, oy: 0), '3': (x: 782, y: 472, w: 6, h: 7, oy: 0), '4': (x: 727, y: 472, w: 7, h: 7, oy: 0), '5': (x: 735, y: 472, w: 7, h: 7, oy: 0), '6': (x: 743, y: 472, w: 7, h: 7, oy: 0), '7': (x: 751, y: 472, w: 7, h: 7, oy: 0), '8': (x: 759, y: 472, w: 7, h: 7, oy: 0), '9': (x: 767, y: 472, w: 7, h: 7, oy: 0)},
             line_height: 7,
             space: 4,
             spacing: 0,
         ),
         "main": (
-            glyphs: {'!': (x: 66, y: 369, w: 3, h: 12, oy: 0), '%': (x: 121, y: 356, w: 8, h: 12, oy: 0), '\'': (x: 400, y: 382, w: 4, h: 6, oy: 0), '(': (x: 379, y: 314, w: 6, h: 14, oy: -1), ')': (x: 386, y: 314, w: 6, h: 14, oy: -1), '+': (x: 289, y: 382, w: 7, h: 7, oy: 1), ',': (x: 405, y: 382, w: 4, h: 6, oy: 8), '-': (x: 493, y: 382, w: 6, h: 3, oy: 5), '.': (x: 476, y: 382, w: 4, h: 4, oy: 8), '/': (x: 246, y: 356, w: 6, h: 12, oy: 0), '0': (x: 253, y: 356, w: 6, h: 12, oy: 0), '1': (x: 61, y: 369, w: 4, h: 12, oy: 0), '2': (x: 260, y: 356, w: 6, h: 12, oy: 0), '3': (x: 267, y: 356, w: 6, h: 12, oy: 0), '4': (x: 274, y: 356, w: 6, h: 12, oy: 0), '5': (x: 281, y: 356, w: 6, h: 12, oy: 0), '6': (x: 288, y: 356, w: 6, h: 12, oy: 0), '7': (x: 295, y: 356, w: 6, h: 12, oy: 0), '8': (x: 302, y: 356, w: 6, h: 12, oy: 0), '9': (x: 309, y: 356, w: 6, h: 12, oy: 0), ':': (x: 497, y: 369, w: 3, h: 10, oy: 2), '?': (x: 166, y: 356, w: 7, h: 12, oy: 0), 'A': (x: 316, y: 356, w: 6, h: 12, oy: 0), 'B': (x: 323, y: 356, w: 6, h: 12, oy: 0), 'C': (x: 330, y: 356, w: 6, h: 12, oy: 0), 'D': (x: 337, y: 356, w: 6, h: 12, oy: 0), 'E': (x: 344, y: 356, w: 6, h: 12, oy: 0), 'F': (x: 351, y: 356, w: 6, h: 12, oy: 0), 'G': (x: 358, y: 356, w: 6, h: 12, oy: 0), 'H': (x: 365, y: 356, w: 6, h: 12, oy: 0), 'I': (x: 43, y: 369, w: 5, h: 12, oy: 0), 'J': (x: 372, y: 356, w: 6, h: 12, oy: 0), 'K': (x: 379, y: 356, w: 6, h: 12, oy: 0), 'L': (x: 386, y: 356, w: 6, h: 12, oy: 0), 'M': (x: 174, y: 356, w: 7, h: 12, oy: 0), 'N': (x: 393, y: 356, w: 6, h: 12, oy: 0), 'O': (x: 400, y: 356, w: 6, h: 12, oy: 0), 'P': (x: 407, y: 356, w: 6, h: 12, oy: 0), 'Q': (x: 414, y: 356, w: 6, h: 12, oy: 0), 'R': (x: 421, y: 356, w: 6, h: 12, oy: 0), 'S': (x: 428, y: 356, w: 6, h: 12, oy: 0), 'T': (x: 182, y: 356, w: 7, h: 12, oy: 0), 'U': (x: 435, y: 356, w: 6, h: 12, oy: 0), 'V': (x: 190, y: 356, w: 7, h: 12, oy: 0), 'W': (x: 198, y: 356, w: 7, h: 12, oy: 0), 'X': (x: 206, y: 356, w: 7, h: 12, oy: 0), 'Y': (x: 214, y: 356, w: 7, h: 12, oy: 0), 'Z': (x: 442, y: 356, w: 6, h: 12, oy: 0), 'a': (x: 435, y: 369, w: 6, h: 10, oy: 2), 'b': (x: 449, y: 356, w: 6, h: 12, oy: 0), 'c': (x: 442, y: 369, w: 6, h: 10, oy: 2), 'd': (x: 456, y: 356, w: 6, h: 12, oy: 0), 'e': (x: 449, y: 369, w: 6, h: 10, oy: 2), 'f': (x: 463, y: 356, w: 6, h: 12, oy: 0), 'g': (x: 470, y: 356, w: 6, h: 12, oy: 2), 'h': (x: 477, y: 356, w: 6, h: 12, oy: 0), 'i': (x: 49, y: 369, w: 5, h: 12, oy: 0), 'j': (x: 414, y: 314, w: 5, h: 14, oy: 0), 'k': (x: 484, y: 356, w: 6, h: 12, oy: 0), 'l': (x: 70, y: 369, w: 3, h: 12, oy: 0), 'm': (x: 403, y: 369, w: 7, h: 10, oy: 2), 'n': (x: 456, y: 369, w: 6, h: 10, oy: 2), 'o': (x: 463, y: 369, w: 6, h: 10, oy: 2), 'p': (x: 491, y: 356, w: 6, h: 12, oy: 2), 'q': (x: 498, y: 356, w: 6, h: 12, oy: 2), 'r': (x: 491, y: 369, w: 5, h: 10, oy: 2), 's': (x: 470, y: 369, w: 6, h: 10, oy: 2), 't': (x: 505, y: 356, w: 6, h: 12, oy: 0), 'u': (x: 477, y: 369, w: 6, h: 10, oy: 2), 'v': (x: 411, y: 369, w: 7, h: 10, oy: 2), 'w': (x: 419, y: 369, w: 7, h: 10, oy: 2), 'x': (x: 427, y: 369, w: 7, h: 10, oy: 2), 'y': (x: 222, y: 356, w: 7, h: 12, oy: 2), 'z': (x: 484, y: 369, w: 6, h: 10, oy: 2), '¡': (x: 74, y: 369, w: 3, h: 12, oy: 0), '¿': (x: 230, y: 356, w: 7, h: 12, oy: 0), 'À': (x: 429, y: 281, w: 6, h: 15, oy: -3), 'Á': (x: 436, y: 281, w: 6, h: 15, oy: -3), 'Â': (x: 443, y: 281, w: 6, h: 15, oy: -3), 'Ä': (x: 393, y: 314, w: 6, h: 14, oy: -2), 'È': (x: 450, y: 281, w: 6, h: 15, oy: -3), 'É': (x: 457, y: 281, w: 6, h: 15, oy: -3), 'Ê': (x: 464, y: 281, w: 6, h: 15, oy: -3), 'Í': (x: 506, y: 281, w: 5, h: 15, oy: -3), 'Î': (x: 1, y: 298, w: 5, h: 15, oy: -3), 'Ó': (x: 471, y: 281, w: 6, h: 15, oy: -3), 'Ô': (x: 478, y: 281, w: 6, h: 15, oy: -3), 'Ö': (x: 400, y: 314, w: 6, h: 14, oy: -2), 'Ù': (x: 485, y: 281, w: 6, h: 15, oy: -3), 'Ú': (x: 492, y: 281, w: 6, h: 15, oy: -3), 'Û': (x: 499, y: 281, w: 6, h: 15, oy: -3), 'Ü': (x: 407, y: 314, w: 6, h: 14, oy: -2), 'ß': (x: 238, y: 356, w: 7, h: 12, oy: 0), 'à': (x: 217, y: 329, w: 6, h: 13, oy: -1), 'á': (x: 224, y: 329, w: 6, h: 13, oy: -1), 'â': (x: 231, y: 329, w: 6, h: 13, oy: -1), 'ã': (x: 238, y: 329, w: 6, h: 13, oy: -1), 'ä': (x: 1, y: 369, w: 6, h: 12, oy: 0), 'ç': (x: 8, y: 369, w: 6, h: 12, oy: 2), 'è': (x: 245, y: 329, w: 6, h: 13, oy: -1), 'é': (x: 252, y: 329, w: 6, h: 13, oy: -1), 'ê': (x: 259, y: 329, w: 6, h: 13, oy: -1), 'ë': (x: 15, y: 369, w: 6, h: 12, oy: 0), 'ì': (x: 329, y: 329, w: 5, h: 13, oy: -1), 'í': (x: 335, y: 329, w: 5, h: 13, oy: -1), 'î': (x: 266, y: 329, w: 6, h: 13, oy: -1), 'ï': (x: 55, y: 369, w: 5, h: 12, oy: 0), 'ñ': (x: 273, y: 329, w: 6, h: 13, oy: -1), 'ò': (x: 280, y: 329, w: 6, h: 13, oy: -1), 'ó': (x: 287, y: 329, w: 6, h: 13, oy: -1), 'ô': (x: 294, y: 329, w: 6, h: 13, oy: -1), 'õ': (x: 301, y: 329, w: 6, h: 13, oy: -1), 'ö': (x: 22, y: 369, w: 6, h: 12, oy: 0), 'ù': (x: 308, y: 329, w: 6, h: 13, oy: -1), 'ú': (x: 315, y: 329, w: 6, h: 13, oy: -1), 'û': (x: 322, y: 329, w: 6, h: 13, oy: -1), 'ü': (x: 29, y: 369, w: 6, h: 12, oy: 0), '…': (x: 464, y: 382, w: 6, h: 4, oy: 8), '▶': (x: 275, y: 369, w: 7, h: 11, oy: 1), '、': (x: 426, y: 382, w: 11, h: 5, oy: 7), '。': (x: 388, y: 382, w: 11, h: 6, oy: 6), '「': (x: 283, y: 369, w: 11, h: 10, oy: -2), '」': (x: 295, y: 369, w: 11, h: 10, oy: 2), 'ぁ': (x: 307, y: 369, w: 11, h: 10, oy: 2), 'あ': (x: 423, y: 329, w: 11, h: 12, oy: 0), 'ぃ': (x: 1, y: 382, w: 11, h: 9, oy: 3), 'い': (x: 95, y: 369, w: 11, h: 11, oy: 1), 'ぅ': (x: 319, y: 369, w: 11, h: 10, oy: 2), 'う': (x: 435, y: 329, w: 11, h: 12, oy: 0), 'ぇ': (x: 107, y: 369, w: 11, h: 11, oy: 1), 'え': (x: 447, y: 329, w: 11, h: 12, oy: 0), 'ぉ': (x: 331, y: 369, w: 11, h: 10, oy: 2), 'お': (x: 459, y: 329, w: 11, h: 12, oy: 0), 'か': (x: 471, y: 329, w: 11, h: 12, oy: 0), 'が': (x: 172, y: 298, w: 11, h: 14, oy: -2), 'き': (x: 483, y: 329, w: 11, h: 12, oy: 0), 'ぎ': (x: 184, y: 298, w: 11, h: 14, oy: -2), 'く': (x: 495, y: 329, w: 11, h: 12, oy: 0), 'ぐ': (x: 196, y: 298, w: 11, h: 14, oy: -2), 'け': (x: 1, y: 329, w: 11, h: 13, oy: -1), 'げ': (x: 208, y: 298, w: 11, h: 14, oy: -2), 'こ': (x: 119, y: 369, w: 11, h: 11, oy: 1), 'ご': (x: 220, y: 298, w: 11, h: 14, oy: -2), 'さ': (x: 1, y: 343, w: 11, h: 12, oy: 0), 'ざ': (x: 232, y: 298, w: 11, h: 14, oy: -2), 'し': (x: 13, y: 343, w: 11, h: 12, oy: 0), 'じ': (x: 244, y: 298, w: 11, h: 14, oy: -2), 'す': (x: 13, y: 329, w: 11, h: 13, oy: -1), 'ず': (x: 256, y: 298, w: 11, h: 14, oy: -2), 'せ': (x: 25, y: 343, w: 11, h: 12, oy: 0), 'ぜ': (x: 268, y: 298, w: 11, h: 14, oy: -2), 'そ': (x: 37, y: 343, w: 11, h: 12, oy: 0), 'ぞ': (x: 280, y: 298, w: 11, h: 14, oy: -2), 'た': (x: 49, y: 343, w: 11, h: 12, oy: 0), 'だ': (x: 292, y: 298, w: 11, h: 14, oy: -2), 'ち': (x: 61, y: 343, w: 11, h: 12, oy: 0), 'ぢ': (x: 304, y: 298, w: 11, h: 14, oy: -2), 'っ': (x: 158, y: 382, w: 11, h: 8, oy: 3), 'つ': (x: 343, y: 369, w: 11, h: 10, oy: 2), 'づ': (x: 316, y: 298, w: 11, h: 14, oy: -2), 'て': (x: 131, y: 369, w: 11, h: 11, oy: 1), 'で': (x: 328, y: 298, w: 11, h: 14, oy: -2), 'と': (x: 73, y: 343, w: 11, h: 12, oy: 0), 'ど': (x: 340, y: 298, w: 11, h: 14, oy: -2), 'な': (x: 85, y: 343, w: 11, h: 12, oy: 0), 'に': (x: 143, y: 369, w: 11, h: 11, oy: 0), 'ぬ': (x: 97, y: 343, w: 11, h: 12, oy: 0), 'ね': (x: 109, y: 343, w: 11, h: 12, oy: 0), 'の': (x: 155, y: 369, w: 11, h: 11, oy: 1), 'は': (x: 121, y: 343, w: 11, h: 12, oy: 0), 'ば': (x: 352, y: 298, w: 11, h: 14, oy: -2), 'ぱ': (x: 364, y: 298, w: 11, h: 14, oy: -2), 'ひ': (x: 133, y: 343, w: 11, h: 12, oy: 0), 'び': (x: 376, y: 298, w: 11, h: 14, oy: -2), 'ぴ': (x: 388, y: 298, w: 11, h: 14, oy: -2), 'ふ': (x: 145, y: 343, w: 11, h: 12, oy: 0), 'ぶ': (x: 400, y: 298, w: 11, h: 14, oy: -2), 'ぷ': (x: 412, y: 298, w: 11, h: 14, oy: -2), 'へ': (x: 167, y: 369, w: 11, h: 11, oy: 1), 'べ': (x: 424, y: 298, w: 11, h: 14, oy: -2), 'ぺ': (x: 436, y: 298, w: 11, h: 14, oy: -2), 'ほ': (x: 157, y: 343, w: 11, h: 12, oy: 0), 'ぼ': (x: 448, y: 298, w: 11, h: 14, oy: -2), 'ぽ': (x: 460, y: 298, w: 11, h: 14, oy: -2), 'ま': (x: 169, y: 343, w: 11, h: 12, oy: 0), 'み': (x: 181, y: 343, w: 11, h: 12, oy: 0), 'む': (x: 193, y: 343, w: 11, h: 12, oy: 0), 'め': (x: 205, y: 343, w: 11, h: 12, oy: 0), 'も': (x: 217, y: 343, w: 11, h: 12, oy: 0), 'ゃ': (x: 13, y: 382, w: 11, h: 9, oy: 2), 'や': (x: 229, y: 343, w: 11, h: 12, oy: 0), 'ゅ': (x: 25, y: 382, w: 11, h: 9, oy: 2), 'ゆ': (x: 241, y: 343, w: 11, h: 12, oy: 0), 'ょ': (x: 37, y: 382, w: 11, h: 9, oy: 2), 'よ': (x: 253, y: 343, w: 11, h: 12, oy: 0), 'ら': (x: 265, y: 343, w: 11, h: 12, oy: 0), 'り': (x: 277, y: 343, w: 11, h: 12, oy: 0), 'る': (x: 289, y: 343, w: 11, h: 12, oy: 0), 'れ': (x: 301, y: 343, w: 11, h: 12, oy: 0), 'ろ': (x: 313, y: 343, w: 11, h: 12, oy: 0), 'わ': (x: 325, y: 343, w: 11, h: 12, oy: 0), 'を': (x: 25, y: 329, w: 11, h: 13, oy: -1), 'ん': (x: 337, y: 343, w: 11, h: 12, oy: 0), 'ァ': (x: 49, y: 382, w: 11, h: 9, oy: 2), 'ア': (x: 349, y: 343, w: 11, h: 12, oy: 0), 'ィ': (x: 355, y: 369, w: 11, h: 10, oy: 1), 'イ': (x: 37, y: 329, w: 11, h: 13, oy: -1), 'ゥ': (x: 367, y: 369, w: 11, h: 10, oy: 1), 'ウ': (x: 49, y: 329, w: 11, h: 13, oy: -1), 'ェ': (x: 61, y: 382, w: 11, h: 9, oy: 2), 'エ': (x: 361, y: 343, w: 11, h: 12, oy: 0), 'ォ': (x: 379, y: 369, w: 11, h: 10, oy: 1), 'オ': (x: 61, y: 329, w: 11, h: 13, oy: -1), 'カ': (x: 73, y: 329, w: 11, h: 13, oy: -1), 'ガ': (x: 472, y: 298, w: 11, h: 14, oy: -2), 'キ': (x: 85, y: 329, w: 11, h: 13, oy: -1), 'ギ': (x: 484, y: 298, w: 11, h: 14, oy: -2), 'ク': (x: 97, y: 329, w: 11, h: 13, oy: -1), 'グ': (x: 496, y: 298, w: 11, h: 14, oy: -2), 'ケ': (x: 109, y: 329, w: 11, h: 13, oy: -1), 'ゲ': (x: 1, y: 314, w: 11, h: 14, oy: -2), 'コ': (x: 179, y: 369, w: 11, h: 11, oy: 1), 'ゴ': (x: 13, y: 314, w: 11, h: 14, oy: -2), 'サ': (x: 121, y: 329, w: 11, h: 13, oy: -1), 'ザ': (x: 25, y: 314, w: 11, h: 14, oy: -2), 'シ': (x: 373, y: 343, w: 11, h: 12, oy: 0), 'ジ': (x: 37, y: 314, w: 11, h: 14, oy: -2), 'ス': (x: 385, y: 343, w: 11, h: 12, oy: 0), 'ズ': (x: 49, y: 314, w: 11, h: 14, oy: -2), 'セ': (x: 397, y: 343, w: 11, h: 12, oy: 0), 'ゼ': (x: 61, y: 314, w: 11, h: 14, oy: -2), 'ソ': (x: 191, y: 369, w: 11, h: 11, oy: 1), 'ゾ': (x: 73, y: 314, w: 11, h: 14, oy: -2), 'タ': (x: 133, y: 329, w: 11, h: 13, oy: -1), 'ダ': (x: 85, y: 314, w: 11, h: 14, oy: -2), 'チ': (x: 409, y: 343, w: 11, h: 12, oy: 0), 'ヂ': (x: 97, y: 314, w: 11, h: 14, oy: -2), 'ッ': (x: 73, y: 382, w: 11, h: 9, oy: 2), 'ツ': (x: 421, y: 343, w: 11, h: 12, oy: 0), 'ヅ': (x: 109, y: 314, w: 11, h: 14, oy: -2), 'テ': (x: 433, y: 343, w: 11, h: 12, oy: 0), 'デ': (x: 121, y: 314, w: 11, h: 14, oy: -2), 'ト': (x: 145, y: 329, w: 11, h: 13, oy: -1), 'ド': (x: 133, y: 314, w: 11, h: 14, oy: -2), 'ナ': (x: 157, y: 329, w: 11, h: 13, oy: -1), 'ニ': (x: 203, y: 369, w: 11, h: 11, oy: 0), 'ヌ': (x: 445, y: 343, w: 11, h: 12, oy: 0), 'ネ': (x: 169, y: 329, w: 11, h: 13, oy: -1), 'ノ': (x: 457, y: 343, w: 11, h: 12, oy: 0), 'ハ': (x: 469, y: 343, w: 11, h: 12, oy: 0), 'バ': (x: 145, y: 314, w: 11, h: 14, oy: -2), 'パ': (x: 157, y: 314, w: 11, h: 14, oy: -2), 'ヒ': (x: 481, y: 343, w: 11, h: 12, oy: 0), 'ビ': (x: 169, y: 314, w: 11, h: 14, oy: -2), 'ピ': (x: 181, y: 314, w: 11, h: 14, oy: -2), 'フ': (x: 493, y: 343, w: 11, h: 12, oy: 0), 'ブ': (x: 193, y: 314, w: 11, h: 14, oy: -2), 'プ': (x: 205, y: 314, w: 11, h: 14, oy: -2), 'ヘ': (x: 215, y: 369, w: 11, h: 11, oy: 1), 'ベ': (x: 217, y: 314, w: 11, h: 14, oy: -2), 'ペ': (x: 229, y: 314, w: 11, h: 14, oy: -2), 'ホ': (x: 181, y: 329, w: 11, h: 13, oy: -1), 'ボ': (x: 241, y: 314, w: 11, h: 14, oy: -2), 'ポ': (x: 253, y: 314, w: 11, h: 14, oy: -2), 'マ': (x: 227, y: 369, w: 11, h: 11, oy: 1), 'ミ': (x: 1, y: 356, w: 11, h: 12, oy: 0), 'ム': (x: 13, y: 356, w: 11, h: 12, oy: 0), 'メ': (x: 25, y: 356, w: 11, h: 12, oy: 0), 'モ': (x: 37, y: 356, w: 11, h: 12, oy: 0), 'ャ': (x: 391, y: 369, w: 11, h: 10, oy: 1), 'ヤ': (x: 193, y: 329, w: 11, h: 13, oy: -1), 'ュ': (x: 85, y: 382, w: 11, h: 9, oy: 2), 'ユ': (x: 239, y: 369, w: 11, h: 11, oy: 1), 'ョ': (x: 97, y: 382, w: 11, h: 9, oy: 2), 'ヨ': (x: 251, y: 369, w: 11, h: 11, oy: 1), 'ラ': (x: 49, y: 356, w: 11, h: 12, oy: -1), 'リ': (x: 205, y: 329, w: 11, h: 13, oy: -1), 'ル': (x: 61, y: 356, w: 11, h: 12, oy: 0), 'レ': (x: 73, y: 356, w: 11, h: 12, oy: 0), 'ロ': (x: 263, y: 369, w: 11, h: 11, oy: 1), 'ワ': (x: 85, y: 356, w: 11, h: 12, oy: 0), 'ヲ': (x: 97, y: 356, w: 11, h: 12, oy: 0), 'ン': (x: 109, y: 356, w: 11, h: 12, oy: 0), 'ー': (x: 481, y: 382, w: 11, h: 3, oy: 5), '！': (x: 265, y: 314, w: 11, h: 14, oy: -2), '？': (x: 277, y: 314, w: 11, h: 14, oy: -2), '～': (x: 438, y: 382, w: 11, h: 5, oy: 3)},
+            glyphs: {'!': (x: 949, y: 459, w: 3, h: 12, oy: 0), '%': (x: 493, y: 459, w: 8, h: 12, oy: 0), '\'': (x: 814, y: 472, w: 4, h: 6, oy: 0), '(': (x: 198, y: 444, w: 6, h: 14, oy: -1), ')': (x: 205, y: 444, w: 6, h: 14, oy: -1), '+': (x: 703, y: 472, w: 7, h: 7, oy: 1), ',': (x: 819, y: 472, w: 4, h: 6, oy: 8), '-': (x: 907, y: 472, w: 6, h: 3, oy: 5), '.': (x: 890, y: 472, w: 4, h: 4, oy: 8), '/': (x: 618, y: 459, w: 6, h: 12, oy: 0), '0': (x: 625, y: 459, w: 6, h: 12, oy: 0), '1': (x: 944, y: 459, w: 4, h: 12, oy: 0), '2': (x: 632, y: 459, w: 6, h: 12, oy: 0), '3': (x: 639, y: 459, w: 6, h: 12, oy: 0), '4': (x: 646, y: 459, w: 6, h: 12, oy: 0), '5': (x: 653, y: 459, w: 6, h: 12, oy: 0), '6': (x: 660, y: 459, w: 6, h: 12, oy: 0), '7': (x: 667, y: 459, w: 6, h: 12, oy: 0), '8': (x: 674, y: 459, w: 6, h: 12, oy: 0), '9': (x: 681, y: 459, w: 6, h: 12, oy: 0), ':': (x: 375, y: 472, w: 3, h: 10, oy: 2), '?': (x: 538, y: 459, w: 7, h: 12, oy: 0), 'A': (x: 688, y: 459, w: 6, h: 12, oy: 0), 'B': (x: 695, y: 459, w: 6, h: 12, oy: 0), 'C': (x: 702, y: 459, w: 6, h: 12, oy: 0), 'D': (x: 709, y: 459, w: 6, h: 12, oy: 0), 'E': (x: 716, y: 459, w: 6, h: 12, oy: 0), 'F': (x: 723, y: 459, w: 6, h: 12, oy: 0), 'G': (x: 730, y: 459, w: 6, h: 12, oy: 0), 'H': (x: 737, y: 459, w: 6, h: 12, oy: 0), 'I': (x: 926, y: 459, w: 5, h: 12, oy: 0), 'J': (x: 744, y: 459, w: 6, h: 12, oy: 0), 'K': (x: 751, y: 459, w: 6, h: 12, oy: 0), 'L': (x: 758, y: 459, w: 6, h: 12, oy: 0), 'M': (x: 546, y: 459, w: 7, h: 12, oy: 0), 'N': (x: 765, y: 459, w: 6, h: 12, oy: 0), 'O': (x: 772, y: 459, w: 6, h: 12, oy: 0), 'P': (x: 779, y: 459, w: 6, h: 12, oy: 0), 'Q': (x: 786, y: 459, w: 6, h: 12, oy: 0), 'R': (x: 793, y: 459, w: 6, h: 12, oy: 0), 'S': (x: 800, y: 459, w: 6, h: 12, oy: 0), 'T': (x: 554, y: 459, w: 7, h: 12, oy: 0), 'U': (x: 807, y: 459, w: 6, h: 12, oy: 0), 'V': (x: 562, y: 459, w: 7, h: 12, oy: 0), 'W': (x: 570, y: 459, w: 7, h: 12, oy: 0), 'X': (x: 578, y: 459, w: 7, h: 12, oy: 0), 'Y': (x: 586, y: 459, w: 7, h: 12, oy: 0), 'Z': (x: 814, y: 459, w: 6, h: 12, oy: 0), 'a': (x: 313, y: 472, w: 6, h: 10, oy: 2), 'b': (x: 821, y: 459, w: 6, h: 12, oy: 0), 'c': (x: 320, y: 472, w: 6, h: 10, oy: 2), 'd': (x: 828, y: 459, w: 6, h: 12, oy: 0), 'e': (x: 327, y: 472, w: 6, h: 10, oy: 2), 'f': (x: 835, y: 459, w: 6, h: 12, oy: 0), 'g': (x: 842, y: 459, w: 6, h: 12, oy: 2), 'h': (x: 849, y: 459, w: 6, h: 12, oy: 0), 'i': (x: 932, y: 459, w: 5, h: 12, oy: 0), 'j': (x: 233, y: 444, w: 5, h: 14, oy: 0), 'k': (x: 856, y: 459, w: 6, h: 12, oy: 0), 'l': (x: 953, y: 459, w: 3, h: 12, oy: 0), 'm': (x: 281, y: 472, w: 7, h: 10, oy: 2), 'n': (x: 334, y: 472, w: 6, h: 10, oy: 2), 'o': (x: 341, y: 472, w: 6, h: 10, oy: 2), 'p': (x: 863, y: 459, w: 6, h: 12, oy: 2), 'q': (x: 870, y: 459, w: 6, h: 12, oy: 2), 'r': (x: 369, y: 472, w: 5, h: 10, oy: 2), 's': (x: 348, y: 472, w: 6, h: 10, oy: 2), 't': (x: 877, y: 459, w: 6, h: 12, oy: 0), 'u': (x: 355, y: 472, w: 6, h: 10, oy: 2), 'v': (x: 289, y: 472, w: 7, h: 10, oy: 2), 'w': (x: 297, y: 472, w: 7, h: 10, oy: 2), 'x': (x: 305, y: 472, w: 7, h: 10, oy: 2), 'y': (x: 594, y: 459, w: 7, h: 12, oy: 2), 'z': (x: 362, y: 472, w: 6, h: 10, oy: 2), '¡': (x: 957, y: 459, w: 3, h: 12, oy: 0), '¿': (x: 602, y: 459, w: 7, h: 12, oy: 0), 'À': (x: 184, y: 427, w: 6, h: 15, oy: -3), 'Á': (x: 191, y: 427, w: 6, h: 15, oy: -3), 'Â': (x: 198, y: 427, w: 6, h: 15, oy: -3), 'Ä': (x: 212, y: 444, w: 6, h: 14, oy: -2), 'È': (x: 205, y: 427, w: 6, h: 15, oy: -3), 'É': (x: 212, y: 427, w: 6, h: 15, oy: -3), 'Ê': (x: 219, y: 427, w: 6, h: 15, oy: -3), 'Í': (x: 261, y: 427, w: 5, h: 15, oy: -3), 'Î': (x: 267, y: 427, w: 5, h: 15, oy: -3), 'Ó': (x: 226, y: 427, w: 6, h: 15, oy: -3), 'Ô': (x: 233, y: 427, w: 6, h: 15, oy: -3), 'Ö': (x: 219, y: 444, w: 6, h: 14, oy: -2), 'Ù': (x: 240, y: 427, w: 6, h: 15, oy: -3), 'Ú': (x: 247, y: 427, w: 6, h: 15, oy: -3), 'Û': (x: 254, y: 427, w: 6, h: 15, oy: -3), 'Ü': (x: 226, y: 444, w: 6, h: 14, oy: -2), 'ß': (x: 610, y: 459, w: 7, h: 12, oy: 0), 'à': (x: 574, y: 444, w: 6, h: 13, oy: -1), 'á': (x: 581, y: 444, w: 6, h: 13, oy: -1), 'â': (x: 588, y: 444, w: 6, h: 13, oy: -1), 'ã': (x: 595, y: 444, w: 6, h: 13, oy: -1), 'ä': (x: 884, y: 459, w: 6, h: 12, oy: 0), 'ç': (x: 891, y: 459, w: 6, h: 12, oy: 2), 'è': (x: 602, y: 444, w: 6, h: 13, oy: -1), 'é': (x: 609, y: 444, w: 6, h: 13, oy: -1), 'ê': (x: 616, y: 444, w: 6, h: 13, oy: -1), 'ë': (x: 898, y: 459, w: 6, h: 12, oy: 0), 'ì': (x: 686, y: 444, w: 5, h: 13, oy: -1), 'í': (x: 692, y: 444, w: 5, h: 13, oy: -1), 'î': (x: 623, y: 444, w: 6, h: 13, oy: -1), 'ï': (x: 938, y: 459, w: 5, h: 12, oy: 0), 'ñ': (x: 630, y: 444, w: 6, h: 13, oy: -1), 'ò': (x: 637, y: 444, w: 6, h: 13, oy: -1), 'ó': (x: 644, y: 444, w: 6, h: 13, oy: -1), 'ô': (x: 651, y: 444, w: 6, h: 13, oy: -1), 'õ': (x: 658, y: 444, w: 6, h: 13, oy: -1), 'ö': (x: 905, y: 459, w: 6, h: 12, oy: 0), 'ù': (x: 665, y: 444, w: 6, h: 13, oy: -1), 'ú': (x: 672, y: 444, w: 6, h: 13, oy: -1), 'û': (x: 679, y: 444, w: 6, h: 13, oy: -1), 'ü': (x: 912, y: 459, w: 6, h: 12, oy: 0), '…': (x: 878, y: 472, w: 6, h: 4, oy: 8), '▶': (x: 145, y: 472, w: 7, h: 11, oy: 1), '◀': (x: 153, y: 472, w: 7, h: 11, oy: 0), '、': (x: 840, y: 472, w: 11, h: 5, oy: 7), '。': (x: 802, y: 472, w: 11, h: 6, oy: 6), '「': (x: 161, y: 472, w: 11, h: 10, oy: -2), '」': (x: 173, y: 472, w: 11, h: 10, oy: 2), 'ぁ': (x: 185, y: 472, w: 11, h: 10, oy: 2), 'あ': (x: 806, y: 444, w: 11, h: 12, oy: 0), 'ぃ': (x: 379, y: 472, w: 11, h: 9, oy: 3), 'い': (x: 978, y: 459, w: 11, h: 11, oy: 1), 'ぅ': (x: 197, y: 472, w: 11, h: 10, oy: 2), 'う': (x: 818, y: 444, w: 11, h: 12, oy: 0), 'ぇ': (x: 990, y: 459, w: 11, h: 11, oy: 1), 'え': (x: 830, y: 444, w: 11, h: 12, oy: 0), 'ぉ': (x: 209, y: 472, w: 11, h: 10, oy: 2), 'お': (x: 842, y: 444, w: 11, h: 12, oy: 0), 'か': (x: 854, y: 444, w: 11, h: 12, oy: 0), 'が': (x: 489, y: 427, w: 11, h: 14, oy: -2), 'き': (x: 866, y: 444, w: 11, h: 12, oy: 0), 'ぎ': (x: 501, y: 427, w: 11, h: 14, oy: -2), 'く': (x: 878, y: 444, w: 11, h: 12, oy: 0), 'ぐ': (x: 513, y: 427, w: 11, h: 14, oy: -2), 'け': (x: 358, y: 444, w: 11, h: 13, oy: -1), 'げ': (x: 525, y: 427, w: 11, h: 14, oy: -2), 'こ': (x: 1002, y: 459, w: 11, h: 11, oy: 1), 'ご': (x: 537, y: 427, w: 11, h: 14, oy: -2), 'さ': (x: 890, y: 444, w: 11, h: 12, oy: 0), 'ざ': (x: 549, y: 427, w: 11, h: 14, oy: -2), 'し': (x: 902, y: 444, w: 11, h: 12, oy: 0), 'じ': (x: 561, y: 427, w: 11, h: 14, oy: -2), 'す': (x: 370, y: 444, w: 11, h: 13, oy: -1), 'ず': (x: 573, y: 427, w: 11, h: 14, oy: -2), 'せ': (x: 914, y: 444, w: 11, h: 12, oy: 0), 'ぜ': (x: 585, y: 427, w: 11, h: 14, oy: -2), 'そ': (x: 926, y: 444, w: 11, h: 12, oy: 0), 'ぞ': (x: 597, y: 427, w: 11, h: 14, oy: -2), 'た': (x: 938, y: 444, w: 11, h: 12, oy: 0), 'だ': (x: 609, y: 427, w: 11, h: 14, oy: -2), 'ち': (x: 950, y: 444, w: 11, h: 12, oy: 0), 'ぢ': (x: 621, y: 427, w: 11, h: 14, oy: -2), 'っ': (x: 536, y: 472, w: 11, h: 8, oy: 3), 'つ': (x: 221, y: 472, w: 11, h: 10, oy: 2), 'づ': (x: 633, y: 427, w: 11, h: 14, oy: -2), 'て': (x: 1, y: 472, w: 11, h: 11, oy: 1), 'で': (x: 645, y: 427, w: 11, h: 14, oy: -2), 'と': (x: 962, y: 444, w: 11, h: 12, oy: 0), 'ど': (x: 657, y: 427, w: 11, h: 14, oy: -2), 'な': (x: 974, y: 444, w: 11, h: 12, oy: 0), 'に': (x: 13, y: 472, w: 11, h: 11, oy: 0), 'ぬ': (x: 986, y: 444, w: 11, h: 12, oy: 0), 'ね': (x: 998, y: 444, w: 11, h: 12, oy: 0), 'の': (x: 25, y: 472, w: 11, h: 11, oy: 1), 'は': (x: 1010, y: 444, w: 11, h: 12, oy: 0), 'ば': (x: 669, y: 427, w: 11, h: 14, oy: -2), 'ぱ': (x: 681, y: 427, w: 11, h: 14, oy: -2), 'ひ': (x: 1, y: 459, w: 11, h: 12, oy: 0), 'び': (x: 693, y: 427, w: 11, h: 14, oy: -2), 'ぴ': (x: 705, y: 427, w: 11, h: 14, oy: -2), 'ふ': (x: 13, y: 459, w: 11, h: 12, oy: 0), 'ぶ': (x: 717, y: 427, w: 11, h: 14, oy: -2), 'ぷ': (x: 729, y: 427, w: 11, h: 14, oy: -2), 'へ': (x: 37, y: 472, w: 11, h: 11, oy: 1), 'べ': (x: 741, y: 427, w: 11, h: 14, oy: -2), 'ぺ': (x: 753, y: 427, w: 11, h: 14, oy: -2), 'ほ': (x: 25, y: 459, w: 11, h: 12, oy: 0), 'ぼ': (x: 765, y: 427, w: 11, h: 14, oy: -2), 'ぽ': (x: 777, y: 427, w: 11, h: 14, oy: -2), 'ま': (x: 37, y: 459, w: 11, h: 12, oy: 0), 'み': (x: 49, y: 459, w: 11, h: 12, oy: 0), 'む': (x: 61, y: 459, w: 11, h: 12, oy: 0), 'め': (x: 73, y: 459, w: 11, h: 12, oy: 0), 'も': (x: 85, y: 459, w: 11, h: 12, oy: 0), 'ゃ': (x: 391, y: 472, w: 11, h: 9, oy: 2), 'や': (x: 97, y: 459, w: 11, h: 12, oy: 0), 'ゅ': (x: 403, y: 472, w: 11, h: 9, oy: 2), 'ゆ': (x: 109, y: 459, w: 11, h: 12, oy: 0), 'ょ': (x: 415, y: 472, w: 11, h: 9, oy: 2), 'よ': (x: 121, y: 459, w: 11, h: 12, oy: 0), 'ら': (x: 133, y: 459, w: 11, h: 12, oy: 0), 'り': (x: 145, y: 459, w: 11, h: 12, oy: 0), 'る': (x: 157, y: 459, w: 11, h: 12, oy: 0), 'れ': (x: 169, y: 459, w: 11, h: 12, oy: 0), 'ろ': (x: 181, y: 459, w: 11, h: 12, oy: 0), 'わ': (x: 193, y: 459, w: 11, h: 12, oy: 0), 'を': (x: 382, y: 444, w: 11, h: 13, oy: -1), 'ん': (x: 205, y: 459, w: 11, h: 12, oy: 0), 'ァ': (x: 427, y: 472, w: 11, h: 9, oy: 2), 'ア': (x: 217, y: 459, w: 11, h: 12, oy: 0), 'ィ': (x: 233, y: 472, w: 11, h: 10, oy: 1), 'イ': (x: 394, y: 444, w: 11, h: 13, oy: -1), 'ゥ': (x: 245, y: 472, w: 11, h: 10, oy: 1), 'ウ': (x: 406, y: 444, w: 11, h: 13, oy: -1), 'ェ': (x: 439, y: 472, w: 11, h: 9, oy: 2), 'エ': (x: 229, y: 459, w: 11, h: 12, oy: 0), 'ォ': (x: 257, y: 472, w: 11, h: 10, oy: 1), 'オ': (x: 418, y: 444, w: 11, h: 13, oy: -1), 'カ': (x: 430, y: 444, w: 11, h: 13, oy: -1), 'ガ': (x: 789, y: 427, w: 11, h: 14, oy: -2), 'キ': (x: 442, y: 444, w: 11, h: 13, oy: -1), 'ギ': (x: 801, y: 427, w: 11, h: 14, oy: -2), 'ク': (x: 454, y: 444, w: 11, h: 13, oy: -1), 'グ': (x: 813, y: 427, w: 11, h: 14, oy: -2), 'ケ': (x: 466, y: 444, w: 11, h: 13, oy: -1), 'ゲ': (x: 825, y: 427, w: 11, h: 14, oy: -2), 'コ': (x: 49, y: 472, w: 11, h: 11, oy: 1), 'ゴ': (x: 837, y: 427, w: 11, h: 14, oy: -2), 'サ': (x: 478, y: 444, w: 11, h: 13, oy: -1), 'ザ': (x: 849, y: 427, w: 11, h: 14, oy: -2), 'シ': (x: 241, y: 459, w: 11, h: 12, oy: 0), 'ジ': (x: 861, y: 427, w: 11, h: 14, oy: -2), 'ス': (x: 253, y: 459, w: 11, h: 12, oy: 0), 'ズ': (x: 873, y: 427, w: 11, h: 14, oy: -2), 'セ': (x: 265, y: 459, w: 11, h: 12, oy: 0), 'ゼ': (x: 885, y: 427, w: 11, h: 14, oy: -2), 'ソ': (x: 61, y: 472, w: 11, h: 11, oy: 1), 'ゾ': (x: 897, y: 427, w: 11, h: 14, oy: -2), 'タ': (x: 490, y: 444, w: 11, h: 13, oy: -1), 'ダ': (x: 909, y: 427, w: 11, h: 14, oy: -2), 'チ': (x: 277, y: 459, w: 11, h: 12, oy: 0), 'ヂ': (x: 921, y: 427, w: 11, h: 14, oy: -2), 'ッ': (x: 451, y: 472, w: 11, h: 9, oy: 2), 'ツ': (x: 289, y: 459, w: 11, h: 12, oy: 0), 'ヅ': (x: 933, y: 427, w: 11, h: 14, oy: -2), 'テ': (x: 301, y: 459, w: 11, h: 12, oy: 0), 'デ': (x: 945, y: 427, w: 11, h: 14, oy: -2), 'ト': (x: 502, y: 444, w: 11, h: 13, oy: -1), 'ド': (x: 957, y: 427, w: 11, h: 14, oy: -2), 'ナ': (x: 514, y: 444, w: 11, h: 13, oy: -1), 'ニ': (x: 73, y: 472, w: 11, h: 11, oy: 0), 'ヌ': (x: 313, y: 459, w: 11, h: 12, oy: 0), 'ネ': (x: 526, y: 444, w: 11, h: 13, oy: -1), 'ノ': (x: 325, y: 459, w: 11, h: 12, oy: 0), 'ハ': (x: 337, y: 459, w: 11, h: 12, oy: 0), 'バ': (x: 969, y: 427, w: 11, h: 14, oy: -2), 'パ': (x: 981, y: 427, w: 11, h: 14, oy: -2), 'ヒ': (x: 349, y: 459, w: 11, h: 12, oy: 0), 'ビ': (x: 993, y: 427, w: 11, h: 14, oy: -2), 'ピ': (x: 1005, y: 427, w: 11, h: 14, oy: -2), 'フ': (x: 361, y: 459, w: 11, h: 12, oy: 0), 'ブ': (x: 1, y: 444, w: 11, h: 14, oy: -2), 'プ': (x: 13, y: 444, w: 11, h: 14, oy: -2), 'ヘ': (x: 85, y: 472, w: 11, h: 11, oy: 1), 'ベ': (x: 25, y: 444, w: 11, h: 14, oy: -2), 'ペ': (x: 37, y: 444, w: 11, h: 14, oy: -2), 'ホ': (x: 538, y: 444, w: 11, h: 13, oy: -1), 'ボ': (x: 49, y: 444, w: 11, h: 14, oy: -2), 'ポ': (x: 61, y: 444, w: 11, h: 14, oy: -2), 'マ': (x: 97, y: 472, w: 11, h: 11, oy: 1), 'ミ': (x: 373, y: 459, w: 11, h: 12, oy: 0), 'ム': (x: 385, y: 459, w: 11, h: 12, oy: 0), 'メ': (x: 397, y: 459, w: 11, h: 12, oy: 0), 'モ': (x: 409, y: 459, w: 11, h: 12, oy: 0), 'ャ': (x: 269, y: 472, w: 11, h: 10, oy: 1), 'ヤ': (x: 550, y: 444, w: 11, h: 13, oy: -1), 'ュ': (x: 463, y: 472, w: 11, h: 9, oy: 2), 'ユ': (x: 109, y: 472, w: 11, h: 11, oy: 1), 'ョ': (x: 475, y: 472, w: 11, h: 9, oy: 2), 'ヨ': (x: 121, y: 472, w: 11, h: 11, oy: 1), 'ラ': (x: 421, y: 459, w: 11, h: 12, oy: -1), 'リ': (x: 562, y: 444, w: 11, h: 13, oy: -1), 'ル': (x: 433, y: 459, w: 11, h: 12, oy: 0), 'レ': (x: 445, y: 459, w: 11, h: 12, oy: 0), 'ロ': (x: 133, y: 472, w: 11, h: 11, oy: 1), 'ワ': (x: 457, y: 459, w: 11, h: 12, oy: 0), 'ヲ': (x: 469, y: 459, w: 11, h: 12, oy: 0), 'ン': (x: 481, y: 459, w: 11, h: 12, oy: 0), 'ー': (x: 895, y: 472, w: 11, h: 3, oy: 5), '！': (x: 73, y: 444, w: 11, h: 14, oy: -2), '？': (x: 85, y: 444, w: 11, h: 14, oy: -2), '～': (x: 852, y: 472, w: 11, h: 5, oy: 3)},
             line_height: 14,
             space: 5,
             spacing: -1,
         ),
     },
     tilesets: {
+        "dark": [
+            (x: 562, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 579, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 596, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 613, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 630, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 647, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 664, y: 410, w: 16, h: 16, px: 0, py: 0),
+        ],
+        "desert": [
+            (x: 324, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 341, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 358, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 375, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 392, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 409, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 426, y: 410, w: 16, h: 16, px: 0, py: 0),
+        ],
+        "forest": [
+            (x: 205, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 222, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 239, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 256, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 273, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 290, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 307, y: 410, w: 16, h: 16, px: 0, py: 0),
+        ],
         "grass": [
-            (x: 289, y: 263, w: 16, h: 16, px: 0, py: 0),
-            (x: 306, y: 263, w: 16, h: 16, px: 0, py: 0),
-            (x: 323, y: 263, w: 16, h: 16, px: 0, py: 0),
-            (x: 340, y: 263, w: 16, h: 16, px: 0, py: 0),
-            (x: 357, y: 263, w: 16, h: 16, px: 0, py: 0),
-            (x: 374, y: 263, w: 16, h: 16, px: 0, py: 0),
-            (x: 391, y: 263, w: 16, h: 16, px: 0, py: 0),
+            (x: 891, y: 385, w: 16, h: 16, px: 0, py: 0),
+            (x: 908, y: 385, w: 16, h: 16, px: 0, py: 0),
+            (x: 925, y: 385, w: 16, h: 16, px: 0, py: 0),
+            (x: 942, y: 385, w: 16, h: 16, px: 0, py: 0),
+            (x: 959, y: 385, w: 16, h: 16, px: 0, py: 0),
+            (x: 976, y: 385, w: 16, h: 16, px: 0, py: 0),
+            (x: 993, y: 385, w: 16, h: 16, px: 0, py: 0),
+        ],
+        "ice": [
+            (x: 443, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 460, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 477, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 494, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 511, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 528, y: 410, w: 16, h: 16, px: 0, py: 0),
+            (x: 545, y: 410, w: 16, h: 16, px: 0, py: 0),
         ],
     },
 )

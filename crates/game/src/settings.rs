@@ -20,8 +20,14 @@ fn d_sfx() -> f32 {
     0.8
 }
 
+/// Version du format des reglages (migrations a la lecture).
+const VERSION: u32 = 1;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
+    /// 0 = reglages ecrits avant la v0.3 (filtre SNES impose par defaut).
+    #[serde(default)]
+    pub version: u32,
     #[serde(default = "d_lang")]
     pub lang: String,
     /// Filtre sonore old-school (actif par defaut).
@@ -35,7 +41,7 @@ pub struct Settings {
     pub sfx: f32,
     #[serde(default)]
     pub fullscreen: bool,
-    /// Filtre video (SNES par defaut).
+    /// Filtre video (aucun par defaut ; l'ecran titre n'en a jamais).
     #[serde(default)]
     pub video: VideoFilter,
     /// Format d'image : large ou 4:3.
@@ -52,6 +58,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
+            version: VERSION,
             lang: d_lang(),
             filter: AudioFilter::default(),
             master: d_master(),
@@ -68,14 +75,21 @@ impl Default for Settings {
 
 impl Settings {
     pub fn load(root: &Path) -> Settings {
-        let p = root.join("settings.ron");
-        match std::fs::read_to_string(&p) {
-            Ok(t) => ron::from_str(&t).unwrap_or_else(|e| {
+        let mut s = match crate::storage::read(root, "settings.ron") {
+            Some(t) => ron::from_str(&t).unwrap_or_else(|e| {
                 log::warn!("settings.ron illisible ({e}) : reglages par defaut");
                 Settings::default()
             }),
-            Err(_) => Settings::default(),
+            None => Settings::default(),
+        };
+        if s.version < 1 {
+            // le filtre SNES etait impose par defaut : on passe au rendu net, sans filtre
+            if s.video == VideoFilter::Snes {
+                s.video = VideoFilter::None;
+            }
+            s.version = VERSION;
         }
+        s
     }
 
     pub fn save(&self, root: &Path) {
@@ -83,7 +97,7 @@ impl Settings {
         match ron::ser::to_string_pretty(self, cfg) {
             Ok(t) => {
                 let text = format!("// Reglages du joueur (modifiables depuis le menu Options).\n{t}\n");
-                if let Err(e) = std::fs::write(root.join("settings.ron"), text) {
+                if let Err(e) = crate::storage::write(root, "settings.ron", &text) {
                     log::warn!("ecriture de settings.ron impossible : {e}");
                 }
             }

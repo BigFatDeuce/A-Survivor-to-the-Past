@@ -13,13 +13,13 @@ pub struct Lang {
 
 fn load_file(root: &Path, code: &str) -> HashMap<String, String> {
     let p = root.join("data/lang").join(format!("{code}.ron"));
-    match std::fs::read_to_string(&p) {
-        Ok(t) => ron::from_str(&t).unwrap_or_else(|e| {
+    match engine::vfs::read_string(&p) {
+        Some(t) => ron::from_str(&t).unwrap_or_else(|e| {
             log::warn!("{} : {e}", p.display());
             HashMap::new()
         }),
-        Err(e) => {
-            log::warn!("{} : {e}", p.display());
+        None => {
+            log::warn!("{} introuvable", p.display());
             HashMap::new()
         }
     }

@@ -22,19 +22,51 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod content;
+mod controls;
 mod director;
 mod game;
+mod clipboard;
+mod hub;
 mod hud;
 mod juice;
 mod lang;
 mod menus;
+mod meta;
+mod profile;
+mod records;
 mod settings;
+mod shop;
+mod stages;
+mod storage;
+mod weather;
 mod title;
 mod uicheck;
+// version web : rien a mettre a jour (le site sert la derniere version)
+#[cfg_attr(target_arch = "wasm32", path = "update_web.rs")]
 mod update;
 mod visuals;
 
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::{Path, PathBuf};
+
+/// Reglages de depart d'une session normale (ecran titre).
+fn default_options() -> game::Options {
+    game::Options {
+        bench: None,
+        demo: false,
+        seed: 0x5eed,
+        map: "hyrule_field".into(),
+        character: "link".into(),
+        start_time: 0.0,
+        give: Vec::new(),
+        menu: None,
+        lang: None,
+        play: false,
+        uicheck: false,
+        update_source: None,
+        video: None,
+    }
+}
 
 /// Boite de message systeme (erreurs graves : le jeu n'a pas de console).
 #[cfg(windows)]
@@ -50,12 +82,13 @@ fn message_box(text: &str) {
     unsafe { MessageBoxW(std::ptr::null_mut(), t.as_ptr(), c.as_ptr(), 0x10) };
 }
 
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_arch = "wasm32")))]
 fn message_box(text: &str) {
     eprintln!("{text}");
 }
 
 /// En cas de plantage : `crash.log` a la racine du jeu et message au joueur.
+#[cfg(not(target_arch = "wasm32"))]
 fn crash_report(root: &Path) {
     let root = root.to_path_buf();
     let default = std::panic::take_hook();
@@ -76,6 +109,7 @@ Discord: About / À propos"
     }));
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn main() {
     env_logger::Builder::from_env(
         env_logger::Env::default().default_filter_or("info,wgpu_core=warn,wgpu_hal=warn,naga=warn,symphonia=warn"),
@@ -110,20 +144,7 @@ fn main() {
     cfg.video = set.video;
     cfg.icon = Some(include_bytes!("../../../assets/icons/icon_64.png"));
     cfg.aspect = set.aspect;
-    let mut opts = game::Options {
-        bench: None,
-        demo: false,
-        seed: 0x5eed,
-        map: "arena_test".into(),
-        character: "link".into(),
-        start_time: 0.0,
-        give: Vec::new(),
-        menu: None,
-        lang: None,
-        play: false,
-        uicheck: false,
-        update_source: None,
-    };
+    let mut opts = default_options();
     let mut i = 0;
     let num = |s: Option<&String>| -> f32 { s.and_then(|v| v.parse().ok()).unwrap_or(0.0) };
     while i < args.len() {
@@ -201,6 +222,7 @@ fn main() {
                     Some("gb") => V::GameBoy,
                     _ => V::Snes,
                 };
+                opts.video = Some(cfg.video);
                 i += 1;
             }
             "--aspect" => {
@@ -216,4 +238,114 @@ fn main() {
         i += 1;
     }
     engine::app::run(cfg, move |ctx| game::Game::new(ctx, opts));
+}
+
+/// Navigateur : la page a deja telecharge le paquet du jeu (`window.astpPak`).
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    web::init_log();
+    web::crash_hook();
+    let Some(pak) = web::take_pak() else {
+        web::fail("paquet du jeu absent (window.astpPak)");
+        return;
+    };
+    match engine::vfs::install(pak) {
+        Ok(n) => log::info!("paquet du jeu : {n} fichiers"),
+        Err(e) => {
+            web::fail(&e);
+            return;
+        }
+    }
+    let root = engine::assets::find_root();
+    // premiere visite : langue du navigateur
+    if storage::read(&root, "settings.ron").is_none() {
+        let mut s = settings::Settings::default();
+        if let Some(code) = web::browser_lang() {
+            s.lang = code;
+        }
+        s.save(&root);
+    }
+    let set = settings::Settings::load(&root);
+    let mut cfg = engine::app::Config::default();
+    cfg.video = set.video;
+    cfg.aspect = set.aspect;
+    let mut opts = default_options();
+    opts.lang = web::query("lang");
+    engine::app::run(cfg, move |ctx| game::Game::new(ctx, opts));
+}
+
+#[cfg(target_arch = "wasm32")]
+mod web {
+    use wasm_bindgen::{JsCast, JsValue};
+
+    struct Console;
+
+    impl log::Log for Console {
+        fn enabled(&self, m: &log::Metadata) -> bool {
+            let t = m.target();
+            let noisy = t.starts_with("wgpu") || t.starts_with("naga") || t.starts_with("symphonia");
+            m.level() <= if noisy { log::Level::Warn } else { log::Level::Info }
+        }
+        fn log(&self, r: &log::Record) {
+            if !self.enabled(r.metadata()) {
+                return;
+            }
+            let s = JsValue::from_str(&format!("[{}] {}", r.level(), r.args()));
+            match r.level() {
+                log::Level::Error => web_sys::console::error_1(&s),
+                log::Level::Warn => web_sys::console::warn_1(&s),
+                _ => web_sys::console::log_1(&s),
+            }
+        }
+        fn flush(&self) {}
+    }
+
+    static LOGGER: Console = Console;
+
+    pub fn init_log() {
+        if log::set_logger(&LOGGER).is_ok() {
+            log::set_max_level(log::LevelFilter::Info);
+        }
+    }
+
+    /// Message d'erreur affiche par la page (`window.astpCrash`).
+    pub fn fail(msg: &str) {
+        web_sys::console::error_1(&JsValue::from_str(msg));
+        let Some(w) = web_sys::window() else { return };
+        if let Ok(f) = js_sys::Reflect::get(&w, &JsValue::from_str("astpCrash")) {
+            if let Ok(f) = f.dyn_into::<js_sys::Function>() {
+                let _ = f.call1(&JsValue::NULL, &JsValue::from_str(msg));
+            }
+        }
+    }
+
+    pub fn crash_hook() {
+        std::panic::set_hook(Box::new(|info| {
+            fail(&format!("A Survivor to the Past v{}\n{info}", env!("CARGO_PKG_VERSION")));
+        }));
+    }
+
+    pub fn take_pak() -> Option<Vec<u8>> {
+        let w = web_sys::window()?;
+        let key = JsValue::from_str("astpPak");
+        let v = js_sys::Reflect::get(&w, &key).ok()?;
+        let a: js_sys::Uint8Array = v.dyn_into().ok()?;
+        let out = a.to_vec();
+        let _ = js_sys::Reflect::set(&w, &key, &JsValue::NULL);
+        Some(out)
+    }
+
+    /// Parametre de l'adresse de la page (?lang=fr).
+    pub fn query(name: &str) -> Option<String> {
+        let s = web_sys::window()?.location().search().ok()?;
+        let p = web_sys::UrlSearchParams::new_with_str(&s).ok()?;
+        p.get(name).filter(|v| crate::lang::LANGS.contains(&v.as_str()))
+    }
+
+    /// Langue du navigateur, si le jeu la propose.
+    pub fn browser_lang() -> Option<String> {
+        let l = web_sys::window()?.navigator().language()?;
+        let code = l.split('-').next()?.to_lowercase();
+        crate::lang::LANGS.contains(&code.as_str()).then_some(code)
+    }
 }

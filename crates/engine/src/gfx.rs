@@ -32,10 +32,10 @@ pub struct SpriteInstance {
 /// Filtre video applique a l'image finale (passe de post-traitement).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum VideoFilter {
-    /// Pixels nets, sans effet.
+    /// Pixels nets, sans effet (par defaut).
+    #[default]
     None,
     /// Sortie composite d'une console 16 bits sur televiseur : leger flou horizontal, lignes discretes.
-    #[default]
     Snes,
     /// Televiseur cathodique : courbure, masque RGB, lignes marquees, vignettage.
     Crt,
@@ -287,6 +287,8 @@ pub struct Gfx {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
+    /// Format de rendu (toujours sRGB ; vue sRGB d'un canevas web qui ne l'est pas).
+    target: wgpu::TextureFormat,
     pipe_alpha: wgpu::RenderPipeline,
     pipe_add: wgpu::RenderPipeline,
     view_bufs: [wgpu::Buffer; 2],
@@ -315,23 +317,39 @@ pub struct Gfx {
 }
 
 impl Gfx {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new(window: Arc<Window>, vsync: bool) -> Gfx {
+        pollster::block_on(Self::new_async(window, vsync))
+    }
+
+    /// Initialisation (asynchrone dans le navigateur : WebGPU si disponible, sinon WebGL2).
+    pub async fn new_async(window: Arc<Window>, vsync: bool) -> Gfx {
+        #[cfg(target_arch = "wasm32")]
+        let instance = wgpu::util::new_instance_with_webgpu_detection(wgpu::InstanceDescriptor::new_without_display_handle()).await;
+        #[cfg(not(target_arch = "wasm32"))]
         let instance = wgpu::Instance::default();
         let surface = instance.create_surface(window.clone()).expect("surface");
-        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::HighPerformance,
-            compatible_surface: Some(&surface),
-            force_fallback_adapter: false,
-            apply_limit_buckets: false,
-        }))
-        .expect("aucune carte graphique compatible");
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                compatible_surface: Some(&surface),
+                force_fallback_adapter: false,
+                apply_limit_buckets: false,
+            })
+            .await
+            .expect("aucune carte graphique compatible");
         let adapter_name = format!("{} ({:?})", adapter.get_info().name, adapter.get_info().backend);
         log::info!("GPU : {adapter_name}");
-        let (device, queue) =
-            pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default())).expect("device");
+        // limites modestes (WebGL2) : le jeu n'a besoin de rien de plus
+        let desc = wgpu::DeviceDescriptor {
+            required_limits: wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits()),
+            ..Default::default()
+        };
+        let (device, queue) = adapter.request_device(&desc).await.expect("device");
         let size = window.inner_size();
         let caps = surface.get_capabilities(&adapter);
         let format = caps.formats.iter().copied().find(|f| f.is_srgb()).unwrap_or(caps.formats[0]);
+        let target = format.add_srgb_suffix();
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format,
@@ -341,9 +359,10 @@ impl Gfx {
             present_mode: if vsync { wgpu::PresentMode::AutoVsync } else { wgpu::PresentMode::AutoNoVsync },
             desired_maximum_frame_latency: 2,
             alpha_mode: caps.alpha_modes[0],
-            view_formats: vec![],
+            view_formats: if target != format { vec![target] } else { vec![] },
         };
         surface.configure(&device, &config);
+        let format = target;
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("sprites"),
@@ -519,6 +538,7 @@ impl Gfx {
             device,
             queue,
             config,
+            target,
             pipe_alpha,
             pipe_add,
             view_bufs,
@@ -566,7 +586,7 @@ impl Gfx {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: self.config.format,
+            format: self.target,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
         });
@@ -699,7 +719,7 @@ impl Gfx {
             }
             _ => return,
         };
-        let target = frame.texture.create_view(&Default::default());
+        let target = frame.texture.create_view(&wgpu::TextureViewDescriptor { format: Some(self.target), ..Default::default() });
         let mut enc = self.device.create_command_encoder(&Default::default());
         let scene = self.scene.as_ref().expect("scene");
         self.encode(&mut enc, &scene.view, list, clear);
@@ -714,7 +734,7 @@ impl Gfx {
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
-                format: self.config.format,
+                format: self.target,
                 usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
                 view_formats: &[],
             });
@@ -810,7 +830,7 @@ impl Gfx {
             return;
         };
         let (w, h) = (self.config.width, self.config.height);
-        let bgra = matches!(self.config.format, wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Bgra8UnormSrgb);
+        let bgra = matches!(self.target, wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Bgra8UnormSrgb);
         let mut img = image::RgbaImage::new(w, h);
         for y in 0..h {
             for x in 0..w {

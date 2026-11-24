@@ -1,0 +1,52 @@
+// Bois Perdus
+// Stage 2 : foret dense, brume et lumiere filtree par le feuillage
+// Le boss final apparait a 9:00 ; sa defaite ouvre la porte de sortie (victoire en la franchissant).
+// props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde).
+(
+    name: "Bois Perdus",
+    order: 2,
+    music: "forest_of_mystery",
+    boss_music: "anger_of_the_guardians",
+    final_music: "anger_of_the_guardians",
+    ground: "forest",
+    weather: Fog,
+    ambience: None,
+    tint: Some((0.0, 0.06, 0.02, 0.12)),
+    max_enemies: 3500,
+    duration: 540.0,
+    waves: [
+        (enemy: "rat", from: 0.0, to: 900.0, rate: (0.9, 5.0), cap: 400),
+        (enemy: "rope", from: 20.0, to: 900.0, rate: (0.4, 3.5), cap: 250),
+        (enemy: "keese", from: 40.0, to: 900.0, rate: (0.3, 3.0), cap: 180),
+        (enemy: "crow", from: 70.0, to: 900.0, rate: (0.25, 2.5), cap: 150),
+        (enemy: "moblin", from: 100.0, to: 900.0, rate: (0.15, 1.8), cap: 90),
+        (enemy: "buzz_blob", from: 140.0, to: 900.0, rate: (0.2, 2.0), cap: 100),
+        (enemy: "popo", from: 170.0, to: 900.0, rate: (0.3, 3.0), cap: 200),
+        (enemy: "stalfos", from: 230.0, to: 900.0, rate: (0.15, 2.0), cap: 120),
+        (enemy: "soldier_blue", from: 300.0, to: 900.0, rate: (0.2, 2.0), cap: 150),
+        (enemy: "hardhat", from: 380.0, to: 900.0, rate: (0.1, 1.2), cap: 60),
+    ],
+    bursts: [
+        (at: 35.0, enemy: "rope", count: 40, pattern: Ring),
+        (at: 80.0, enemy: "keese", count: 60, pattern: Pack),
+        (at: 140.0, enemy: "rat", count: 80, pattern: Ring),
+        (at: 200.0, enemy: "crow", count: 60, pattern: Ring),
+        (at: 260.0, enemy: "moblin", count: 30, pattern: Pack),
+        (at: 350.0, enemy: "popo", count: 100, pattern: Ring),
+        (at: 430.0, enemy: "stalfos", count: 80, pattern: Ring),
+        (at: 500.0, enemy: "keese", count: 120, pattern: Pack),
+    ],
+    elites: [
+        (at: 80.0, enemy: "moblin"),
+        (at: 170.0, enemy: "stalfos"),
+        (at: 320.0, enemy: "moblin"),
+        (at: 430.0, enemy: "buzz_blob"),
+    ],
+    boss: Some((at: 270.0, enemy: "armos_knight")),
+    final_boss: Some((at: 540.0, enemy: "mothula")),
+    props: [
+        (sprite: "prop_tree", density: 0.16, radius: 13.0, solid: true),
+        (sprite: "prop_stump", density: 0.04, radius: 9.0, solid: true),
+        (sprite: "prop_bush", density: 0.1, radius: 6.0, solid: true),
+    ],
+)

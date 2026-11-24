@@ -4,9 +4,12 @@
 // Musiques : boucles detectees automatiquement (research/tools/music_loops.py), recalees de
 // quelques secondes avant le fondu de fin de piste. `once: true` = jingle joue une fois.
 (
-    // musique de l'ecran titre
-    menu_music: "title_link_to_the_past",
+    // Ecran titre : le prologue d'ALttP joue en entier puis repart du debut en fondu enchaine
+    // pendant son propre fondu de fin (aucune coupure), sous une averse continue.
+    menu_music: "title_theme",
+    menu_ambience: Some("fierce_rainstorm"),
     music: {
+        "title_theme": (file: "03_seal_of_seven_maidens.ogg", crossfade: Some((106.0, 5.0))),
         "title_link_to_the_past": (file: "01_title_link_to_the_past.ogg", loop_start: 9.7056, loop_end: Some(14.5312)),
         "beginning_of_the_journey": (file: "02_beginning_of_the_journey.ogg", loop_start: 27.1731, loop_end: Some(38.944)), // boucle incertaine, a verifier a l'oreille
         "seal_of_seven_maidens": (file: "03_seal_of_seven_maidens.ogg", loop_start: 48.4754, loop_end: Some(100.96)),
@@ -42,7 +45,7 @@
         "power_of_the_gods": (file: "33_power_of_the_gods.ogg", loop_start: 35.4984, loop_end: Some(74.96)),
         "epilogue_beautiful_hyrule": (file: "34_epilogue_beautiful_hyrule.ogg", loop_start: 113.2061, loop_end: Some(217.04)),
         "staff_roll": (file: "35_staff_roll.ogg", loop_start: 113.1873, loop_end: Some(230.096)),
-        "fierce_rainstorm": (file: "01_fierce_rainstorm.ogg", loop_start: 0.0),
+        "fierce_rainstorm": (file: "01_fierce_rainstorm.ogg", loop_start: 0.0, volume: 0.85),
         "howling_wind": (file: "02_howling_wind.ogg", loop_start: 0.0),
         "jingle_secret": (file: "04_secret.ogg", once: true),
         "jingle_chest_appears": (file: "05_chest_appears.ogg", once: true),
@@ -151,7 +154,17 @@
         "fairy":         ["fairy"],
         "bombos":        ["fire"],
         "ether":         ["thunder"],
+        "storm_thunder": ["thunder"],
         "quake":         ["quake_1"],
         "beam":          ["sword_beam"],
+        // stages : bonds et teleportations des boss, porte de sortie, victoire
+        "boss_slam":     ["quake_2"],
+        "teleport":      ["teleport"],
+        "portal_open":   ["secret"],
+        "buy":           ["item_get_2"],
+        "equip":         ["button"],
+        "relic":         ["item_get_4"],
+        "save_code":     ["message_finish"],
+        "victory":       ["warp"],
     },
 )

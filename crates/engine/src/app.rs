@@ -7,7 +7,9 @@ use crate::TICK_DT;
 use glam::Vec2;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+#[cfg(not(target_arch = "wasm32"))]
+use web_time::Duration;
+use web_time::Instant;
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
 use winit::event::{ElementState, WindowEvent};
@@ -145,6 +147,11 @@ struct Runner<G: Game> {
     cfg: Config,
     make: Option<Maker<G>>,
     state: Option<Running<G>>,
+    /// Navigateur : rendu en cours d'initialisation (asynchrone), recupere des qu'il est pret.
+    #[cfg(target_arch = "wasm32")]
+    pending: std::rc::Rc<std::cell::RefCell<Option<Gfx>>>,
+    #[cfg(target_arch = "wasm32")]
+    started: bool,
 }
 
 struct Running<G> {
@@ -159,6 +166,7 @@ struct Running<G> {
     captured: usize,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn run<G: Game + 'static>(cfg: Config, make: impl FnOnce(&mut Ctx) -> G + 'static) {
     let event_loop = EventLoop::new().expect("boucle d'evenements");
     event_loop.set_control_flow(ControlFlow::Poll);
@@ -166,26 +174,26 @@ pub fn run<G: Game + 'static>(cfg: Config, make: impl FnOnce(&mut Ctx) -> G + 's
     event_loop.run_app(&mut r).expect("execution");
 }
 
-impl<G: Game> ApplicationHandler for Runner<G> {
-    fn resumed(&mut self, el: &ActiveEventLoop) {
-        if self.state.is_some() {
-            return;
-        }
-        let size = self.cfg.window_size.unwrap_or_else(|| {
-            let mh = el.primary_monitor().map(|m| m.size().height).unwrap_or(1080);
-            let k = ((mh as f32 * 0.8) / 360.0).floor().max(1.0) as u32;
-            (640 * k, 360 * k)
-        });
-        let mut attrs = Window::default_attributes()
-            .with_title(self.cfg.title.clone())
-            .with_inner_size(PhysicalSize::new(size.0, size.1))
-            .with_min_inner_size(PhysicalSize::new(640, 360))
-            .with_window_icon(self.cfg.icon.and_then(window_icon));
-        if self.cfg.fullscreen {
-            attrs = attrs.with_fullscreen(Some(Fullscreen::Borderless(None)));
-        }
-        let window = Arc::new(el.create_window(attrs).expect("fenetre"));
-        let mut gfx = Gfx::new(window.clone(), self.cfg.vsync);
+/// Navigateur : la boucle rend la main a la page ; le jeu demarre quand le rendu est pret.
+#[cfg(target_arch = "wasm32")]
+pub fn run<G: Game + 'static>(cfg: Config, make: impl FnOnce(&mut Ctx) -> G + 'static) {
+    use winit::platform::web::EventLoopExtWebSys;
+    let event_loop = EventLoop::new().expect("boucle d'evenements");
+    event_loop.set_control_flow(ControlFlow::Poll);
+    let r = Runner { cfg, make: Some(Box::new(make)), state: None, pending: Default::default(), started: false };
+    event_loop.spawn_app(r);
+}
+
+/// Canevas de la page (`<canvas id="game">`).
+#[cfg(target_arch = "wasm32")]
+fn page_canvas() -> Option<web_sys::HtmlCanvasElement> {
+    use wasm_bindgen::JsCast;
+    web_sys::window()?.document()?.get_element_by_id("game")?.dyn_into().ok()
+}
+
+impl<G: Game> Runner<G> {
+    /// Fin du lancement : atlas, audio, jeu.
+    fn finish(&mut self, mut gfx: Gfx) {
         gfx.set_video(self.cfg.video, self.cfg.aspect);
         let root = find_root();
         log::info!("racine du jeu : {}", root.display());
@@ -215,6 +223,7 @@ impl<G: Game> ApplicationHandler for Runner<G> {
         };
         let game = (self.make.take().unwrap())(&mut ctx);
         let now = Instant::now();
+        let window = gfx.window.clone();
         self.state = Some(Running {
             gfx,
             ctx,
@@ -228,8 +237,63 @@ impl<G: Game> ApplicationHandler for Runner<G> {
         });
         window.request_redraw();
     }
+}
+
+impl<G: Game> ApplicationHandler for Runner<G> {
+    fn resumed(&mut self, el: &ActiveEventLoop) {
+        if self.state.is_some() {
+            return;
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            if self.started {
+                return;
+            }
+            self.started = true;
+            use winit::platform::web::WindowAttributesExtWebSys;
+            // le canevas suit la taille que lui donne la page (CSS)
+            let attrs = Window::default_attributes()
+                .with_title(self.cfg.title.clone())
+                .with_canvas(page_canvas())
+                .with_prevent_default(true)
+                .with_focusable(true);
+            let window = Arc::new(el.create_window(attrs).expect("fenetre"));
+            let pending = self.pending.clone();
+            let vsync = self.cfg.vsync;
+            wasm_bindgen_futures::spawn_local(async move {
+                let gfx = Gfx::new_async(window.clone(), vsync).await;
+                *pending.borrow_mut() = Some(gfx);
+                window.request_redraw();
+            });
+            return;
+        }
+        #[allow(unreachable_code)]
+        let size = self.cfg.window_size.unwrap_or_else(|| {
+            let mh = el.primary_monitor().map(|m| m.size().height).unwrap_or(1080);
+            let k = ((mh as f32 * 0.8) / 360.0).floor().max(1.0) as u32;
+            (640 * k, 360 * k)
+        });
+        let mut attrs = Window::default_attributes()
+            .with_title(self.cfg.title.clone())
+            .with_inner_size(PhysicalSize::new(size.0, size.1))
+            .with_min_inner_size(PhysicalSize::new(640, 360))
+            .with_window_icon(self.cfg.icon.and_then(window_icon));
+        if self.cfg.fullscreen {
+            attrs = attrs.with_fullscreen(Some(Fullscreen::Borderless(None)));
+        }
+        let window = Arc::new(el.create_window(attrs).expect("fenetre"));
+        #[cfg(not(target_arch = "wasm32"))]
+        self.finish(Gfx::new(window, self.cfg.vsync));
+    }
 
     fn window_event(&mut self, el: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
+        #[cfg(target_arch = "wasm32")]
+        if self.state.is_none() {
+            let ready = self.pending.borrow_mut().take();
+            if let Some(gfx) = ready {
+                self.finish(gfx);
+            }
+        }
         let Some(s) = self.state.as_mut() else { return };
         match event {
             WindowEvent::CloseRequested => {
@@ -261,6 +325,9 @@ impl<G: Game> ApplicationHandler for Runner<G> {
                         s.ctx.req_fullscreen = Some(on);
                         return;
                     }
+                    if let (true, winit::keyboard::Key::Character(c)) = (down, &event.logical_key) {
+                        s.ctx.input.learn_label(code, c);
+                    }
                     s.ctx.input.key_event(code, down, event.repeat);
                 }
             }
@@ -288,6 +355,13 @@ impl<G: Game> ApplicationHandler for Runner<G> {
     }
 
     fn about_to_wait(&mut self, _el: &ActiveEventLoop) {
+        #[cfg(target_arch = "wasm32")]
+        if self.state.is_none() {
+            let ready = self.pending.borrow_mut().take();
+            if let Some(gfx) = ready {
+                self.finish(gfx);
+            }
+        }
         if let Some(s) = self.state.as_ref() {
             s.gfx.window.request_redraw();
         }
@@ -386,6 +460,7 @@ impl<G: Game> Running<G> {
         }
 
         // 5) limiteur d'images (sans synchro verticale)
+        #[cfg(not(target_arch = "wasm32"))]
         if let (false, Some(cap)) = (ctx.vsync, cfg.fps_cap) {
             let target = Duration::from_secs_f32(1.0 / cap.max(10.0));
             let spent = now.elapsed();

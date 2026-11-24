@@ -1,0 +1,53 @@
+// Pyramide de la Puissance
+// Stage 5 : le Monde des Tenebres, Agahnim puis Ganon
+// Le boss final apparait a 9:00 ; sa defaite ouvre la porte de sortie (victoire en la franchissant).
+// props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde).
+(
+    name: "Pyramide de la Puissance",
+    order: 5,
+    music: "dark_golden_land",
+    boss_music: "priest_of_the_dark_order",
+    final_music: "the_prince_of_darkness",
+    ground: "dark",
+    weather: Dark,
+    ambience: None,
+    tint: Some((0.2, 0.0, 0.25, 0.10)),
+    max_enemies: 4500,
+    duration: 540.0,
+    waves: [
+        (enemy: "stalfos", from: 0.0, to: 900.0, rate: (0.9, 5.0), cap: 400),
+        (enemy: "keese", from: 15.0, to: 900.0, rate: (0.5, 4.0), cap: 300),
+        (enemy: "moblin", from: 40.0, to: 900.0, rate: (0.3, 2.5), cap: 150),
+        (enemy: "hardhat", from: 70.0, to: 900.0, rate: (0.3, 3.0), cap: 200),
+        (enemy: "soldier_blue", from: 100.0, to: 900.0, rate: (0.3, 3.0), cap: 300),
+        (enemy: "vulture", from: 130.0, to: 900.0, rate: (0.25, 2.5), cap: 150),
+        (enemy: "archer", from: 170.0, to: 900.0, rate: (0.15, 1.5), cap: 50),
+        (enemy: "buzz_blob", from: 210.0, to: 900.0, rate: (0.25, 2.5), cap: 150),
+        (enemy: "tektite", from: 260.0, to: 900.0, rate: (0.25, 2.5), cap: 150),
+        (enemy: "crow", from: 320.0, to: 900.0, rate: (0.3, 3.0), cap: 200),
+    ],
+    bursts: [
+        (at: 30.0, enemy: "keese", count: 80, pattern: Pack),
+        (at: 70.0, enemy: "stalfos", count: 80, pattern: Ring),
+        (at: 120.0, enemy: "moblin", count: 40, pattern: Pack),
+        (at: 180.0, enemy: "soldier_blue", count: 120, pattern: Ring),
+        (at: 240.0, enemy: "vulture", count: 100, pattern: Ring),
+        (at: 330.0, enemy: "stalfos", count: 160, pattern: Ring),
+        (at: 410.0, enemy: "keese", count: 200, pattern: Pack),
+        (at: 490.0, enemy: "soldier_blue", count: 220, pattern: Ring),
+    ],
+    elites: [
+        (at: 60.0, enemy: "moblin"),
+        (at: 150.0, enemy: "stalfos"),
+        (at: 240.0, enemy: "archer"),
+        (at: 360.0, enemy: "moblin"),
+        (at: 450.0, enemy: "hardhat"),
+    ],
+    boss: Some((at: 270.0, enemy: "agahnim")),
+    final_boss: Some((at: 540.0, enemy: "ganon")),
+    props: [
+        (sprite: "prop_tree_dark", density: 0.06, radius: 13.0, solid: true),
+        (sprite: "prop_stump_dark", density: 0.03, radius: 9.0, solid: true),
+        (sprite: "prop_boulder", density: 0.02, radius: 12.0, solid: true, tint: Some((0.35, 0.2, 0.4, 0.45))),
+    ],
+)

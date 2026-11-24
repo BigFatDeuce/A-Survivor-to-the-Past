@@ -418,6 +418,18 @@ import lang_update  # noqa: E402  (mises a jour)
 KEYS += lang_update.KEYS
 for _code, _t in lang_update.EXTRA.items():
     L[_code].update(_t)
+import lang_stages  # noqa: E402  (stages, victoire, boss)
+KEYS += lang_stages.KEYS
+for _code, _t in lang_stages.EXTRA.items():
+    L[_code].update(_t)
+import lang_meta  # noqa: E402  (boutique, reliques, defis, profil)
+KEYS += lang_meta.KEYS
+for _code, _t in lang_meta.EXTRA.items():
+    L[_code].update(_t)
+import lang_controls  # noqa: E402  (ecran Commandes)
+KEYS += lang_controls.KEYS
+for _code, _t in lang_controls.EXTRA.items():
+    L[_code].update(_t)
 
 
 def esc(s):

@@ -14,5 +14,14 @@
                 "title_logo": { "0": (frames: [(0, 0, 82, 128)], pivot: (0, 0), align: Center) },
             },
         ),
+        // Pluie de l'introduction d'ALttP : goutte (pointe en bas a gauche) et eclaboussure au sol.
+        (
+            source: "Effects - Rain and Radius.png",
+            transparent: ["#306030"],
+            sprites: {
+                "fx_rain_drop": { "0": (frames: [(3, 11, 8, 16)], pivot: (0, 0), center_x: false, align: Bottom) },
+                "fx_rain_splash": { "0": (frames: [(21, 2, 8, 8), (12, 2, 8, 8), (3, 2, 8, 8)], fps: 12, mode: Once, pivot: (0, 0), align: Center) },
+            },
+        ),
     ],
 )

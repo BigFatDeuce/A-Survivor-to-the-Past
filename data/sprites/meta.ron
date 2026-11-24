@@ -1,0 +1,25 @@
+// Icones de la progression : boutique de Kakariko, Grande Fee, reliques des stages.
+(
+    sheets: [
+        (
+            source: "Miscellaneous - Items (Overworld).png",
+            transparent: ["#800080"],
+            sprites: {
+                "icon_bottle":         { "0": (frames: [(37, 144, 14, 16)], pivot: (0, 0), align: Center) },
+                "icon_red_potion":     { "0": (frames: [(85, 144, 14, 16)], pivot: (0, 0), align: Center) },
+                "icon_green_potion":   { "0": (frames: [(133, 144, 14, 16)], pivot: (0, 0), align: Center) },
+                "icon_blue_potion":    { "0": (frames: [(156, 144, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_fairy_bottle":   { "0": (frames: [(181, 144, 14, 16)], pivot: (0, 0), align: Center) },
+                "icon_green_mail":     { "0": (frames: [(40, 170, 16, 14)], pivot: (0, 0), align: Center) },
+                "icon_blue_mail":      { "0": (frames: [(64, 170, 16, 14)], pivot: (0, 0), align: Center) },
+                "icon_red_mail":       { "0": (frames: [(88, 170, 16, 14)], pivot: (0, 0), align: Center) },
+                "icon_pearl":          { "0": (frames: [(210, 170, 12, 12)], pivot: (0, 0), align: Center) },
+                "icon_pendant_courage": { "0": (frames: [(84, 193, 16, 15)], pivot: (0, 0), align: Center) },
+                "icon_pendant_power":  { "0": (frames: [(108, 193, 16, 15)], pivot: (0, 0), align: Center) },
+                "icon_pendant_wisdom": { "0": (frames: [(132, 193, 16, 15)], pivot: (0, 0), align: Center) },
+                "icon_crystal":        { "0": (frames: [(159, 193, 10, 14)], pivot: (0, 0), align: Center) },
+                "icon_big_key":        { "0": (frames: [(229, 192, 14, 16)], pivot: (0, 0), align: Center) },
+            },
+        ),
+    ],
+)

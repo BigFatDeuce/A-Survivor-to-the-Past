@@ -1,0 +1,53 @@
+// Desert du Mystere
+// Stage 3 : sable, ossements et tempete
+// Le boss final apparait a 9:00 ; sa defaite ouvre la porte de sortie (victoire en la franchissant).
+// props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde).
+(
+    name: "Desert du Mystere",
+    order: 3,
+    music: "lost_ancient_ruins",
+    boss_music: "anger_of_the_guardians",
+    final_music: "anger_of_the_guardians",
+    ground: "desert",
+    weather: Sand,
+    ambience: Some("howling_wind"),
+    tint: Some((0.25, 0.15, 0.0, 0.10)),
+    max_enemies: 4000,
+    duration: 540.0,
+    waves: [
+        (enemy: "vulture", from: 0.0, to: 900.0, rate: (0.6, 4.0), cap: 250),
+        (enemy: "tektite", from: 20.0, to: 900.0, rate: (0.4, 3.5), cap: 200),
+        (enemy: "hardhat", from: 50.0, to: 900.0, rate: (0.3, 2.5), cap: 150),
+        (enemy: "rope", from: 80.0, to: 900.0, rate: (0.3, 3.0), cap: 200),
+        (enemy: "popo", from: 110.0, to: 900.0, rate: (0.3, 3.0), cap: 200),
+        (enemy: "stalfos", from: 150.0, to: 900.0, rate: (0.2, 2.5), cap: 150),
+        (enemy: "archer", from: 190.0, to: 900.0, rate: (0.1, 1.2), cap: 40),
+        (enemy: "moblin", from: 240.0, to: 900.0, rate: (0.15, 1.6), cap: 80),
+        (enemy: "soldier_blue", from: 300.0, to: 900.0, rate: (0.2, 2.5), cap: 200),
+        (enemy: "buzz_blob", from: 360.0, to: 900.0, rate: (0.2, 2.0), cap: 100),
+    ],
+    bursts: [
+        (at: 30.0, enemy: "vulture", count: 40, pattern: Ring),
+        (at: 75.0, enemy: "tektite", count: 50, pattern: Pack),
+        (at: 130.0, enemy: "hardhat", count: 60, pattern: Ring),
+        (at: 190.0, enemy: "rope", count: 80, pattern: Ring),
+        (at: 250.0, enemy: "vulture", count: 80, pattern: Pack),
+        (at: 340.0, enemy: "stalfos", count: 100, pattern: Ring),
+        (at: 420.0, enemy: "tektite", count: 100, pattern: Ring),
+        (at: 500.0, enemy: "vulture", count: 150, pattern: Ring),
+    ],
+    elites: [
+        (at: 70.0, enemy: "hardhat"),
+        (at: 160.0, enemy: "stalfos"),
+        (at: 300.0, enemy: "archer"),
+        (at: 420.0, enemy: "moblin"),
+    ],
+    boss: Some((at: 270.0, enemy: "mothula")),
+    final_boss: Some((at: 540.0, enemy: "lanmola")),
+    props: [
+        (sprite: "prop_skull", density: 0.03, radius: 10.0, solid: true),
+        (sprite: "prop_cactus", density: 0.06, radius: 6.0, solid: true),
+        (sprite: "prop_desert_plant", density: 0.05, radius: 6.0, solid: true),
+        (sprite: "prop_boulder", density: 0.025, radius: 12.0, solid: true),
+    ],
+)

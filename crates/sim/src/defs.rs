@@ -273,6 +273,9 @@ pub struct ShotDef {
     /// Ecart entre les tirs (degres).
     #[serde(default)]
     pub spread: f32,
+    /// Tir en couronne : `count` projectiles repartis tout autour (ignore `spread`).
+    #[serde(default)]
+    pub ring: bool,
 }
 
 fn shot_radius_default() -> f32 {
@@ -290,6 +293,10 @@ pub enum BossAction {
     Throw { windup: f32, shot: ShotDef },
     /// Appelle des renforts autour de lui.
     Summon { enemy: String, count: u32 },
+    /// Bond sur la position du joueur ; onde de choc a l'atterrissage (rayon, degats).
+    Leap { windup: f32, time: f32, radius: f32, damage: f32 },
+    /// Disparait (annonce) puis reapparait a `range` pixels du joueur.
+    Teleport { windup: f32, range: f32 },
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -393,9 +400,70 @@ pub struct SpawnAt {
     pub enemy: String,
 }
 
+/// Element de decor place au hasard (voir `props.rs`).
+#[derive(Clone, Debug, Deserialize)]
+pub struct PropDef {
+    /// Sprite (rendu) ; `variants` > 1 : animations "0", "1"... choisies au hasard.
+    pub sprite: String,
+    #[serde(default = "one_u32")]
+    pub variants: u32,
+    /// Probabilite d'un element par case de 48 px.
+    pub density: f32,
+    /// Rayon de collision (pixels).
+    #[serde(default)]
+    pub radius: f32,
+    /// Bloque le joueur et la horde.
+    #[serde(default)]
+    pub solid: bool,
+    /// Teinte (rouge, vert, bleu, force) : arbre givre, rocher sombre...
+    #[serde(default)]
+    pub tint: Option<(f32, f32, f32, f32)>,
+}
+
+fn one_u32() -> u32 {
+    1
+}
+
+/// Meteo d'une carte (rendu et ambiance).
+#[derive(Clone, Copy, Debug, Deserialize, Default, PartialEq, Eq)]
+pub enum Weather {
+    #[default]
+    Clear,
+    /// Pluie et eclairs.
+    Rain,
+    /// Brouillard qui derive.
+    Fog,
+    /// Neige.
+    Snow,
+    /// Vent de sable.
+    Sand,
+    /// Obscurite : seul un halo autour du joueur reste clair.
+    Dark,
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct MapDef {
     pub name: String,
+    /// Rang dans le choix des stages (1 = premier) ; 0 = hors selection (arene d'essai).
+    #[serde(default)]
+    pub order: u32,
+    /// Boss final : a sa mort, la porte de sortie s'ouvre. Sans boss final, elle s'ouvre a `duration`.
+    #[serde(default)]
+    pub final_boss: Option<SpawnAt>,
+    /// Musique du boss final (sinon `boss_music`).
+    #[serde(default)]
+    pub final_music: String,
+    /// Decor : arbres, rochers...
+    #[serde(default)]
+    pub props: Vec<PropDef>,
+    #[serde(default)]
+    pub weather: Weather,
+    /// Ambiance sonore (cle de `audio.ron`).
+    #[serde(default)]
+    pub ambience: Option<String>,
+    /// Teinte multiplicative du monde (nuit, crepuscule...).
+    #[serde(default)]
+    pub tint: Option<(f32, f32, f32, f32)>,
     /// Musique (cle de `audio.ron`).
     pub music: String,
     /// Musique du boss.

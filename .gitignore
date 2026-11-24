@@ -4,6 +4,10 @@
 
 # Reglages et fichiers locaux du joueur
 /settings.ron
+/profile.ron
+/profile.broken.ron
+/profile_code.txt
+*.ron.tmp
 /saves/
 /uicheck.txt
 /screenshots/
@@ -30,3 +34,11 @@ desktop.ini
 
 # Paquets publies
 /dist/
+
+# Version web copiee dans le site au moment du deploiement (make_web.py puis make_site.py)
+/site/play/
+
+# Restes d'essais de mise a jour lances depuis le dossier du projet
+/A Survivor to the Past.exe
+/README.txt
+/LICENSE.txt

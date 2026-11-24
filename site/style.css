@@ -43,6 +43,7 @@ section { scroll-margin-top: 72px; }
 .btn:hover { transform: translateY(-1px); color: #fff; }
 .btn.gold { background: linear-gradient(#f8d850, #d8a020); color: #2a1a00; border-color: #fff0a0; }
 .btn.discord { background: var(--discord); border-color: #aab4ff; }
+.btn.web { background: linear-gradient(#58c070, #2a8040); border-color: #b0f0b8; }
 .soon { color: var(--dim); font-size: 14px; margin: 6px 0 0; }
 .panel {
   margin: 36px 0; padding: 24px 28px; background: linear-gradient(var(--bg2), var(--panel));

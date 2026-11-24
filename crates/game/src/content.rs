@@ -7,20 +7,18 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 fn read<T: for<'de> Deserialize<'de>>(path: &Path) -> T {
-    let text = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("{} : {e}", path.display()));
+    let text = engine::vfs::read_string(path).unwrap_or_else(|| panic!("{} introuvable", path.display()));
     ron::from_str(&text).unwrap_or_else(|e| panic!("{} : {e}", path.display()))
 }
 
 /// Tous les fichiers `.ron` d'un dossier, indexes par nom de fichier.
 fn read_dir<T: for<'de> Deserialize<'de>>(dir: &Path) -> BTreeMap<String, T> {
     let mut out = BTreeMap::new();
-    if let Ok(rd) = std::fs::read_dir(dir) {
-        for e in rd.flatten() {
-            let p = e.path();
-            if p.extension().is_some_and(|x| x == "ron") {
-                let id = p.file_stem().unwrap().to_string_lossy().to_string();
-                out.insert(id, read(&p));
-            }
+    for f in engine::vfs::list(dir) {
+        let p = dir.join(&f);
+        if p.extension().is_some_and(|x| x == "ron") {
+            let id = p.file_stem().unwrap().to_string_lossy().to_string();
+            out.insert(id, read(&p));
         }
     }
     out
@@ -103,6 +101,9 @@ pub struct MusicEntry {
     pub once: bool,
     #[serde(default = "one")]
     pub volume: f32,
+    /// Boucle en fondu enchaine : (instant de relance, duree du fondu) en secondes.
+    #[serde(default)]
+    pub crossfade: Option<(f64, f64)>,
 }
 
 #[derive(Deserialize, Clone, Copy, Debug)]
@@ -120,6 +121,9 @@ pub struct AudioConfig {
     /// Musique de l'ecran titre et des menus hors partie.
     #[serde(default = "default_menu_music")]
     pub menu_music: String,
+    /// Ambiance sonore de l'ecran titre (une entree de `music`).
+    #[serde(default)]
+    pub menu_ambience: Option<String>,
     #[serde(default)]
     pub sfx: BTreeMap<String, SfxRuleDef>,
     #[serde(default)]
@@ -142,6 +146,7 @@ impl AudioConfig {
             loop_end: m.loop_end,
             looping: !m.once,
             volume: m.volume,
+            crossfade: m.crossfade,
         })
     }
 }

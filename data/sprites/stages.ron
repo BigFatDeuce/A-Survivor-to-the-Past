@@ -1,0 +1,50 @@
+// Stages : sols (tuiles 16x16 des rendus d'overworld), decor et textures de meteo.
+// Le decor est detoure par research/tools/make_props.py (planche assets/source/props/stage_props.png).
+// Sols : 0 tuile de base, 1-3 variantes discretes, 4-5 details, 6 detail rare (voir stages::ground_index).
+(
+    sheets: [
+        (
+            source: "props/stage_props.png",
+            sprites: {
+                "prop_tree":         { "0": (frames: [(0, 0, 64, 80)], pivot: (0, -3), align: Bottom) },
+                "prop_stump":        { "0": (frames: [(66, 0, 32, 32)], pivot: (0, -2), align: Bottom) },
+                "prop_bush":         { "0": (frames: [(100, 0, 16, 16)], pivot: (0, -1), align: Bottom) },
+                "prop_skull":        { "0": (frames: [(118, 0, 32, 32)], pivot: (0, -2), align: Bottom) },
+                "prop_desert_plant": { "0": (frames: [(152, 0, 16, 24)], pivot: (0, -1), align: Bottom) },
+                "prop_cactus":       { "0": (frames: [(170, 0, 16, 24)], pivot: (0, -1), align: Bottom) },
+                "prop_boulder":      { "0": (frames: [(188, 0, 31, 31)], pivot: (0, -2), align: Bottom) },
+                "prop_tree_dark":    { "0": (frames: [(221, 0, 64, 80)], pivot: (0, -3), align: Bottom) },
+                "prop_stump_dark":   { "0": (frames: [(287, 0, 32, 32)], pivot: (0, -2), align: Bottom) },
+                // brume (blanc, opacite variable) et ombre du feuillage des Bois Perdus (noir, trous de lumiere)
+                "fx_fog":            { "0": (frames: [(0, 82, 256, 256)], pivot: (0, 0), center_x: false, align: Top) },
+                "fx_canopy":         { "0": (frames: [(0, 340, 256, 256)], pivot: (0, 0), center_x: false, align: Top) },
+            },
+        ),
+    ],
+    tilesets: [
+        (
+            name: "forest",
+            source: "Overworld - Light World.png",
+            size: 16,
+            tiles: [(648, 1100), (328, 1132), (344, 1132), (1192, 1548), (2424, 3740), (2408, 3756), (2472, 3932)],
+        ),
+        (
+            name: "desert",
+            source: "Overworld - Light World.png",
+            size: 16,
+            tiles: [(520, 4748), (664, 4892), (728, 4892), (600, 4764), (632, 4748), (632, 4764), (472, 4972)],
+        ),
+        (
+            name: "ice",
+            source: "Overworld - Dark World.png",
+            size: 16,
+            tiles: [(3296, 3504), (3200, 3552), (3440, 3504), (3296, 3488), (3312, 3504), (3264, 3504), (3248, 3552)],
+        ),
+        (
+            name: "dark",
+            source: "Overworld - Dark World.png",
+            size: 16,
+            tiles: [(1184, 2512), (1296, 2544), (1312, 2832), (1440, 2816), (1312, 2544), (1376, 2544), (1232, 2512)],
+        ),
+    ],
+)

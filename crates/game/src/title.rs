@@ -24,6 +24,8 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TitleItem {
     Play,
+    Shop,
+    Profile,
     Options,
     About,
     Update,
@@ -43,8 +45,7 @@ pub struct Links {
 impl Links {
     pub fn load(root: &Path) -> Links {
         let p = root.join("data/links.ron");
-        std::fs::read_to_string(&p)
-            .ok()
+        engine::vfs::read_string(&p)
             .and_then(|t| ron::from_str(&t).map_err(|e| log::warn!("{} : {e}", p.display())).ok())
             .unwrap_or_default()
     }
@@ -54,6 +55,11 @@ impl Links {
         if url.is_empty() {
             return false;
         }
+        #[cfg(target_arch = "wasm32")]
+        {
+            web_sys::window().and_then(|w| w.open_with_url_and_target(url, "_blank").ok().flatten()).is_some()
+        }
+        #[cfg(not(target_arch = "wasm32"))]
         match open::that_detached(url) {
             Ok(()) => true,
             Err(e) => {
@@ -68,12 +74,55 @@ pub struct TitleVis {
     bg: AnimId,
     logo: AnimId,
     spark: AnimId,
+    drop: AnimId,
+    splash: AnimId,
 }
 
 impl TitleVis {
     pub fn new(ctx: &Ctx) -> TitleVis {
         let a = &ctx.atlas;
-        TitleVis { bg: a.get("title_bg", "0"), logo: a.get("title_logo", "0"), spark: a.get("fx_spark", "0") }
+        TitleVis {
+            bg: a.get("title_bg", "0"),
+            logo: a.get("title_logo", "0"),
+            spark: a.get("fx_spark", "0"),
+            drop: a.get("fx_rain_drop", "0"),
+            splash: a.get("fx_rain_splash", "0"),
+        }
+    }
+}
+
+/// Premier eclair (s) puis intervalle entre deux eclairs (s, minimum + variation).
+const STRIKE_FIRST: f32 = 4.5;
+const STRIKE_GAP: (f32, u32) = (9.0, 9);
+/// Le tonnerre suit l'eclair de peu (orage proche).
+pub const THUNDER_DELAY: f32 = 0.3;
+
+/// Dernier eclair avant `t` : (numero, instant). Sans etat, tout se deduit du temps.
+pub fn strike_before(t: f32) -> Option<(u32, f32)> {
+    let mut at = STRIKE_FIRST;
+    if t < at {
+        return None;
+    }
+    let mut k = 0;
+    loop {
+        let next = at + STRIKE_GAP.0 + (hash(k, 77) % STRIKE_GAP.1) as f32;
+        if next > t {
+            return Some((k, at));
+        }
+        at = next;
+        k += 1;
+    }
+}
+
+/// Intensite de l'eclair (0..1) : double eclat bref puis decroissance.
+fn flash(t: f32) -> f32 {
+    let Some((_, at)) = strike_before(t) else { return 0.0 };
+    match t - at {
+        d if d < 0.06 => 1.0,
+        d if d < 0.13 => 0.15,
+        d if d < 0.22 => 0.75,
+        d if d < 0.8 => 0.75 * (1.0 - (d - 0.22) / 0.58),
+        _ => 0.0,
     }
 }
 
@@ -100,9 +149,16 @@ pub fn layout(view: Vec2, n: usize) -> Layout {
     let big = view.x >= 560.0;
     let left = (view.x * 0.07).round().max(14.0);
     let title_y = (view.y * 0.09).round();
-    let item_h = if big { 30.0 } else { 22.0 };
+    let mut item_h: f32 = if big { 30.0 } else { 22.0 };
     let item_w = (logo.x - LOGO_HALF_W * k - left - 4.0).clamp(140.0, 260.0);
-    let y0 = (view.y * 0.44).round();
+    // menu long (boutique, profil, mise a jour) : on remonte puis on resserre au-dessus du pied de page
+    let foot = view.y - 30.0;
+    let mut y0 = (view.y * 0.44).round();
+    let need = n as f32 * item_h;
+    if y0 + need > foot {
+        y0 = (foot - need).max((view.y * 0.3).round());
+        item_h = item_h.min(((foot - y0) / n.max(1) as f32).floor()).max(if big { 24.0 } else { 18.0 });
+    }
     let items = (0..n)
         .map(|i| (Vec2::new(left - 8.0, y0 + i as f32 * item_h - 4.0), Vec2::new(item_w, item_h - 4.0)))
         .collect();
@@ -121,23 +177,16 @@ fn draw_scene(list: &mut DrawList, ctx: &Ctx, v: &TitleVis, l: &Layout, t: f32) 
     let atlas = &ctx.atlas;
     list.set(Space::Ui, Blend::Alpha);
     list.frame(atlas.frame(v.bg, 0.0), l.bg_pos, &Params::default().scale(Vec2::splat(l.k)));
-    // reflets sur le lac
-    list.set(Space::Ui, Blend::Add);
-    for i in 0..4u32 {
-        let cycle = 2.9 + i as f32 * 0.37;
-        let tt = t + i as f32 * 1.13;
-        let n = (tt / cycle).floor() as u32;
-        let local = tt - n as f32 * cycle;
-        if local < 0.5 {
-            let h = hash(n, i);
-            let bx = (h % 200) as f32 + 4.0;
-            let by = 104.0 + ((h >> 8) % 36) as f32;
-            let p = l.bg_pos + Vec2::new(bx, by) * l.k;
-            let f = atlas.frame(v.spark, local);
-            list.frame(f, p.round(), &Params::default().color([0.8, 0.9, 1.0, 0.8]));
-        }
+    // ciel d'orage : decor assombri et bleui, eclaire par les eclairs
+    let white = &atlas.white;
+    let f = flash(t);
+    list.rect(white, Vec2::ZERO, ctx.view, [0.03, 0.05, 0.14, 0.42 * (1.0 - f * 0.8)]);
+    if f > 0.0 {
+        // l'eclair illumine le decor (le logo reste net)
+        list.set(Space::Ui, Blend::Add);
+        list.rect(white, Vec2::ZERO, ctx.view, [0.7, 0.75, 1.0, 0.22 * f]);
+        list.set(Space::Ui, Blend::Alpha);
     }
-    list.set(Space::Ui, Blend::Alpha);
     let bob = ((t * 1.4).sin() * 1.5).round();
     let logo_pos = l.logo + Vec2::new(0.0, bob);
     list.frame(atlas.frame(v.logo, 0.0), logo_pos, &Params::default().scale(Vec2::splat(l.k)));
@@ -149,6 +198,47 @@ fn draw_scene(list: &mut DrawList, ctx: &Ctx, v: &TitleVis, l: &Layout, t: f32) 
         list.frame(atlas.frame(v.spark, st), p.round(), &Params::default().scale(Vec2::splat(2.0)));
         list.set(Space::Ui, Blend::Alpha);
     }
+    draw_rain(list, ctx, v, l, t);
+}
+
+/// Bande du lac dans le decor (pixels du decor) : seules les gouttes qui y tombent eclaboussent.
+const LAKE: (f32, f32) = (104.0, 144.0);
+
+/// Pluie de l'introduction d'ALttP : gouttes en biais, eclaboussures sur le lac.
+/// Pixels a l'echelle du decor ; quantite proportionnelle a la surface de la vue.
+fn draw_rain(list: &mut DrawList, ctx: &Ctx, v: &TitleVis, l: &Layout, t: f32) {
+    const SPEED: f32 = 290.0; // pixels du decor par seconde (vertical)
+    const SLOPE: f32 = 0.5; // 8 pixels vers la gauche pour 16 vers le bas
+    const SPLASH: f32 = 0.25;
+    let k = l.k;
+    let atlas = &ctx.atlas;
+    let vw = ctx.view / k;
+    let lake = (l.bg_pos.y / k + LAKE.0, (l.bg_pos.y / k + LAKE.1).min(vw.y));
+    let n = (vw.x * vw.y / 210.0) as u32;
+    let drop = atlas.frame(v.drop, 0.0);
+    let ps = Params::default().scale(Vec2::splat(k));
+    list.set(Space::Ui, Blend::Add);
+    for i in 0..n {
+        let cycle = 0.7 + (hash(i, 7) % 500) as f32 / 1000.0;
+        let tt = t + (hash(i, 3) % 1000) as f32 / 1000.0 * cycle;
+        let c = (tt / cycle).floor() as u32;
+        let local = tt - c as f32 * cycle;
+        let h = hash(c, i.wrapping_mul(31).wrapping_add(5));
+        let fall = 0.22 + (h % 100) as f32 / 100.0 * 0.3;
+        // point d'impact (les gouttes viennent du haut a droite)
+        let reach = fall * SPEED;
+        let gx = ((h >> 7) % 10_000) as f32 / 10_000.0 * (vw.x + reach * SLOPE) - 4.0;
+        let gy = ((h >> 14) % 10_000) as f32 / 10_000.0 * (vw.y + 8.0);
+        if local < fall {
+            let d = (fall - local) * SPEED;
+            let p = Vec2::new(gx + d * SLOPE, gy - d) * k;
+            list.frame(drop, p.round(), &ps.color([0.9, 0.97, 1.0, 0.8]));
+        } else if local < fall + SPLASH && gy >= lake.0 && gy <= lake.1 {
+            let f = atlas.frame(v.splash, local - fall);
+            list.frame(f, (Vec2::new(gx, gy) * k).round(), &ps.color([0.9, 0.97, 1.0, 0.7]));
+        }
+    }
+    list.set(Space::Ui, Blend::Alpha);
 }
 
 /// Decor seul (sous les options ouvertes depuis le titre).

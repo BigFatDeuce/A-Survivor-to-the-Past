@@ -1,8 +1,8 @@
 <p align="center"><img src="media/icon.png" width="128" height="128" alt="A Survivor to the Past"></p>
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i>Ein Survivors-like in der Welt von <b>A Link to the Past</b>: Halte den Monsterhorden Hyrules stand.</i></p>
-<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.2.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
-<p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Für Windows herunterladen</b></a></p>
+<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.3.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Für Windows herunterladen</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ Im Browser spielen</b></a></p>
 <p align="center"><a href="README.md">English</a> · <a href="README.fr.md">Français</a> · <b>Deutsch</b> · <a href="README.es.md">Español</a> · <a href="README.it.md">Italiano</a> · <a href="README.pt.md">Português</a> · <a href="README.ja.md">日本語</a></p>
 
 <p align="center"><img src="media/horde.png" alt="" width="100%"></p>
@@ -11,17 +11,20 @@
 
 **A Survivor to the Past** ist ein inoffizielles Fan-Spiel, aus Spaß gemacht. Es verbindet das Prinzip der *Survivors-likes* (deine Waffen greifen von selbst an, die Wellen hören nie auf, jede Stufe bringt neue Kräfte) mit den Sprites, der Musik und den Klängen von *The Legend of Zelda: A Link to the Past* (SNES, 1991).
 
-Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähle eine von drei Verbesserungen, öffne die Truhen der Elite-Gegner und entwickle deine Waffen zu ihren legendären Formen. Bei 5:00 erscheint ein Boss.
+Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähle eine von drei Verbesserungen, öffne die Truhen der Elite-Gegner und entwickle deine Waffen zu ihren legendären Formen. Jede Stage dauert etwa zehn Minuten: Bei 4:30 kommt ein Zwischenboss, bei 9:00 der Endboss, und sein Sieg öffnet den Ausgang. Zwischen den Runden gibst du deine Rubine für dauerhafte Verbesserungen aus.
 
 ## Inhalt
 
-- **8 Waffen**, jede mit einer **Entwicklung**, und **8 passive Gegenstände** — 6 Waffen- und 6 Gegenstandsplätze: Jede Wahl zählt
-- **15 Gegnertypen** aus Hyrule, **Elite-Gegner**, die Truhen fallen lassen, und ein **Boss** (Hinox) bei 5:00
-- Automatische Angriffe oder jederzeit **manuelles Zielen** (Tastatur, Maus oder Controller)
-- Originale **Grafik, Musik und Klänge** von A Link to the Past (SNES)
-- **Retro-Videofilter**: SNES (Standard), CRT, Scanlines, Game Boy Advance, Game Boy, dazu ein **4:3**-Modus — und passende **Audiofilter**
+- **5 Stages**, die nacheinander freigeschaltet werden — Hyrule-Ebene, Verlorene Wälder, Wüste der Mysterien, Gefrorener See und Pyramide der Macht — jede mit eigenem Wetter, eigener Musik, Zwischenboss und Endboss, bis zu Agahnim und Ganon
+- **8 Waffen**, jede mit einer **Entwicklung**, und **8 passive Gegenstände** — 6 Waffen- und 6 Gegenstandsplätze, jede Wahl zählt
+- **15 Gegnertypen** aus Hyrule, **7 Bosse** und **Elite-Gegner**, die Truhen fallen lassen
+- **Fortschritt zwischen den Runden**: der Laden von Kakariko (dauerhafte Verbesserungen), die Segen der Großen Fee, eine **Reliquie** pro Stage, 4 **Schwierigkeitsgrade** und Ganons **Siegel** für mehr Rubine
+- **Profil**: Bestiarium, Waffenkammer, Statistiken sowie Export / Import des Spielstands als Textcode
+- Automatische Angriffe oder jederzeit **manuelles Zielen** — Tastatur, Maus oder Controller, und **alle Tasten sind frei belegbar**
+- Originale SNES-**Grafiken, Musik und Sounds** aus A Link to the Past
+- **Retro-Videofilter**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, dazu ein **4:3**-Modus — und passende **Audiofilter**
 - **7 Sprachen**: English, Français, Deutsch, Español, Italiano, Português, 日本語
-- Eigene **Rust-Engine** (wgpu): Tausende Gegner auf dem Bildschirm, stets flüssig
+- Eigene **Rust-Engine** (wgpu): Tausende Gegner auf dem Bildschirm, unter Windows und **im Browser**
 
 ## Waffen und Entwicklungen
 
@@ -41,11 +44,15 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
 <table>
 <tr>
 <td width="50%" align="center"><img src="media/title.png" alt="Titelbildschirm"><br><sub>Titelbildschirm</sub></td>
-<td width="50%" align="center"><img src="media/levelup.png" alt="Stufenaufstieg: 1 aus 3 wählen"><br><sub>Stufenaufstieg: 1 aus 3 wählen</sub></td>
+<td width="50%" align="center"><img src="media/stages.png" alt="Stage-Auswahl"><br><sub>Stage-Auswahl</sub></td>
 </tr>
 <tr>
+<td width="50%" align="center"><img src="media/levelup.png" alt="Stufenaufstieg: 1 aus 3 wählen"><br><sub>Stufenaufstieg: 1 aus 3 wählen</sub></td>
 <td width="50%" align="center"><img src="media/evolution.png" alt="Entwicklungstruhe"><br><sub>Entwicklungstruhe</sub></td>
+</tr>
+<tr>
 <td width="50%" align="center"><img src="media/boss.png" alt="Boss: Hinox"><br><sub>Boss: Hinox</sub></td>
+<td width="50%" align="center"><img src="media/shop.png" alt="Laden von Kakariko: dauerhafte Verbesserungen"><br><sub>Laden von Kakariko: dauerhafte Verbesserungen</sub></td>
 </tr>
 <tr>
 <td width="50%" align="center"><img src="media/options.png" alt="Optionen (Sprache, Filter, Lautstärke)"><br><sub>Optionen (Sprache, Filter, Lautstärke)</sub></td>
@@ -57,9 +64,9 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
 
 ## Spielen
 
-Das Spiel ist in der **Alpha-Phase** (Version 0.2.0). **Windows**: Lade die neueste Version von der [Release-Seite](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest) herunter, entpacke das ganze Zip und starte `A Survivor to the Past.exe`. Windows warnt eventuell, dass das Spiel nicht signiert ist: Klicke auf *Weitere Informationen* → *Trotzdem ausführen*. Danach **aktualisiert sich das Spiel selbst**: Beim Start prüft es auf GitHub, ob es eine neue Version gibt, lädt sie im Hintergrund herunter und installiert sie beim nächsten Start (Optionen → Updates: Automatisch / Nachfragen / Aus). Deine Einstellungen bleiben erhalten, und es wird nur GitHub kontaktiert, ohne persönliche Daten.
+Das Spiel ist in der **Alpha-Phase** (Version 0.3.0). **Windows**: Lade die neueste Version von der [Release-Seite](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest) herunter, entpacke das ganze Zip und starte `A Survivor to the Past.exe`. Windows warnt eventuell, dass das Spiel nicht signiert ist: Klicke auf *Weitere Informationen* → *Trotzdem ausführen*. Danach **aktualisiert sich das Spiel selbst**: Beim Start prüft es auf GitHub, ob es eine neue Version gibt, lädt sie im Hintergrund herunter und installiert sie beim nächsten Start (Optionen → Updates: Automatisch / Nachfragen / Aus). Deine Einstellungen bleiben erhalten, und es wird nur GitHub kontaktiert, ohne persönliche Daten.
 
-Versionen für Linux, macOS, Android und Browser folgen, sobald das Spiel fertig ist. Bis dahin kannst du es mit [Rust](https://rustup.rs) (stable) aus dem Quellcode bauen:
+**Browser**: [direkt auf der Website spielen](https://a-survivor-to-the-past.holy-c.men/play/), ohne Installation. Am besten am Computer, in Chrome, Edge oder Firefox; dein Fortschritt wird im Browser gespeichert. Versionen für Linux, macOS und Android folgen später. Bis dahin kannst du das Spiel mit [Rust](https://rustup.rs) (stable) aus dem Quellcode bauen:
 
 ```sh
 git clone https://github.com/BigFatDeuce/A-Survivor-to-the-Past.git
@@ -82,11 +89,11 @@ Unter Linux werden außerdem die Entwicklungspakete für ALSA und udev benötigt
 
 ## Fahrplan
 
-- Echte Karten (zuerst die Lichtwelt) und weitere spielbare Figuren
-- Online-Bestenliste für jede Karte, mit frei wählbarem Spitznamen
-- Bestiarium, Waffenkammer und Statistiken
-- Export / Import von Spielständen und automatische Updates
-- Versionen für Windows, Linux, macOS, Android und Browser
+- Echte, handgemachte Karten und weitere spielbare Figuren
+- Online-Bestenliste für jede Stage, mit einem Spitznamen deiner Wahl
+- Weitere Bosse mit eigenen Angriffen und Animationen
+- Touch-Steuerung für Smartphones und Tablets
+- Versionen für Linux, macOS und Android
 
 ## Community
 

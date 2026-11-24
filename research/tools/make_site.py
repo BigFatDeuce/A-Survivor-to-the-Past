@@ -17,30 +17,30 @@ ROOT = rd.ROOT
 OUT = ROOT / "site"
 
 UI = {
-    "en": dict(download="Download for Windows", soon=f"Alpha {rd.VERSION} for Windows — Linux, macOS, Android and browser later",
+    "en": dict(download="Download for Windows", web="Play in your browser", soon=f"Alpha {rd.VERSION} for Windows and the browser — Linux, macOS and Android later",
                discord="Join the Discord", github="Source code", lang="Language", nav_what="The game",
                nav_shots="Screenshots", nav_evo="Evolutions", nav_road="Roadmap", horde="A horde at 3:30"),
-    "fr": dict(download="Télécharger pour Windows", soon=f"Alpha {rd.VERSION} pour Windows — Linux, macOS, Android et navigateur plus tard",
+    "fr": dict(download="Télécharger pour Windows", web="Jouer dans le navigateur", soon=f"Alpha {rd.VERSION} pour Windows et le navigateur — Linux, macOS et Android plus tard",
                discord="Rejoindre le Discord", github="Code source", lang="Langue", nav_what="Le jeu",
                nav_shots="Captures", nav_evo="Évolutions", nav_road="Feuille de route", horde="Une horde à 3:30"),
-    "de": dict(download="Für Windows herunterladen", soon=f"Alpha {rd.VERSION} für Windows — Linux, macOS, Android und Browser folgen",
+    "de": dict(download="Für Windows herunterladen", web="Im Browser spielen", soon=f"Alpha {rd.VERSION} für Windows und den Browser — Linux, macOS und Android folgen",
                discord="Zum Discord", github="Quellcode", lang="Sprache", nav_what="Das Spiel",
                nav_shots="Bilder", nav_evo="Entwicklungen", nav_road="Fahrplan", horde="Eine Horde bei 3:30"),
-    "es": dict(download="Descargar para Windows", soon=f"Alfa {rd.VERSION} para Windows — Linux, macOS, Android y navegador más adelante",
+    "es": dict(download="Descargar para Windows", web="Jugar en el navegador", soon=f"Alfa {rd.VERSION} para Windows y el navegador — Linux, macOS y Android más adelante",
                discord="Únete al Discord", github="Código fuente", lang="Idioma", nav_what="El juego",
                nav_shots="Capturas", nav_evo="Evoluciones", nav_road="Hoja de ruta", horde="Una horda a los 3:30"),
-    "it": dict(download="Scarica per Windows", soon=f"Alfa {rd.VERSION} per Windows — Linux, macOS, Android e browser più avanti",
+    "it": dict(download="Scarica per Windows", web="Gioca nel browser", soon=f"Alfa {rd.VERSION} per Windows e il browser — Linux, macOS e Android più avanti",
                discord="Entra nel Discord", github="Codice sorgente", lang="Lingua", nav_what="Il gioco",
                nav_shots="Immagini", nav_evo="Evoluzioni", nav_road="Tabella di marcia", horde="Un'orda a 3:30"),
-    "pt": dict(download="Baixar para Windows", soon=f"Alfa {rd.VERSION} para Windows — Linux, macOS, Android e navegador depois",
+    "pt": dict(download="Baixar para Windows", web="Jogar no navegador", soon=f"Alfa {rd.VERSION} para Windows e o navegador — Linux, macOS e Android depois",
                discord="Entrar no Discord", github="Código-fonte", lang="Idioma", nav_what="O jogo",
                nav_shots="Imagens", nav_evo="Evoluções", nav_road="Próximos passos", horde="Uma horda aos 3:30"),
-    "ja": dict(download="Windows 版をダウンロード", soon=f"Windows 版アルファ {rd.VERSION} — Linux・macOS・Android・ブラウザ版は今後",
+    "ja": dict(download="Windows 版をダウンロード", web="ブラウザでプレイ", soon=f"Windows 版・ブラウザ版アルファ {rd.VERSION} — Linux・macOS・Android 版は今後",
                discord="Discord に参加", github="ソースコード", lang="言語", nav_what="ゲーム",
                nav_shots="スクリーンショット", nav_evo="進化", nav_road="今後の予定", horde="3:30 の大群"),
 }
 
-SHOTS = ["title", "levelup", "evolution", "boss", "options", "about"]
+SHOTS = ["title", "stages", "levelup", "evolution", "boss", "shop", "options", "about"]
 
 
 def md(s):
@@ -133,6 +133,7 @@ PAGE = """<!doctype html>
   <p class="tagline" data-i="tagline">{tagline}</p>
   <div class="cta">
     <a class="btn gold" href="{releases}/latest" rel="noopener" data-i="ui_download">{ui_download}</a>
+    <a class="btn web" href="play/" data-i="ui_web">{ui_web}</a>
     <a class="btn discord" href="{discord}" rel="noopener" data-i="ui_discord">{ui_discord}</a>
     <a class="btn" href="{repo}" rel="noopener" data-i="ui_github">{ui_github}</a>
   </div>
@@ -229,6 +230,7 @@ section { scroll-margin-top: 72px; }
 .btn:hover { transform: translateY(-1px); color: #fff; }
 .btn.gold { background: linear-gradient(#f8d850, #d8a020); color: #2a1a00; border-color: #fff0a0; }
 .btn.discord { background: var(--discord); border-color: #aab4ff; }
+.btn.web { background: linear-gradient(#58c070, #2a8040); border-color: #b0f0b8; }
 .soon { color: var(--dim); font-size: 14px; margin: 6px 0 0; }
 .panel {
   margin: 36px 0; padding: 24px 28px; background: linear-gradient(var(--bg2), var(--panel));
@@ -307,6 +309,11 @@ HEADERS = """/*
 
 /img/*
   Cache-Control: public, max-age=604800
+
+# Version jouable : WebAssembly (wasm-unsafe-eval), paquet du jeu et musiques (meme origine)
+/play/*
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
 """
 
 
@@ -335,6 +342,10 @@ def main():
     (OUT / "i18n.js").write_text("window.I18N = " + json.dumps(all_s, ensure_ascii=False, indent=0) + ";\n",
                                  encoding="utf-8", newline="\n")
     (OUT / "_headers").write_text(HEADERS, encoding="utf-8", newline="\n")
+    web = ROOT / "dist" / "web"
+    if not (web / "game_bg.wasm").exists():
+        sys.exit("version web absente : lancer d'abord python research/tools/make_web.py")
+    shutil.copytree(web, OUT / "play")
     (OUT / "robots.txt").write_text("User-agent: *\nAllow: /\n", encoding="utf-8", newline="\n")
     print("ok :", OUT)
 

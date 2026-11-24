@@ -1,7 +1,7 @@
 //! Poignees graphiques resolues une fois au chargement (aucune recherche par nom pendant le jeu).
 use assetkit::meta::Frame;
 use engine::assets::{AnimId, Atlas};
-use sim::defs::{CharacterDef, Content, EnemyAnims};
+use sim::defs::{CharacterDef, Content, EnemyAnims, MapDef};
 use sim::horde::{FACE_DOWN, FACE_LEFT, FACE_RIGHT, FACE_UP};
 
 pub enum EnemyVis {
@@ -111,11 +111,13 @@ pub struct Vis {
     pub icon_rupees: AnimId,
     pub hud_heart: [AnimId; 3],
     pub ground: Vec<Frame>,
+    /// Decor de la carte (meme ordre que `MapDef::props`).
+    pub props: Vec<AnimId>,
     pub white: Frame,
 }
 
 impl Vis {
-    pub fn new(atlas: &Atlas, content: &Content, ch: &CharacterDef, ground: &str) -> Vis {
+    pub fn new(atlas: &Atlas, content: &Content, ch: &CharacterDef, map: &MapDef) -> Vis {
         let s = &ch.sprite;
         let player = CharVis {
             idle: [atlas.get(s, "idle_down"), atlas.get(s, "idle_side"), atlas.get(s, "idle_up")],
@@ -190,7 +192,8 @@ impl Vis {
             icon_heart: atlas.get("icon_heart", "0"),
             icon_rupees: atlas.get("icon_rupees", "0"),
             hud_heart: [atlas.get("hud_heart", "full"), atlas.get("hud_heart", "half"), atlas.get("hud_heart", "empty")],
-            ground: atlas.tiles(ground).to_vec(),
+            ground: atlas.tiles(&map.ground).to_vec(),
+            props: map.props.iter().map(|p| atlas.get(&p.sprite, "0")).collect(),
             white: atlas.white,
         }
     }

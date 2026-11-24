@@ -591,11 +591,15 @@ pub enum Opt {
     Music,
     Sfx,
     Fullscreen,
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     Updates,
+    /// Ecran de reattribution des touches.
+    Controls,
     Back,
 }
 
-pub const OPTIONS: [Opt; 10] = [
+#[cfg(not(target_arch = "wasm32"))]
+pub const OPTIONS: [Opt; 11] = [
     Opt::Language,
     Opt::Video,
     Opt::Aspect,
@@ -605,6 +609,22 @@ pub const OPTIONS: [Opt; 10] = [
     Opt::Sfx,
     Opt::Fullscreen,
     Opt::Updates,
+    Opt::Controls,
+    Opt::Back,
+];
+
+/// Navigateur : pas de mises a jour (le site sert la derniere version).
+#[cfg(target_arch = "wasm32")]
+pub const OPTIONS: [Opt; 10] = [
+    Opt::Language,
+    Opt::Video,
+    Opt::Aspect,
+    Opt::Filter,
+    Opt::Master,
+    Opt::Music,
+    Opt::Sfx,
+    Opt::Fullscreen,
+    Opt::Controls,
     Opt::Back,
 ];
 
@@ -654,6 +674,7 @@ pub fn draw_options(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, sel:
             Opt::Sfx => "ui.sfx",
             Opt::Fullscreen => "ui.fullscreen",
             Opt::Updates => "ui.updates",
+            Opt::Controls => "ui.controls",
             Opt::Back => "ui.back",
         };
         if *o == Opt::Back {
@@ -719,6 +740,9 @@ pub fn draw_options(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, sel:
                     UpdateMode::Off => "ui.off",
                 });
                 text(list, main, s, Vec2::new(right, y), 1.0, WHITE, Align::Right);
+            }
+            Opt::Controls => {
+                text(list, main, "▶", Vec2::new(right, y), 1.0, if selected { GOLD } else { SOFT }, Align::Right);
             }
             Opt::Back => {}
         }

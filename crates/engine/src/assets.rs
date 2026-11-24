@@ -17,10 +17,11 @@ pub struct Atlas {
 impl Atlas {
     pub fn load(root: &Path) -> (Atlas, image::RgbaImage) {
         let dir = root.join("assets/gen");
-        let text = std::fs::read_to_string(dir.join("atlas.ron"))
-            .unwrap_or_else(|e| panic!("assets/gen/atlas.ron introuvable ({e}) : lancer `cargo run -p forge`"));
+        let text = crate::vfs::read_string(&dir.join("atlas.ron"))
+            .unwrap_or_else(|| panic!("assets/gen/atlas.ron introuvable : lancer `cargo run -p forge`"));
         let meta: AtlasMeta = ron::from_str(&text).expect("atlas.ron invalide");
-        let img = image::open(dir.join(&meta.image)).expect("atlas.png").to_rgba8();
+        let png = crate::vfs::read(&dir.join(&meta.image)).expect("atlas.png");
+        let img = image::load_from_memory(&png).expect("atlas.png").to_rgba8();
         let mut anims = Vec::new();
         let mut by_name = HashMap::new();
         for (s, set) in &meta.sprites {
@@ -72,6 +73,12 @@ impl Atlas {
 
 /// Trouve la racine du jeu (dossier contenant `assets/` et `data/`) :
 /// a cote de l'executable, puis en remontant depuis le dossier courant.
+#[cfg(target_arch = "wasm32")]
+pub fn find_root() -> PathBuf {
+    PathBuf::new()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 pub fn find_root() -> PathBuf {
     let mut candidates = Vec::new();
     if let Ok(exe) = std::env::current_exe() {

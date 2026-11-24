@@ -1,0 +1,49 @@
+// Progression entre les parties.
+// Rubis en banque : a la fin d'une partie, rubis ramasses / 4, x1.5 en cas de victoire,
+// x difficulte, x (1 + bonus des Sceaux), x (1 + Avarice).
+// Couts de la boutique : cost x growth^niveau (arrondi a 10).
+(
+    // difficultes : du plus facile au plus dur (la 2e est le reglage par defaut)
+    difficulties: [
+        (id: "easy",   enemy_hp: 0.7, enemy_damage: 0.6, spawn_rate: 0.8,  rupees: 0.75),
+        (id: "normal", enemy_hp: 1.0, enemy_damage: 1.0, spawn_rate: 1.0,  rupees: 1.0),
+        (id: "hard",   enemy_hp: 1.4, enemy_damage: 1.4, spawn_rate: 1.2,  rupees: 1.35),
+        (id: "hero",   enemy_hp: 2.0, enemy_damage: 2.0, spawn_rate: 1.4,  rupees: 1.8),
+    ],
+    // Boutique de Kakariko : bonus permanents par niveau
+    shop: [
+        (id: "heart",    icon: "icon_heart_container", stat: Some(MaxHp),        per_level: 10.0,  max: 5, cost: 150, growth: 1.6),
+        (id: "might",    icon: "icon_red_potion",      stat: Some(Might),        per_level: 0.05,  max: 5, cost: 200, growth: 1.6),
+        (id: "armor",    icon: "icon_blue_mail",       stat: Some(Armor),        per_level: 1.0,   max: 3, cost: 300, growth: 1.8),
+        (id: "speed",    icon: "icon_boots",           stat: Some(MoveSpeed),    per_level: 0.04,  max: 3, cost: 200, growth: 1.6),
+        (id: "cooldown", icon: "icon_half_magic",      stat: Some(Cooldown),     per_level: -0.03, max: 3, cost: 300, growth: 1.7),
+        (id: "area",     icon: "icon_green_potion",    stat: Some(Area),         per_level: 0.05,  max: 3, cost: 250, growth: 1.6),
+        (id: "magnet",   icon: "icon_bug_net",         stat: Some(Magnet),       per_level: 0.15,  max: 3, cost: 120, growth: 1.5),
+        (id: "regen",    icon: "icon_heart",           stat: Some(Regen),        per_level: 0.1,   max: 3, cost: 300, growth: 1.8),
+        (id: "greed",    icon: "icon_rupees",          stat: None,               per_level: 0.1,   max: 5, cost: 250, growth: 1.7),
+    ],
+    // Grande Fee : benedictions achetees une fois
+    blessings: [
+        (id: "fairy",   icon: "icon_fairy_bottle", cost: 800,  effect: Revive),
+        (id: "fairy2",  icon: "icon_fairy_bottle", cost: 2500, effect: Revive, requires: Some("fairy")),
+        (id: "wisdom",  icon: "icon_blue_potion",  cost: 1200, effect: Xp(0.15)),
+        (id: "healing", icon: "icon_heart",        cost: 900,  effect: Heal(0.5)),
+    ],
+    // Reliques : la premiere victoire d'un stage donne la sienne ; `max_relics` equipees a la fois
+    max_relics: 2,
+    relics: [
+        (id: "pendant_courage", icon: "icon_pendant_courage", stage: "hyrule_field", stats: [(Might, 0.1)]),
+        (id: "pendant_power",   icon: "icon_pendant_power",   stage: "lost_woods",   stats: [(MaxHp, 20.0)]),
+        (id: "pendant_wisdom",  icon: "icon_pendant_wisdom",  stage: "desert",       stats: [(Cooldown, -0.08)]),
+        (id: "moon_pearl",      icon: "icon_pearl",           stage: "ice_lake",     stats: [(MoveSpeed, 0.08), (Armor, 1.0)]),
+        (id: "crystal",         icon: "icon_crystal",         stage: "pyramid",      stats: [(Amount, 1.0)]),
+    ],
+    // Sceaux de Ganon : defis optionnels, chacun augmente les rubis mis en banque
+    seals: [
+        (id: "seal_might",  icon: "icon_medallion_quake",  enemy_hp: 1.5,     bonus: 0.25),
+        (id: "seal_swarm",  icon: "icon_medallion_bombos", spawn_rate: 1.35,  bonus: 0.25),
+        (id: "seal_fury",   icon: "icon_medallion_ether",  enemy_damage: 1.5, bonus: 0.25),
+        (id: "seal_haste",  icon: "icon_boots",            enemy_speed: 1.2,  bonus: 0.2),
+        (id: "seal_famine", icon: "icon_heart",            heal: 0.0,         bonus: 0.3),
+    ],
+)

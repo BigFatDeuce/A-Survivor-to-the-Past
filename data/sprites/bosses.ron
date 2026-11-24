@@ -1,0 +1,66 @@
+// Boss des stages : Chevaliers Armos, Mothula, Lanmola, Kholdstare, Agahnim et Ganon, avec leurs tirs.
+(
+    sheets: [
+        (
+            source: "Bosses - Armos Knights.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "armos_knight": { "idle": (frames: [(208, 40, 32, 32)], pivot: (0, -1), align: Bottom) },
+                "armos_knight_red": { "idle": (frames: [(336, 40, 32, 32)], pivot: (0, -1), align: Bottom) },
+            },
+        ),
+        (
+            source: "Bosses - Mothula.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                // battements d'ailes : ouvertes, mi-closes, fermees, mi-closes
+                "mothula": { "fly": (frames: [(12, 26, 64, 32), (103, 30, 48, 32), (183, 28, 24, 32), (103, 30, 48, 32)], fps: 10, pivot: (0, -1), align: Bottom) },
+                "shot_moth_ring": { "0": (frames: [(234, 58, 12, 12)], pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            source: "Bosses - Lanmola.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "lanmola": { "head": (frames: [(8, 232, 16, 16), (32, 232, 16, 16), (56, 232, 16, 16), (80, 232, 16, 16), (104, 232, 16, 16)], fps: 8, pivot: (0, -1), align: Bottom) },
+                "lanmola_body": { "0": (frames: [(136, 232, 15, 15)], pivot: (0, -1), align: Bottom) },
+                "shot_rock": { "0": (frames: [(246, 142, 8, 8)], pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            source: "Bosses - Kholdstare.png",
+            transparent: ["#ff00ff", "#f880f8", "#05ff51"],
+            sprites: {
+                "kholdstare": { "idle": (frames: [(152, 200, 80, 64)], pivot: (0, -1), align: Bottom) },
+            },
+        ),
+        (
+            source: "Bosses - Agahnim.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "agahnim": {
+                    "walk_down": (frames: [(633, 25, 30, 31), (914, 26, 28, 28)], fps: 3, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(712, 24, 30, 32), (794, 25, 25, 31)], fps: 3, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(874, 25, 28, 30), (995, 26, 26, 27)], fps: 3, pivot: (0, -1), align: Bottom),
+                    "cast_down": (frames: [(592, 25, 32, 31)], pivot: (0, -1), align: Bottom),
+                    "cast_side": (frames: [(672, 24, 30, 32)], pivot: (0, -1), align: Bottom),
+                    "cast_up":   (frames: [(834, 24, 28, 31)], pivot: (0, -1), align: Bottom),
+                },
+                "shot_energy_ball": { "0": (frames: [(880, 544, 16, 16)], pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            source: "Bosses - Ganon.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "ganon": {
+                    "walk_down": (frames: [(16, 520, 48, 41), (74, 521, 48, 40), (130, 520, 48, 41), (74, 521, 48, 40)], fps: 5, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(16, 520, 48, 41), (74, 521, 48, 40), (130, 520, 48, 41), (74, 521, 48, 40)], fps: 5, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(16, 630, 43, 42), (69, 631, 43, 41), (124, 630, 43, 42), (69, 631, 43, 41)], fps: 5, pivot: (0, -1), align: Bottom),
+                },
+                "shot_fire_bat": { "0": (frames: [(297, 983, 28, 13)], pivot: (0, 0), align: Center) },
+                "shot_flame": { "0": (frames: [(482, 980, 14, 16)], pivot: (0, 0), align: Center) },
+            },
+        ),
+    ],
+)

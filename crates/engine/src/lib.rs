@@ -8,6 +8,9 @@ pub mod draw;
 pub mod gfx;
 pub mod input;
 pub mod lofi;
+pub mod vfs;
+#[cfg(target_arch = "wasm32")]
+mod webmusic;
 
 pub use glam;
 pub use glam::{vec2, Vec2};

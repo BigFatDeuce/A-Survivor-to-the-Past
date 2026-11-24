@@ -3,7 +3,7 @@
 //! pour qu'aucun appui bref ne soit perdu a 240 Hz comme a 60 Hz.
 use gilrs::{Axis, Button, EventType, GamepadId, Gilrs};
 use glam::Vec2;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 pub use winit::keyboard::KeyCode;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -37,6 +37,8 @@ pub struct Input {
     pad: Option<GamepadId>,
     pub last_device: Device,
     pub focused: bool,
+    /// Caractere produit par chaque touche physique deja pressee (disposition du clavier).
+    key_labels: HashMap<KeyCode, String>,
 }
 
 impl Default for Input {
@@ -68,6 +70,7 @@ impl Input {
             pad,
             last_device: Device::Keyboard,
             focused: true,
+            key_labels: HashMap::new(),
         }
     }
 
@@ -186,6 +189,29 @@ impl Input {
     pub fn pad_pressed(&self, b: Button) -> bool {
         self.pad_pressed[self.phase].contains(&b)
     }
+    /// Premiere touche / bouton presse depuis la derniere lecture (reattribution des touches).
+    pub fn any_key_pressed(&self) -> Option<KeyCode> {
+        self.keys_pressed[self.phase].iter().next().copied()
+    }
+    pub fn any_mouse_pressed(&self) -> Option<MouseButton> {
+        self.mouse_pressed[self.phase].iter().next().copied()
+    }
+    pub fn any_pad_pressed(&self) -> Option<Button> {
+        self.pad_pressed[self.phase].iter().next().copied()
+    }
+
+    /// Caractere de la touche selon la disposition du clavier, si elle a deja ete pressee.
+    pub fn key_label(&self, k: KeyCode) -> Option<&str> {
+        self.key_labels.get(&k).map(|s| s.as_str())
+    }
+
+    pub(crate) fn learn_label(&mut self, code: KeyCode, text: &str) {
+        let t = text.to_uppercase();
+        if t.chars().count() == 1 && !t.chars().all(char::is_control) {
+            self.key_labels.insert(code, t);
+        }
+    }
+
     pub fn has_pad(&self) -> bool {
         self.pad.is_some()
     }
