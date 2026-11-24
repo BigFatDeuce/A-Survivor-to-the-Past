@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Survivor to the Past</title>
+<meta name="description" content="A survivors-like in the world of A Link to the Past: hold out against hordes of Hyrule&#x27;s monsters.">
+<meta name="theme-color" content="#14143a">
+<meta name="referrer" content="no-referrer">
+<meta property="og:type" content="website">
+<meta property="og:title" content="A Survivor to the Past">
+<meta property="og:description" content="A survivors-like in the world of A Link to the Past: hold out against hordes of Hyrule&#x27;s monsters.">
+<meta property="og:url" content="https://a-survivor-to-the-past.holy-c.men/">
+<meta property="og:image" content="https://a-survivor-to-the-past.holy-c.men/img/horde.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" type="image/png" href="img/icon_192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="img/icon_192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#"><img src="img/icon_64.png" width="32" height="32" alt=""><span>A Survivor to the Past</span></a>
+  <nav>
+    <a href="#game" data-i="ui_nav_what">The game</a>
+    <a href="#shots" data-i="ui_nav_shots">Screenshots</a>
+    <a href="#evo" data-i="ui_nav_evo">Evolutions</a>
+    <a href="#road" data-i="ui_nav_road">Roadmap</a>
+  </nav>
+  <label class="lang"><span class="sr" data-i="ui_lang">Language</span>
+    <select id="lang"><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="es">Español</option><option value="it">Italiano</option><option value="pt">Português</option><option value="ja">日本語</option></select>
+  </label>
+</header>
+
+<main>
+<section class="hero">
+  <img class="shot pix" src="img/title.png" width="1280" height="720" alt="A Survivor to the Past">
+  <p class="tagline" data-i="tagline">A survivors-like in the world of <b>A Link to the Past</b>: hold out against hordes of Hyrule's monsters.</p>
+  <div class="cta">
+    <a class="btn gold" href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases" rel="noopener" data-i="ui_download">Download</a>
+    <a class="btn discord" href="https://discord.gg/N8f62M2eaK" rel="noopener" data-i="ui_discord">Join the Discord</a>
+    <a class="btn" href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past" rel="noopener" data-i="ui_github">Source code</a>
+  </div>
+  <p class="soon" data-i="ui_soon">Alpha 0.2.0 — no public build yet, follow the releases on GitHub</p>
+</section>
+
+<section id="game" class="panel">
+  <h2 data-i="what_h">What is it?</h2>
+  <div data-i="what"><p><strong>A Survivor to the Past</strong> is an unofficial fan game made for fun. It mixes the formula of <em>survivors-like</em> games (your weapons attack on their own, the waves never stop, every level offers new powers) with the sprites, music and sounds of <em>The Legend of Zelda: A Link to the Past</em> (SNES, 1991).</p><p>Move Link through ever-growing hordes, pick up rupees to level up, choose one upgrade out of three, open the chests dropped by elites and evolve your weapons into their legendary forms. A boss shows up at 5:00.</p></div>
+  <figure><img class="shot pix" src="img/horde.png" width="1280" height="720" alt="" loading="lazy">
+    <figcaption data-i="horde">A horde at 3:30</figcaption></figure>
+  <h2 data-i="feat_h">Features</h2>
+  <ul class="feats" data-i="feats"><li><strong>8 weapons</strong>, each with an <strong>evolution</strong>, and <strong>8 passive items</strong> — 6 weapon slots and 6 item slots, so every choice matters</li><li><strong>15 enemy types</strong> from Hyrule, <strong>elites</strong> that drop chests, and a <strong>boss</strong> (Hinox) at 5:00</li><li>Automatic attacks, or <strong>manual aiming</strong> at any time (keyboard, mouse or gamepad)</li><li>Original SNES <strong>graphics, music and sounds</strong> of A Link to the Past</li><li><strong>Retro video filters</strong>: SNES (default), CRT, Scanlines, Game Boy Advance, Game Boy, plus a <strong>4:3</strong> mode — and matching <strong>audio filters</strong></li><li><strong>7 languages</strong>: English, Français, Deutsch, Español, Italiano, Português, 日本語</li><li>Home-made <strong>Rust engine</strong> (wgpu): thousands of enemies on screen at a smooth frame rate</li></ul>
+</section>
+
+<section id="shots" class="panel">
+  <h2 data-i="shots_h">Screenshots</h2>
+  <div class="grid"><figure><img class="shot" src="img/title.png" width="1280" height="720" alt="Title screen" data-alt="cap_title" loading="lazy"><figcaption data-i="cap_title">Title screen</figcaption></figure><figure><img class="shot" src="img/levelup.png" width="1280" height="720" alt="Level up: choose 1 of 3" data-alt="cap_levelup" loading="lazy"><figcaption data-i="cap_levelup">Level up: choose 1 of 3</figcaption></figure><figure><img class="shot" src="img/evolution.png" width="1280" height="720" alt="Evolution chest" data-alt="cap_evolution" loading="lazy"><figcaption data-i="cap_evolution">Evolution chest</figcaption></figure><figure><img class="shot" src="img/boss.png" width="1280" height="720" alt="Boss: Hinox" data-alt="cap_boss" loading="lazy"><figcaption data-i="cap_boss">Boss: Hinox</figcaption></figure><figure><img class="shot" src="img/options.png" width="1280" height="720" alt="Options (language, filters, volumes)" data-alt="cap_options" loading="lazy"><figcaption data-i="cap_options">Options (language, filters, volumes)</figcaption></figure><figure><img class="shot" src="img/about.png" width="1280" height="720" alt="About" data-alt="cap_about" loading="lazy"><figcaption data-i="cap_about">About</figcaption></figure></div>
+  <figure><img class="shot" src="img/filters.png" width="1280" height="1080" alt="" loading="lazy">
+    <figcaption data-i="filters_cap">Video filters: none · CRT / Game Boy Advance · Game Boy / Scanlines · CRT in 4:3</figcaption></figure>
+</section>
+
+<section id="evo" class="panel">
+  <h2 data-i="evo_h">Weapons and evolutions</h2>
+  <div class="scroll"><table data-i="evo"><thead><tr><th>Weapon</th><th>+ Item (any level)</th><th>Evolution (weapon at max level)</th></tr></thead><tbody><tr><td>Fighter&#x27;s Sword</td><td>Heart Container</td><td><strong>Master Sword</strong></td></tr><tr><td>Bow</td><td>Quiver</td><td><strong>Silver Arrows</strong></td></tr><tr><td>Boomerang</td><td>Pegasus Boots</td><td><strong>Magical Boomerang</strong></td></tr><tr><td>Fire Rod</td><td>Lamp</td><td><strong>Bombos Medallion</strong></td></tr><tr><td>Ice Rod</td><td>Half Magic</td><td><strong>Ether Medallion</strong></td></tr><tr><td>Magic Hammer</td><td>Power Glove</td><td><strong>Quake Medallion</strong></td></tr><tr><td>Bombs</td><td>Mirror Shield</td><td><strong>Super Bomb</strong></td></tr><tr><td>Cane of Byrna</td><td>Bug-Catching Net</td><td><strong>Fairy Ring</strong></td></tr></tbody></table></div>
+  <h2 data-i="ctrl_h">Controls</h2>
+  <div class="scroll"><table data-i="ctrl"><thead><tr><th>Action</th><th>Keyboard / mouse</th><th>Gamepad</th></tr></thead><tbody><tr><td>Move</td><td>WASD / arrows</td><td>Left stick / D-pad</td></tr><tr><td>Attack (manual mode)</td><td>J / left click</td><td>X / right trigger</td></tr><tr><td>Dash</td><td>Space / right click</td><td>A / left trigger</td></tr><tr><td>Auto or manual attack</td><td>Tab / R</td><td>Y</td></tr><tr><td>Pause</td><td>Esc / P</td><td>Start</td></tr><tr><td>Fullscreen · info · screenshot</td><td>F11 · F3 · F12</td><td></td></tr></tbody></table></div>
+</section>
+
+<section id="road" class="panel">
+  <h2 data-i="play_h">Play</h2>
+  <div data-i="play"><p>The game is in <strong>early alpha</strong> (version 0.2.0). There is no public build yet: downloads will appear on the <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases" rel="noopener">Releases page</a> — Windows first, then Linux, macOS, Android and the browser once the game is ready.</p></div>
+  <h2 data-i="road_h">Roadmap</h2>
+  <ul data-i="road"><li>Real maps (Light World first) and more playable characters</li><li>Online leaderboard for each map, with a nickname of your choice</li><li>Bestiary, armory and statistics</li><li>Save export / import and automatic updates</li><li>Builds for Windows, Linux, macOS, Android and the browser</li></ul>
+  <h2 data-i="comm_h">Community</h2>
+  <div data-i="comm"><p>This is a project made for fun. For other projects, sharing, ideas, suggestions or bug reports, come and talk on <strong><a href="https://discord.gg/N8f62M2eaK" rel="noopener">Discord</a></strong>.</p></div>
+  <p class="cta"><a class="btn discord" href="https://discord.gg/N8f62M2eaK" rel="noopener" data-i="ui_discord">Join the Discord</a></p>
+</section>
+</main>
+
+<footer class="legal">
+  <h2 data-i="legal_h">Legal</h2>
+  <div data-i="legal"><p><strong>A Survivor to the Past</strong> is an <strong>unofficial, free and non-commercial fan game</strong>, made for fun. <strong>Selling it, or any part of it, is forbidden.</strong></p><p><em>The Legend of Zelda</em>, <em>A Link to the Past</em>, their characters, graphics, music and sound effects are trademarks and copyrighted works of <strong>Nintendo</strong>. All Nintendo assets used here belong to Nintendo. This project is not affiliated with, sponsored or endorsed by Nintendo.</p><p>The <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/blob/main/LICENSE" rel="noopener">GPL-3.0 license</a> only covers the source code written for this project; it grants no rights over Nintendo's assets. Sprite sheets come from the rips shared by the community of <em>The Spriters Resource</em> — thanks to their authors.</p><p>Rights holders: to have content removed, open an issue or contact us on <a href="https://discord.gg/N8f62M2eaK" rel="noopener">Discord</a>.</p></div>
+  <p class="small">A Survivor to the Past 0.2.0 · <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past" rel="noopener">GitHub</a> · <a href="https://discord.gg/N8f62M2eaK" rel="noopener">Discord</a></p>
+</footer>
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

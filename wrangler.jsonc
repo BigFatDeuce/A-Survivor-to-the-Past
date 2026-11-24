@@ -1,0 +1,15 @@
+// Site de presentation : fichiers statiques de site/ (generes par research/tools/make_site.py),
+// servis par Cloudflare Workers sur le sous-domaine du site. Deploiement : npx wrangler deploy
+{
+  "name": "a-survivor-to-the-past",
+  "compatibility_date": "2026-11-20",
+  "assets": {
+    "directory": "./site",
+    "not_found_handling": "none"
+  },
+  "routes": [
+    { "pattern": "a-survivor-to-the-past.holy-c.men", "custom_domain": true }
+  ],
+  "workers_dev": false,
+  "preview_urls": false
+}

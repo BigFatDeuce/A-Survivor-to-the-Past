@@ -24,3 +24,6 @@ node_modules/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Cache local de wrangler (contient des informations de compte)
+/.wrangler/
