@@ -6,7 +6,8 @@ use crate::juice::{Juice, NumKind};
 use crate::lang::{Lang, LANGS};
 use crate::menus::{self, Nav, NavIn, Opt, OptAction, OptValues};
 use crate::settings::Settings;
-use crate::title::{self, Links, TitleVis};
+use crate::title::{self, Links, TitleItem, TitleVis};
+use crate::update::{self, Status as UpdateStatus, UpdateMode, Updater};
 use crate::visuals::{Orient, Vis};
 use engine::app::{Ctx, Frame, Game as GameTrait};
 use engine::audio::AudioFilter;
@@ -44,6 +45,8 @@ pub struct Options {
     pub play: bool,
     /// Verifier les placements de l'interface puis quitter.
     pub uicheck: bool,
+    /// Mises a jour lues dans un dossier local (essais) au lieu de GitHub.
+    pub update_source: Option<std::path::PathBuf>,
 }
 
 enum State {
@@ -113,6 +116,9 @@ pub struct Game {
     links: Links,
     /// Temps des animations de l'ecran titre (s).
     menu_t: f32,
+    updater: Updater,
+    /// Telechargement automatique deja lance.
+    update_started: bool,
 }
 
 const DUST: [f32; 4] = [0.86, 0.8, 0.58, 1.0];
@@ -135,6 +141,7 @@ impl Game {
             );
         }
         let settings = Settings::load(&ctx.root);
+        let updater = Updater::new(&ctx.root, opts.update_source.clone());
         settings.apply_audio(&mut ctx.audio);
         let base_bindings = load_bindings(&ctx.root);
         let bindings = settings.bindings(&base_bindings);
@@ -179,6 +186,8 @@ impl Game {
             title_vis: TitleVis::new(ctx),
             links: Links::load(&ctx.root),
             menu_t: 0.0,
+            updater,
+            update_started: false,
         };
         // essais (demo, charge, depart avance) : directement en partie, sinon ecran titre
         let o = &g.opts;
@@ -193,6 +202,9 @@ impl Game {
             _ if direct => State::Playing,
             _ => State::Title { sel: 0 },
         };
+        if g.state.in_title() && !g.opts.uicheck && g.settings.updates != UpdateMode::Off {
+            g.updater.check();
+        }
         if g.state.in_title() {
             g.menu_t = if g.opts.menu.is_some() { 1.0 } else { 0.0 };
             let id = g.audio_cfg.menu_music.clone();
@@ -252,6 +264,10 @@ impl Game {
                 self.hud.banner(&boss, GOLD, 5.0);
                 let mut screens: Vec<(String, State)> = vec![
                     ("titre".into(), State::Title { sel: 0 }),
+                    ("titre_maj_dispo".into(), State::Title { sel: 3 }),
+                    ("titre_maj_telechargement".into(), State::Title { sel: 0 }),
+                    ("titre_maj_prete".into(), State::Title { sel: 3 }),
+                    ("titre_maj_echec".into(), State::Title { sel: 0 }),
                     ("a_propos".into(), State::About { sel: 1, toast: 0.0 }),
                     ("a_propos_lien_ouvert".into(), State::About { sel: 0, toast: 1.0 }),
                     ("options_titre".into(), State::Options { sel: 0, from_title: true }),
@@ -269,6 +285,13 @@ impl Game {
                     screens.push(("evolution".into(), State::Chest { reward: ChestReward { evolution: Some(e), upgrades: Vec::new() }, big: true, t: 2.0 }));
                 }
                 for (name, st) in screens {
+                    self.updater.force_status(match name.as_str() {
+                        "titre_maj_dispo" => UpdateStatus::Available(update::Release::sample("10.20.30")),
+                        "titre_maj_telechargement" => UpdateStatus::Downloading { version: "10.20.30".into(), done: 99, total: 100 },
+                        "titre_maj_prete" => UpdateStatus::Ready("10.20.30".into()),
+                        "titre_maj_echec" => UpdateStatus::Failed(String::new()),
+                        _ => UpdateStatus::Idle,
+                    });
                     self.state = st;
                     let mut list = DrawList::default();
                     list.probe = Some(Vec::new());
@@ -776,6 +799,42 @@ impl Game {
         }
     }
 
+    /// Menu de l'ecran titre (avec l'entree de mise a jour quand il y en a une).
+    fn title_items(&self) -> Vec<(TitleItem, String)> {
+        let l = &self.lang;
+        let mut v = vec![
+            (TitleItem::Play, l.get("ui.play").to_string()),
+            (TitleItem::Options, l.get("ui.options").to_string()),
+            (TitleItem::About, l.get("ui.about").to_string()),
+        ];
+        let upd = match self.updater.status() {
+            UpdateStatus::Available(r) => Some(l.get("ui.update.install").replace("{v}", &r.version)),
+            UpdateStatus::Downloading { done, total, .. } => {
+                let p = if total > 0 { (done * 100 / total).min(99) } else { 0 };
+                Some(l.get("ui.update.progress").replace("{p}", &p.to_string()))
+            }
+            UpdateStatus::Ready(_) => Some(l.get("ui.update.restart").to_string()),
+            UpdateStatus::Failed(_) => Some(l.get("ui.update.failed").to_string()),
+            _ => None,
+        };
+        if let Some(s) = upd {
+            v.push((TitleItem::Update, s));
+        }
+        v.push((TitleItem::Quit, l.get("ui.quit").to_string()));
+        v
+    }
+
+    /// Mises a jour automatiques : le telechargement part seul des qu'une version est trouvee.
+    fn poll_updates(&mut self) {
+        if self.update_started || self.settings.updates != UpdateMode::Auto {
+            return;
+        }
+        if let UpdateStatus::Available(r) = self.updater.status() {
+            self.update_started = true;
+            self.updater.download(r);
+        }
+    }
+
     /// Applique un changement d'option.
     fn change_option(&mut self, ctx: &mut Ctx, o: Opt, step: i32, set: Option<f32>) {
         let s = &mut self.settings;
@@ -819,6 +878,14 @@ impl Game {
                 s.fullscreen = !ctx.fullscreen;
                 ctx.set_fullscreen(s.fullscreen);
             }
+            Opt::Updates => {
+                let all = UpdateMode::ALL;
+                let cur = all.iter().position(|&m| m == s.updates).unwrap_or(0) as i32;
+                s.updates = all[(cur + step).rem_euclid(all.len() as i32) as usize];
+                if s.updates != UpdateMode::Off {
+                    self.updater.check();
+                }
+            }
             Opt::Back => {}
         }
         self.sfx(ctx, "cursor");
@@ -831,7 +898,8 @@ impl Game {
         let state = std::mem::replace(&mut self.state, State::Playing);
         self.state = match state {
             State::Title { mut sel } => {
-                let (mut pick, moved) = title::input_title(nav, view, &mut sel);
+                let items = self.title_items();
+                let (mut pick, moved) = title::input_title(nav, view, items.len(), &mut sel);
                 if self.menu_t < 0.5 {
                     // pendant le fondu d'ouverture : pas de choix par un appui reste enfonce
                     pick = None;
@@ -842,22 +910,45 @@ impl Game {
                 if moved {
                     self.sfx(ctx, "cursor");
                 }
-                match pick {
-                    Some(0) => {
+                match pick.map(|k| items[k].0) {
+                    Some(TitleItem::Play) => {
                         self.sfx(ctx, "pick");
                         self.restart(ctx);
                         return;
                     }
-                    Some(1) => {
+                    Some(TitleItem::Options) => {
                         self.sfx(ctx, "pick");
                         self.settings.fullscreen = ctx.fullscreen;
                         State::Options { sel: 0, from_title: true }
                     }
-                    Some(2) => {
+                    Some(TitleItem::About) => {
                         self.sfx(ctx, "pick");
                         State::About { sel: 0, toast: 0.0 }
                     }
-                    Some(_) => {
+                    Some(TitleItem::Update) => {
+                        match self.updater.status() {
+                            UpdateStatus::Available(r) => {
+                                self.sfx(ctx, "pick");
+                                self.updater.download(r);
+                            }
+                            UpdateStatus::Ready(_) => {
+                                // l'installateur remplace le jeu puis le relance
+                                self.settings.save(&ctx.root);
+                                if update::launch_pending(&ctx.root) {
+                                    ctx.quit();
+                                } else {
+                                    self.sfx(ctx, "error");
+                                }
+                            }
+                            UpdateStatus::Failed(_) => {
+                                let ok = Links::open(&self.links.releases);
+                                self.sfx(ctx, if ok { "pick" } else { "error" });
+                            }
+                            _ => self.sfx(ctx, "error"),
+                        }
+                        State::Title { sel }
+                    }
+                    Some(TitleItem::Quit) => {
                         ctx.quit();
                         State::Title { sel }
                     }
@@ -1410,6 +1501,7 @@ impl Game {
                     music: self.settings.music,
                     sfx: self.settings.sfx,
                     fullscreen: ctx.fullscreen,
+                    updates: self.settings.updates,
                 };
                 menus::draw_options(list, ctx, &self.vis, lang, *sel, &v);
             }
@@ -1470,6 +1562,7 @@ impl GameTrait for Game {
         }
         let nav = self.nav.read(ctx, &self.bindings, dt);
         self.menu_t += dt;
+        self.poll_updates();
         self.update_menus(ctx, &nav, dt);
 
         self.juice.hitstop = (self.juice.hitstop - dt).max(0.0);
@@ -1545,7 +1638,10 @@ impl GameTrait for Game {
                 State::About { sel, toast } => {
                     title::draw_about(list, ctx, &self.title_vis, &self.lang, &white, &self.links, *sel, self.menu_t, *toast)
                 }
-                State::Title { sel } => title::draw_title(list, ctx, &self.title_vis, &self.lang, &white, *sel, self.menu_t),
+                State::Title { sel } => {
+                    let items = self.title_items();
+                    title::draw_title(list, ctx, &self.title_vis, &self.lang, &white, &items, *sel, self.menu_t)
+                }
                 _ => {
                     // options ouvertes depuis le titre : le decor reste visible dessous
                     title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);

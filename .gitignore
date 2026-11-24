@@ -27,3 +27,6 @@ desktop.ini
 
 # Cache local de wrangler (contient des informations de compte)
 /.wrangler/
+
+# Paquets publies
+/dist/

@@ -92,11 +92,20 @@ Chaque jalon se termine par un point avec toi (démo + questions éventuelles).
 - **Dépôt GitHub public** avec README en 7 langues et captures (`research/tools/make_readme.py`) ; **site** en
   7 langues sur le sous-domaine holy-c.men (`site/`, `research/tools/make_site.py`, déploiement `npx wrangler deploy`).
 
+- **Version Windows jouable (alpha 0.2.0)** publiée sur GitHub Releases (`research/tools/make_release.py` :
+  dossier « A Survivor to the Past » avec l'exe, `data/`, `assets/gen`, `assets/audio`, licence, lisez-moi FR/EN).
+- **Mises à jour intégrées** (`crates/game/src/update.rs`) : au lancement, lecture de la dernière version publiée ;
+  mode Automatiques (défaut) = téléchargement en arrière-plan puis installation au lancement suivant ou tout de
+  suite (« Redémarrer et installer » sur le titre) ; mode Me demander ; mode Non (aucune connexion). Archive
+  contrôlée (dépôt officiel uniquement, taille, empreinte SHA-256 de GitHub, chemins de l'archive vérifiés),
+  installation jeu fermé avec retour arrière en cas d'erreur, réglages du joueur conservés. Essai local de bout
+  en bout : `--update-source dossier` (latest.json + archive).
+- **Plantages** : `crash.log` + message au joueur ; message clair si le jeu est lancé sans ses fichiers (zip non extrait).
+
 ## Idées du 24/11/2026 : propositions (à valider)
 | Idée | Proposition | Jalon proposé |
 |---|---|---|
 | **Classement en ligne** par map, avec pseudo | Petit service Cloudflare (Worker + base D1) sur le même domaine. La simulation est déterministe : le jeu envoie la graine et les entrées de la partie, le serveur rejoue la partie (simulation compilée en WASM) et n'enregistre que les scores vérifiés. Pseudo filtré, limite d'envois. | J8 |
-| **Mise à jour automatique** | Au lancement, lecture de la dernière version sur GitHub Releases ; si plus récente : proposer « Mettre à jour » (téléchargement + remplacement de l'exe) ou ouvrir la page des versions. Option pour désactiver. | J8 (avec les builds) |
 | **Export / import des sauvegardes** | Profil dans un seul fichier ; boutons Exporter / Importer (fichier, ou code à copier-coller pour le navigateur et Android). | J4 |
 | **Bestiaire, armurerie, statistiques** | Bestiaire (ennemis vus/vaincus, description, sprite animé), armurerie (armes, évolutions découvertes et leur recette), statistiques (parties, temps, ennemis vaincus, records par map). | J4 (profil) puis enrichi en J5–J6 |
 | **Toutes les plateformes** | Windows, Linux, macOS, Android, navigateur : **uniquement quand tu diras que le jeu est prêt**. Points à prévoir : commandes tactiles (Android), musiques en flux (navigateur, 50 Mo), signature macOS. | J9 (sur ton signal) |

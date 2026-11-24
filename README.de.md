@@ -2,6 +2,7 @@
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i>Ein Survivors-like in der Welt von <b>A Link to the Past</b>: Halte den Monsterhorden Hyrules stand.</i></p>
 <p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.2.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Für Windows herunterladen</b></a></p>
 <p align="center"><a href="README.md">English</a> · <a href="README.fr.md">Français</a> · <b>Deutsch</b> · <a href="README.es.md">Español</a> · <a href="README.it.md">Italiano</a> · <a href="README.pt.md">Português</a> · <a href="README.ja.md">日本語</a></p>
 
 <p align="center"><img src="media/horde.png" alt="" width="100%"></p>
@@ -56,9 +57,9 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
 
 ## Spielen
 
-Das Spiel ist in der **Alpha-Phase** (Version 0.2.0). Noch gibt es keine öffentliche Version: Downloads erscheinen auf der [Release-Seite](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases) — zuerst für Windows, dann Linux, macOS, Android und Browser, sobald das Spiel fertig ist.
+Das Spiel ist in der **Alpha-Phase** (Version 0.2.0). **Windows**: Lade die neueste Version von der [Release-Seite](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest) herunter, entpacke das ganze Zip und starte `A Survivor to the Past.exe`. Windows warnt eventuell, dass das Spiel nicht signiert ist: Klicke auf *Weitere Informationen* → *Trotzdem ausführen*. Danach **aktualisiert sich das Spiel selbst**: Beim Start prüft es auf GitHub, ob es eine neue Version gibt, lädt sie im Hintergrund herunter und installiert sie beim nächsten Start (Optionen → Updates: Automatisch / Nachfragen / Aus). Deine Einstellungen bleiben erhalten, und es wird nur GitHub kontaktiert, ohne persönliche Daten.
 
-Bis dahin kannst du es mit [Rust](https://rustup.rs) (stable) aus dem Quellcode bauen:
+Versionen für Linux, macOS, Android und Browser folgen, sobald das Spiel fertig ist. Bis dahin kannst du es mit [Rust](https://rustup.rs) (stable) aus dem Quellcode bauen:
 
 ```sh
 git clone https://github.com/BigFatDeuce/A-Survivor-to-the-Past.git

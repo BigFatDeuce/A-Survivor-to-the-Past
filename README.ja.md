@@ -2,6 +2,7 @@
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i><b>神々のトライフォース</b>の世界で生き残れ。ハイラルの魔物の大群に立ち向かうサバイバーライク。</i></p>
 <p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.2.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Windows 版をダウンロード</b></a></p>
 <p align="center"><a href="README.md">English</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a> · <a href="README.it.md">Italiano</a> · <a href="README.pt.md">Português</a> · <b>日本語</b></p>
 
 <p align="center"><img src="media/horde.png" alt="" width="100%"></p>
@@ -56,9 +57,9 @@
 
 ## 遊ぶ
 
-このゲームは**アルファ版**（バージョン 0.2.0）です。公開ビルドはまだありません。ダウンロードは[リリースページ](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases)に掲載予定です。まず Windows、ゲームの完成後に Linux・macOS・Android・ブラウザ版を予定しています。
+このゲームは**アルファ版**（バージョン 0.2.0）です。**Windows**：[リリースページ](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest)から最新版をダウンロードし、zip をすべて展開して `A Survivor to the Past.exe` を起動してください。署名がないため Windows に警告された場合は、*詳細情報* → *実行* をクリックします。その後は**自動でアップデート**されます。起動時に GitHub で新しいバージョンを確認し、バックグラウンドでダウンロードして次回起動時にインストールします（オプション → アップデート：じどう / かくにん する / オフ）。設定はそのまま残り、通信先は GitHub だけで、個人情報は送信されません。
 
-それまでは [Rust](https://rustup.rs)（stable）でソースからビルドできます：
+Linux・macOS・Android・ブラウザ版はゲームの完成後に予定しています。それまでは [Rust](https://rustup.rs)（stable）でソースからビルドできます：
 
 ```sh
 git clone https://github.com/BigFatDeuce/A-Survivor-to-the-Past.git

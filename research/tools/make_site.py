@@ -17,25 +17,25 @@ ROOT = rd.ROOT
 OUT = ROOT / "site"
 
 UI = {
-    "en": dict(download="Download", soon=f"Alpha {rd.VERSION} — no public build yet, follow the releases on GitHub",
+    "en": dict(download="Download for Windows", soon=f"Alpha {rd.VERSION} for Windows — Linux, macOS, Android and browser later",
                discord="Join the Discord", github="Source code", lang="Language", nav_what="The game",
                nav_shots="Screenshots", nav_evo="Evolutions", nav_road="Roadmap", horde="A horde at 3:30"),
-    "fr": dict(download="Télécharger", soon=f"Alpha {rd.VERSION} — pas encore de version publique, suivez les sorties sur GitHub",
+    "fr": dict(download="Télécharger pour Windows", soon=f"Alpha {rd.VERSION} pour Windows — Linux, macOS, Android et navigateur plus tard",
                discord="Rejoindre le Discord", github="Code source", lang="Langue", nav_what="Le jeu",
                nav_shots="Captures", nav_evo="Évolutions", nav_road="Feuille de route", horde="Une horde à 3:30"),
-    "de": dict(download="Herunterladen", soon=f"Alpha {rd.VERSION} — noch keine öffentliche Version, verfolge die Releases auf GitHub",
+    "de": dict(download="Für Windows herunterladen", soon=f"Alpha {rd.VERSION} für Windows — Linux, macOS, Android und Browser folgen",
                discord="Zum Discord", github="Quellcode", lang="Sprache", nav_what="Das Spiel",
                nav_shots="Bilder", nav_evo="Entwicklungen", nav_road="Fahrplan", horde="Eine Horde bei 3:30"),
-    "es": dict(download="Descargar", soon=f"Alfa {rd.VERSION} — aún no hay versión pública, sigue las versiones en GitHub",
+    "es": dict(download="Descargar para Windows", soon=f"Alfa {rd.VERSION} para Windows — Linux, macOS, Android y navegador más adelante",
                discord="Únete al Discord", github="Código fuente", lang="Idioma", nav_what="El juego",
                nav_shots="Capturas", nav_evo="Evoluciones", nav_road="Hoja de ruta", horde="Una horda a los 3:30"),
-    "it": dict(download="Scarica", soon=f"Alfa {rd.VERSION} — nessuna versione pubblica per ora, segui le release su GitHub",
+    "it": dict(download="Scarica per Windows", soon=f"Alfa {rd.VERSION} per Windows — Linux, macOS, Android e browser più avanti",
                discord="Entra nel Discord", github="Codice sorgente", lang="Lingua", nav_what="Il gioco",
                nav_shots="Immagini", nav_evo="Evoluzioni", nav_road="Tabella di marcia", horde="Un'orda a 3:30"),
-    "pt": dict(download="Baixar", soon=f"Alfa {rd.VERSION} — ainda sem versão pública, acompanhe os lançamentos no GitHub",
+    "pt": dict(download="Baixar para Windows", soon=f"Alfa {rd.VERSION} para Windows — Linux, macOS, Android e navegador depois",
                discord="Entrar no Discord", github="Código-fonte", lang="Idioma", nav_what="O jogo",
                nav_shots="Imagens", nav_evo="Evoluções", nav_road="Próximos passos", horde="Uma horda aos 3:30"),
-    "ja": dict(download="ダウンロード", soon=f"アルファ版 {rd.VERSION} — 公開ビルドはまだありません。GitHub のリリースをチェックしてください",
+    "ja": dict(download="Windows 版をダウンロード", soon=f"Windows 版アルファ {rd.VERSION} — Linux・macOS・Android・ブラウザ版は今後",
                discord="Discord に参加", github="ソースコード", lang="言語", nav_what="ゲーム",
                nav_shots="スクリーンショット", nav_evo="進化", nav_road="今後の予定", horde="3:30 の大群"),
 }
@@ -132,7 +132,7 @@ PAGE = """<!doctype html>
   <img class="shot pix" src="img/title.png" width="1280" height="720" alt="A Survivor to the Past">
   <p class="tagline" data-i="tagline">{tagline}</p>
   <div class="cta">
-    <a class="btn gold" href="{releases}" rel="noopener" data-i="ui_download">{ui_download}</a>
+    <a class="btn gold" href="{releases}/latest" rel="noopener" data-i="ui_download">{ui_download}</a>
     <a class="btn discord" href="{discord}" rel="noopener" data-i="ui_discord">{ui_discord}</a>
     <a class="btn" href="{repo}" rel="noopener" data-i="ui_github">{ui_github}</a>
   </div>

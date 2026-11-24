@@ -17,6 +17,7 @@
 //!   --uicheck               verifie les placements de l'interface (toutes langues et vues) puis quitte
 //!   --video crt --aspect 4:3  filtre video et format pour cette session (none, snes, crt, scanlines, gba, gb)
 //!   --map arena_test  --char link  --seed 42
+//!   --update-source dir     mises a jour lues dans un dossier (latest.json + archive) : essais
 // pas de console derriere la fenetre en version publiee
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -30,17 +31,80 @@ mod menus;
 mod settings;
 mod title;
 mod uicheck;
+mod update;
 mod visuals;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+/// Boite de message systeme (erreurs graves : le jeu n'a pas de console).
+#[cfg(windows)]
+fn message_box(text: &str) {
+    use std::os::windows::ffi::OsStrExt;
+    #[link(name = "user32")]
+    extern "system" {
+        fn MessageBoxW(hwnd: *mut std::ffi::c_void, text: *const u16, caption: *const u16, kind: u32) -> i32;
+    }
+    let wide = |s: &str| std::ffi::OsStr::new(s).encode_wide().chain(Some(0)).collect::<Vec<u16>>();
+    let (t, c) = (wide(text), wide("A Survivor to the Past"));
+    // MB_ICONERROR
+    unsafe { MessageBoxW(std::ptr::null_mut(), t.as_ptr(), c.as_ptr(), 0x10) };
+}
+
+#[cfg(not(windows))]
+fn message_box(text: &str) {
+    eprintln!("{text}");
+}
+
+/// En cas de plantage : `crash.log` a la racine du jeu et message au joueur.
+fn crash_report(root: &Path) {
+    let root = root.to_path_buf();
+    let default = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        default(info);
+        let msg = format!("A Survivor to the Past v{}
+{info}
+", env!("CARGO_PKG_VERSION"));
+        let _ = std::fs::write(root.join("crash.log"), &msg);
+        message_box(&format!(
+            "The game crashed. Details: crash.log
+Le jeu a planté. Détails : crash.log
+
+{info}
+
+Discord: About / À propos"
+        ));
+    }));
+}
 
 fn main() {
     env_logger::Builder::from_env(
         env_logger::Env::default().default_filter_or("info,wgpu_core=warn,wgpu_hal=warn,naga=warn,symphonia=warn"),
     )
     .init();
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    // installateur de mise a jour (lance par l'ancienne version, depuis `.update/new/`)
+    if args.first().map(String::as_str) == Some("--apply-update") {
+        if let Some(root) = args.get(1) {
+            update::apply(Path::new(root));
+        }
+        return;
+    }
     let mut cfg = engine::app::Config::default();
     let root = engine::assets::find_root();
+    if !root.join("data").is_dir() || !root.join("assets/gen/atlas.ron").is_file() {
+        message_box(
+            "Game files not found: extract the whole zip archive into a folder, then launch the game from that folder.
+
+             Fichiers du jeu introuvables : extrayez toute l'archive zip dans un dossier, puis lancez le jeu depuis ce dossier.",
+        );
+        return;
+    }
+    crash_report(&root);
+    // mise a jour telechargee lors d'une session precedente : installation avant tout
+    if update::launch_pending(&root) {
+        return;
+    }
+    update::cleanup(&root);
     let set = settings::Settings::load(&root);
     cfg.fullscreen = set.fullscreen;
     cfg.video = set.video;
@@ -58,8 +122,8 @@ fn main() {
         lang: None,
         play: false,
         uicheck: false,
+        update_source: None,
     };
-    let args: Vec<String> = std::env::args().skip(1).collect();
     let mut i = 0;
     let num = |s: Option<&String>| -> f32 { s.and_then(|v| v.parse().ok()).unwrap_or(0.0) };
     while i < args.len() {
@@ -67,6 +131,10 @@ fn main() {
             "--fullscreen" => cfg.fullscreen = true,
             "--novsync" => cfg.vsync = false,
             "--demo" => opts.demo = true,
+            "--update-source" => {
+                opts.update_source = args.get(i + 1).map(PathBuf::from);
+                i += 1;
+            }
             "--window" => {
                 if let Some((w, h)) = args.get(i + 1).and_then(|s| s.split_once('x')) {
                     cfg.window_size = Some((w.parse().unwrap_or(1280), h.parse().unwrap_or(720)));

@@ -414,6 +414,10 @@ import lang_extra  # noqa: E402  (ecran titre, a propos, filtres)
 KEYS += lang_extra.KEYS
 for _code, _t in lang_extra.EXTRA.items():
     L[_code].update(_t)
+import lang_update  # noqa: E402  (mises a jour)
+KEYS += lang_update.KEYS
+for _code, _t in lang_update.EXTRA.items():
+    L[_code].update(_t)
 
 
 def esc(s):

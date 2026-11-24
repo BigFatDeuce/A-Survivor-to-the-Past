@@ -591,10 +591,11 @@ pub enum Opt {
     Music,
     Sfx,
     Fullscreen,
+    Updates,
     Back,
 }
 
-pub const OPTIONS: [Opt; 9] = [
+pub const OPTIONS: [Opt; 10] = [
     Opt::Language,
     Opt::Video,
     Opt::Aspect,
@@ -603,6 +604,7 @@ pub const OPTIONS: [Opt; 9] = [
     Opt::Music,
     Opt::Sfx,
     Opt::Fullscreen,
+    Opt::Updates,
     Opt::Back,
 ];
 
@@ -621,6 +623,7 @@ pub struct OptValues<'a> {
     pub music: f32,
     pub sfx: f32,
     pub fullscreen: bool,
+    pub updates: crate::update::UpdateMode,
 }
 
 pub fn draw_options(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, sel: usize, v: &OptValues) {
@@ -650,6 +653,7 @@ pub fn draw_options(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, sel:
             Opt::Music => "ui.music",
             Opt::Sfx => "ui.sfx",
             Opt::Fullscreen => "ui.fullscreen",
+            Opt::Updates => "ui.updates",
             Opt::Back => "ui.back",
         };
         if *o == Opt::Back {
@@ -705,6 +709,15 @@ pub fn draw_options(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, sel:
             }
             Opt::Fullscreen => {
                 let s = if v.fullscreen { lang.get("ui.on") } else { lang.get("ui.off") };
+                text(list, main, s, Vec2::new(right, y), 1.0, WHITE, Align::Right);
+            }
+            Opt::Updates => {
+                use crate::update::UpdateMode;
+                let s = lang.get(match v.updates {
+                    UpdateMode::Auto => "ui.update.auto",
+                    UpdateMode::Ask => "ui.update.ask",
+                    UpdateMode::Off => "ui.off",
+                });
                 text(list, main, s, Vec2::new(right, y), 1.0, WHITE, Align::Right);
             }
             Opt::Back => {}

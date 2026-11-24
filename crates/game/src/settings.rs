@@ -1,6 +1,7 @@
 //! Reglages du joueur, enregistres dans `settings.ron` a la racine du jeu.
 use engine::audio::AudioFilter;
 use engine::gfx::{Aspect, VideoFilter};
+use crate::update::UpdateMode;
 use engine::input::{Binding, Bindings};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -43,6 +44,9 @@ pub struct Settings {
     /// Touches remplacees par le joueur (action -> touches). Vide = `data/input.ron`.
     #[serde(default)]
     pub bindings: BTreeMap<String, Vec<Binding>>,
+    /// Mises a jour : automatiques (defaut), sur demande, ou desactivees.
+    #[serde(default)]
+    pub updates: UpdateMode,
 }
 
 impl Default for Settings {
@@ -57,6 +61,7 @@ impl Default for Settings {
             video: VideoFilter::default(),
             aspect: Aspect::default(),
             bindings: BTreeMap::new(),
+            updates: UpdateMode::default(),
         }
     }
 }

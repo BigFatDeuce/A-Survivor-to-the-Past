@@ -46,9 +46,9 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
                   boss="Boss: Hinox", options="Options (language, filters, volumes)", about="About"),
         filters_cap="Video filters: none · CRT / Game Boy Advance · Game Boy / Scanlines · CRT in 4:3",
         play_h="Play",
-        play=f"""The game is in **early alpha** (version {VERSION}). There is no public build yet: downloads will appear on the [Releases page]({REPO}/releases) — Windows first, then Linux, macOS, Android and the browser once the game is ready.
+        play=f"""The game is in **early alpha** (version {VERSION}). **Windows**: download the latest version from the [Releases page]({REPO}/releases/latest), extract the whole zip and launch `A Survivor to the Past.exe`. Windows may warn that the game is not signed: click *More info* → *Run anyway*. The game then **updates itself**: at launch it checks GitHub for a new version, downloads it in the background and installs it at the next launch (Options → Updates: Automatic / Ask me / Off). Your settings are kept, and only GitHub is contacted, without any personal data.
 
-In the meantime you can build it from source with [Rust](https://rustup.rs) (stable):""",
+Linux, macOS, Android and browser versions will come when the game is ready. Meanwhile you can build it from source with [Rust](https://rustup.rs) (stable):""",
         linux="On Linux, also install the ALSA and udev development packages (`libasound2-dev`, `libudev-dev`).",
         ctrl_h="Controls",
         ctrl_cols=("Action", "Keyboard / mouse", "Gamepad"),
@@ -101,9 +101,9 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
                   boss="Boss : Hinox", options="Options (langue, filtres, volumes)", about="À propos"),
         filters_cap="Filtres vidéo : aucun · CRT / Game Boy Advance · Game Boy / Scanlines · CRT en 4:3",
         play_h="Jouer",
-        play=f"""Le jeu est en **alpha** (version {VERSION}). Il n'y a pas encore de version publique : les téléchargements apparaîtront sur la [page des versions]({REPO}/releases) — Windows d'abord, puis Linux, macOS, Android et navigateur quand le jeu sera prêt.
+        play=f"""Le jeu est en **alpha** (version {VERSION}). **Windows** : téléchargez la dernière version sur la [page des versions]({REPO}/releases/latest), extrayez tout le zip et lancez `A Survivor to the Past.exe`. Windows peut prévenir que le jeu n'est pas signé : cliquez sur *Informations complémentaires* → *Exécuter quand même*. Ensuite, le jeu **se met à jour tout seul** : au lancement, il vérifie sur GitHub s'il existe une nouvelle version, la télécharge en arrière-plan et l'installe au lancement suivant (Options → Mises à jour : Automatiques / Me demander / Non). Vos réglages sont conservés, et seul GitHub est contacté, sans aucune donnée personnelle.
 
-En attendant, vous pouvez le compiler depuis les sources avec [Rust](https://rustup.rs) (stable) :""",
+Les versions Linux, macOS, Android et navigateur viendront quand le jeu sera prêt. En attendant, vous pouvez le compiler depuis les sources avec [Rust](https://rustup.rs) (stable) :""",
         linux="Sous Linux, installez aussi les paquets de développement ALSA et udev (`libasound2-dev`, `libudev-dev`).",
         ctrl_h="Commandes",
         ctrl_cols=("Action", "Clavier / souris", "Manette"),
@@ -156,9 +156,9 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
                   boss="Boss: Hinox", options="Optionen (Sprache, Filter, Lautstärke)", about="Über das Spiel"),
         filters_cap="Videofilter: keiner · CRT / Game Boy Advance · Game Boy / Scanlines · CRT in 4:3",
         play_h="Spielen",
-        play=f"""Das Spiel ist in der **Alpha-Phase** (Version {VERSION}). Noch gibt es keine öffentliche Version: Downloads erscheinen auf der [Release-Seite]({REPO}/releases) — zuerst für Windows, dann Linux, macOS, Android und Browser, sobald das Spiel fertig ist.
+        play=f"""Das Spiel ist in der **Alpha-Phase** (Version {VERSION}). **Windows**: Lade die neueste Version von der [Release-Seite]({REPO}/releases/latest) herunter, entpacke das ganze Zip und starte `A Survivor to the Past.exe`. Windows warnt eventuell, dass das Spiel nicht signiert ist: Klicke auf *Weitere Informationen* → *Trotzdem ausführen*. Danach **aktualisiert sich das Spiel selbst**: Beim Start prüft es auf GitHub, ob es eine neue Version gibt, lädt sie im Hintergrund herunter und installiert sie beim nächsten Start (Optionen → Updates: Automatisch / Nachfragen / Aus). Deine Einstellungen bleiben erhalten, und es wird nur GitHub kontaktiert, ohne persönliche Daten.
 
-Bis dahin kannst du es mit [Rust](https://rustup.rs) (stable) aus dem Quellcode bauen:""",
+Versionen für Linux, macOS, Android und Browser folgen, sobald das Spiel fertig ist. Bis dahin kannst du es mit [Rust](https://rustup.rs) (stable) aus dem Quellcode bauen:""",
         linux="Unter Linux werden außerdem die Entwicklungspakete für ALSA und udev benötigt (`libasound2-dev`, `libudev-dev`).",
         ctrl_h="Steuerung",
         ctrl_cols=("Aktion", "Tastatur / Maus", "Controller"),
@@ -211,9 +211,9 @@ Guía a Link entre hordas cada vez más grandes, recoge rupias para subir de niv
                   boss="Jefe: Hinox", options="Opciones (idioma, filtros, volumen)", about="Acerca de"),
         filters_cap="Filtros de vídeo: ninguno · CRT / Game Boy Advance · Game Boy / Scanlines · CRT en 4:3",
         play_h="Jugar",
-        play=f"""El juego está en **alfa** (versión {VERSION}). Todavía no hay versión pública: las descargas aparecerán en la [página de versiones]({REPO}/releases) — primero Windows, luego Linux, macOS, Android y navegador cuando el juego esté listo.
+        play=f"""El juego está en **alfa** (versión {VERSION}). **Windows**: descarga la última versión en la [página de versiones]({REPO}/releases/latest), extrae todo el zip y ejecuta `A Survivor to the Past.exe`. Windows puede avisar de que el juego no está firmado: haz clic en *Más información* → *Ejecutar de todas formas*. Después, el juego **se actualiza solo**: al iniciarse comprueba en GitHub si hay una versión nueva, la descarga en segundo plano y la instala en el siguiente inicio (Opciones → Actualizaciones: Automáticas / Preguntar / No). Tus ajustes se conservan y solo se contacta con GitHub, sin ningún dato personal.
 
-Mientras tanto, puedes compilarlo desde el código fuente con [Rust](https://rustup.rs) (stable):""",
+Las versiones para Linux, macOS, Android y navegador llegarán cuando el juego esté listo. Mientras tanto, puedes compilarlo desde el código fuente con [Rust](https://rustup.rs) (stable):""",
         linux="En Linux, instala también los paquetes de desarrollo de ALSA y udev (`libasound2-dev`, `libudev-dev`).",
         ctrl_h="Controles",
         ctrl_cols=("Acción", "Teclado / ratón", "Mando"),
@@ -266,9 +266,9 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
                   boss="Boss: Hinox", options="Opzioni (lingua, filtri, volumi)", about="Informazioni"),
         filters_cap="Filtri video: nessuno · CRT / Game Boy Advance · Game Boy / Scanlines · CRT in 4:3",
         play_h="Giocare",
-        play=f"""Il gioco è in **alfa** (versione {VERSION}). Non esiste ancora una versione pubblica: i download compariranno nella [pagina delle release]({REPO}/releases) — prima Windows, poi Linux, macOS, Android e browser quando il gioco sarà pronto.
+        play=f"""Il gioco è in **alfa** (versione {VERSION}). **Windows**: scarica l'ultima versione dalla [pagina delle release]({REPO}/releases/latest), estrai tutto lo zip e avvia `A Survivor to the Past.exe`. Windows potrebbe avvisare che il gioco non è firmato: fai clic su *Ulteriori informazioni* → *Esegui comunque*. Poi il gioco **si aggiorna da solo**: all'avvio controlla su GitHub se c'è una nuova versione, la scarica in background e la installa all'avvio successivo (Opzioni → Aggiornamenti: Automatici / Chiedi / No). Le tue impostazioni restano e viene contattato solo GitHub, senza alcun dato personale.
 
-Nel frattempo puoi compilarlo dai sorgenti con [Rust](https://rustup.rs) (stable):""",
+Le versioni per Linux, macOS, Android e browser arriveranno quando il gioco sarà pronto. Nel frattempo puoi compilarlo dai sorgenti con [Rust](https://rustup.rs) (stable):""",
         linux="Su Linux installa anche i pacchetti di sviluppo di ALSA e udev (`libasound2-dev`, `libudev-dev`).",
         ctrl_h="Comandi",
         ctrl_cols=("Azione", "Tastiera / mouse", "Controller"),
@@ -321,9 +321,9 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
                   boss="Chefe: Hinox", options="Opções (idioma, filtros, volumes)", about="Sobre"),
         filters_cap="Filtros de vídeo: nenhum · CRT / Game Boy Advance · Game Boy / Scanlines · CRT em 4:3",
         play_h="Jogar",
-        play=f"""O jogo está em **alfa** (versão {VERSION}). Ainda não há versão pública: os downloads aparecerão na [página de versões]({REPO}/releases) — primeiro Windows, depois Linux, macOS, Android e navegador quando o jogo estiver pronto.
+        play=f"""O jogo está em **alfa** (versão {VERSION}). **Windows**: baixe a versão mais recente na [página de versões]({REPO}/releases/latest), extraia o zip inteiro e abra `A Survivor to the Past.exe`. O Windows pode avisar que o jogo não é assinado: clique em *Mais informações* → *Executar assim mesmo*. Depois, o jogo **se atualiza sozinho**: ao iniciar, ele verifica no GitHub se há uma nova versão, baixa em segundo plano e instala no próximo início (Opções → Atualizações: Automáticas / Perguntar / Não). Suas configurações são mantidas e só o GitHub é contatado, sem nenhum dado pessoal.
 
-Enquanto isso, você pode compilá-lo a partir do código-fonte com [Rust](https://rustup.rs) (stable):""",
+As versões para Linux, macOS, Android e navegador virão quando o jogo estiver pronto. Enquanto isso, você pode compilá-lo a partir do código-fonte com [Rust](https://rustup.rs) (stable):""",
         linux="No Linux, instale também os pacotes de desenvolvimento do ALSA e do udev (`libasound2-dev`, `libudev-dev`).",
         ctrl_h="Controles",
         ctrl_cols=("Ação", "Teclado / mouse", "Controle"),
@@ -376,9 +376,9 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
                   boss="ボス：ヒノックス", options="オプション（言語・フィルター・音量）", about="このゲームについて"),
         filters_cap="映像フィルター：なし · CRT / ゲームボーイアドバンス · ゲームボーイ / スキャンライン · CRT（4:3）",
         play_h="遊ぶ",
-        play=f"""このゲームは**アルファ版**（バージョン {VERSION}）です。公開ビルドはまだありません。ダウンロードは[リリースページ]({REPO}/releases)に掲載予定です。まず Windows、ゲームの完成後に Linux・macOS・Android・ブラウザ版を予定しています。
+        play=f"""このゲームは**アルファ版**（バージョン {VERSION}）です。**Windows**：[リリースページ]({REPO}/releases/latest)から最新版をダウンロードし、zip をすべて展開して `A Survivor to the Past.exe` を起動してください。署名がないため Windows に警告された場合は、*詳細情報* → *実行* をクリックします。その後は**自動でアップデート**されます。起動時に GitHub で新しいバージョンを確認し、バックグラウンドでダウンロードして次回起動時にインストールします（オプション → アップデート：じどう / かくにん する / オフ）。設定はそのまま残り、通信先は GitHub だけで、個人情報は送信されません。
 
-それまでは [Rust](https://rustup.rs)（stable）でソースからビルドできます：""",
+Linux・macOS・Android・ブラウザ版はゲームの完成後に予定しています。それまでは [Rust](https://rustup.rs)（stable）でソースからビルドできます：""",
         linux="Linux では ALSA と udev の開発パッケージ（`libasound2-dev`、`libudev-dev`）も必要です。",
         ctrl_h="操作方法",
         ctrl_cols=("アクション", "キーボード / マウス", "ゲームパッド"),
@@ -409,6 +409,16 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
     ),
 }
 
+DL = {
+    "en": "Download for Windows",
+    "fr": "Télécharger pour Windows",
+    "de": "Für Windows herunterladen",
+    "es": "Descargar para Windows",
+    "it": "Scarica per Windows",
+    "pt": "Baixar para Windows",
+    "ja": "Windows 版をダウンロード",
+}
+
 PAT = re.compile(r'"([^"]+)":\s*"((?:[^"\\]|\\.)*)"')
 
 
@@ -433,6 +443,7 @@ def readme(code):
         '<h1 align="center">A Survivor to the Past</h1>',
         f'<p align="center"><i>{t["tagline"]}</i></p>',
         f'<p align="center">{badges}</p>',
+        f'<p align="center"><a href="{REPO}/releases/latest"><b>⬇ {DL[code]}</b></a></p>',
         f'<p align="center">{langs}</p>',
         "",
         '<p align="center"><img src="media/horde.png" alt="" width="100%"></p>',

@@ -18,8 +18,17 @@ const BG_H: f32 = 144.0;
 const LOGO_AT: Vec2 = Vec2::new(166.0, 70.0);
 const LOGO_HALF_W: f32 = 41.0;
 
-pub const TITLE_ITEMS: [&str; 4] = ["ui.play", "ui.options", "ui.about", "ui.quit"];
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Entrees du menu titre ; `Update` n'apparait que lorsqu'une mise a jour est en cours ou possible.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum TitleItem {
+    Play,
+    Options,
+    About,
+    Update,
+    Quit,
+}
 
 /// Liens de `data/links.ron`.
 #[derive(Deserialize, Default, Clone)]
@@ -81,7 +90,7 @@ pub struct Layout {
     pub items: Vec<(Vec2, Vec2)>,
 }
 
-pub fn layout(view: Vec2) -> Layout {
+pub fn layout(view: Vec2, n: usize) -> Layout {
     let k = (view.x / BG_W).max(view.y / BG_H);
     let bg_pos = ((view - Vec2::new(BG_W, BG_H) * k) * 0.5).round();
     // le logo reste visible quand le decor est rogne (4:3) et ne touche pas le menu
@@ -94,7 +103,7 @@ pub fn layout(view: Vec2) -> Layout {
     let item_h = if big { 30.0 } else { 22.0 };
     let item_w = (logo.x - LOGO_HALF_W * k - left - 4.0).clamp(140.0, 260.0);
     let y0 = (view.y * 0.44).round();
-    let items = (0..TITLE_ITEMS.len())
+    let items = (0..n)
         .map(|i| (Vec2::new(left - 8.0, y0 + i as f32 * item_h - 4.0), Vec2::new(item_w, item_h - 4.0)))
         .collect();
     Layout { k, bg_pos, logo, big, left, title_y, items }
@@ -144,12 +153,22 @@ fn draw_scene(list: &mut DrawList, ctx: &Ctx, v: &TitleVis, l: &Layout, t: f32) 
 
 /// Decor seul (sous les options ouvertes depuis le titre).
 pub fn draw_backdrop(list: &mut DrawList, ctx: &Ctx, v: &TitleVis, t: f32) {
-    draw_scene(list, ctx, v, &layout(ctx.view), t);
+    draw_scene(list, ctx, v, &layout(ctx.view, 4), t);
 }
 
-pub fn draw_title(list: &mut DrawList, ctx: &Ctx, v: &TitleVis, lang: &Lang, white: &assetkit::meta::Frame, sel: usize, t: f32) {
+/// `items` : entrees et libelles deja traduits.
+pub fn draw_title(
+    list: &mut DrawList,
+    ctx: &Ctx,
+    v: &TitleVis,
+    lang: &Lang,
+    white: &assetkit::meta::Frame,
+    items: &[(TitleItem, String)],
+    sel: usize,
+    t: f32,
+) {
     let view = ctx.view;
-    let l = layout(view);
+    let l = layout(view, items.len());
     draw_scene(list, ctx, v, &l, t);
     let main = ctx.atlas.font("main");
     // nom du jeu (nom propre : identique dans toutes les langues)
@@ -165,16 +184,26 @@ pub fn draw_title(list: &mut DrawList, ctx: &Ctx, v: &TitleVis, lang: &Lang, whi
     list.rect(white, box_pos, box_size, with_alpha(BACK, 0.82));
     frame_rect(list, white, box_pos + Vec2::splat(2.0), box_size - Vec2::splat(4.0), with_alpha(GOLD, 0.8));
     let is = if l.big { 2.0 } else { 1.0 };
-    for (k, key) in TITLE_ITEMS.iter().enumerate() {
+    for (k, (item, label)) in items.iter().enumerate() {
         let (p, s) = l.items[k];
-        let c = if k == sel { GOLD } else { SOFT };
+        let c = if k == sel {
+            GOLD
+        } else if *item == TitleItem::Update {
+            rgb(150, 230, 150)
+        } else {
+            SOFT
+        };
+        // libelle trop long pour le cadre : plus petit
+        let room = s.x - 12.0 - 10.0 * is;
+        let is = if main.measure(label) as f32 * is > room { 1.0 } else { is };
         let ty = (p.y + (s.y - main.line_height as f32 * is) * 0.5 + is).round();
         if k == sel {
             list.rect(white, p, s, [1.0, 1.0, 1.0, 0.07]);
             let blink = (t * 3.0).fract() < 0.75;
             text(list, main, "▶", Vec2::new(p.x + 4.0, ty), is, with_alpha(GOLD, if blink { 1.0 } else { 0.6 }), Align::Left);
         }
-        text(list, main, lang.get(key), Vec2::new(p.x + 8.0 + 10.0 * is, ty), is, c, Align::Left);
+        let lx = if l.big { p.x + 28.0 } else { p.x + 18.0 };
+        text(list, main, label, Vec2::new(lx, ty), is, c, Align::Left);
     }
     // pied de page
     let fy = view.y - 16.0;
@@ -186,8 +215,9 @@ pub fn draw_title(list: &mut DrawList, ctx: &Ctx, v: &TitleVis, lang: &Lang, whi
     }
 }
 
-pub fn input_title(nav: &NavIn, view: Vec2, sel: &mut usize) -> (Option<usize>, bool) {
-    input_rects(nav, &layout(view).items, sel)
+pub fn input_title(nav: &NavIn, view: Vec2, n: usize, sel: &mut usize) -> (Option<usize>, bool) {
+    *sel = (*sel).min(n.saturating_sub(1));
+    input_rects(nav, &layout(view, n).items, sel)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -239,7 +269,7 @@ pub fn draw_about(
     toast: f32,
 ) {
     let view = ctx.view;
-    draw_scene(list, ctx, v, &layout(view), t);
+    draw_scene(list, ctx, v, &layout(view, 4), t);
     let main = ctx.atlas.font("main");
     list.rect(white, Vec2::ZERO, view, [0.0, 0.0, 0.05, 0.45]);
     let l = about_layout(view, lang, main);
