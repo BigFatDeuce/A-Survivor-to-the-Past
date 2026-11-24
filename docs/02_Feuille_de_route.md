@@ -102,11 +102,34 @@ Chaque jalon se termine par un point avec toi (démo + questions éventuelles).
   en bout : `--update-source dossier` (latest.json + archive).
 - **Plantages** : `crash.log` + message au joueur ; message clair si le jeu est lancé sans ses fichiers (zip non extrait).
 
+### Version 0.3.0 : publiée le 24/11/2026 (Windows, navigateur, site)
+- **5 stages** (`data/maps/*.ron`) débloqués l'un après l'autre : Plaine d'Hyrule, Bois Perdus, Désert du Mystère,
+  Lac gelé, Pyramide de la Puissance. Chacun a sa météo (pluie, brume, tempête de sable, blizzard, ténèbres), ses
+  musiques, un boss de mi-parcours à 4:30 et un boss final à 9:00 (Armos, Mothula, Lanmola, Kholdstare, Agahnim puis
+  Ganon) ; la victoire ouvre une porte de sortie. Écran de choix du stage avec aperçu, boss et meilleur temps.
+  **Écart** : le sol est procédural avec des décors (pas encore les tuiles extraites des vraies cartes) ; Lanmola
+  n'a qu'un sprite ; trois boss de mi-parcours réutilisent les boss finaux d'autres stages.
+- **Méta-progression** (`data/meta.ron`, `crates/game/src/meta.rs`, `shop.rs`) : rubis mis en banque à la fin de
+  chaque partie ; boutique de Cocorico (9 bonus permanents), bénédictions de la Grande Fée, une relique par stage
+  (2 équipées au maximum), 4 difficultés, 5 Sceaux de Ganon (défis qui augmentent les rubis gagnés).
+- **Profil** (`records.rs`) : bestiaire, armurerie (recettes d'évolution découvertes), statistiques, export / import
+  de la sauvegarde en code texte (presse-papiers ; boîte de saisie dans le navigateur).
+- **Commandes** (`controls.rs`) : réaffectation de chaque action au clavier et à la manette, réinitialisation.
+  **Écart** : le nom d'une touche suit la disposition QWERTY tant qu'elle n'a pas été pressée une fois.
+- **Écran titre** : pluie et orage à la place du filtre SNES, longue musique en boucle avec fondu enchaîné ;
+  en jeu, aucun filtre vidéo par défaut. **Écart** : le filtre audio reste « SNES » par défaut.
+- **Version navigateur** (`research/tools/make_web.py`, `site/play/`) : WebAssembly, WebGPU avec repli WebGL2,
+  données du jeu dans un seul paquet (`game.pak`), musiques lues en flux par la page, sauvegarde dans le navigateur.
+  **Écart** : dans le navigateur, la musique ne passe pas par le filtre audio. Page servie avec sa propre politique
+  de sécurité (`'wasm-unsafe-eval'`, tout reste sur le domaine).
+- **Site et README** : bouton « Jouer dans le navigateur », nouvelles captures (choix du stage, boutique), textes à
+  jour en 7 langues. Vérification de l'interface : 0 problème sur 1764 écrans.
+
 ## Idées du 24/11/2026 : propositions (à valider)
 | Idée | Proposition | Jalon proposé |
 |---|---|---|
 | **Classement en ligne** par map, avec pseudo | Petit service Cloudflare (Worker + base D1) sur le même domaine. La simulation est déterministe : le jeu envoie la graine et les entrées de la partie, le serveur rejoue la partie (simulation compilée en WASM) et n'enregistre que les scores vérifiés. Pseudo filtré, limite d'envois. | J8 |
-| **Export / import des sauvegardes** | Profil dans un seul fichier ; boutons Exporter / Importer (fichier, ou code à copier-coller pour le navigateur et Android). | J4 |
-| **Bestiaire, armurerie, statistiques** | Bestiaire (ennemis vus/vaincus, description, sprite animé), armurerie (armes, évolutions découvertes et leur recette), statistiques (parties, temps, ennemis vaincus, records par map). | J4 (profil) puis enrichi en J5–J6 |
-| **Toutes les plateformes** | Windows, Linux, macOS, Android, navigateur : **uniquement quand tu diras que le jeu est prêt**. Points à prévoir : commandes tactiles (Android), musiques en flux (navigateur, 50 Mo), signature macOS. | J9 (sur ton signal) |
-| Remappage des touches | Écran de réaffectation (les liaisons sont déjà en données). | J4 |
+| **Export / import des sauvegardes** | Profil dans un seul fichier ; boutons Exporter / Importer (fichier, ou code à copier-coller pour le navigateur et Android). | **Fait (0.3.0)** |
+| **Bestiaire, armurerie, statistiques** | Bestiaire (ennemis vus/vaincus, description, sprite animé), armurerie (armes, évolutions découvertes et leur recette), statistiques (parties, temps, ennemis vaincus, records par map). | **Fait (0.3.0)** |
+| **Toutes les plateformes** | Windows, Linux, macOS, Android, navigateur : **uniquement quand tu diras que le jeu est prêt**. Points à prévoir : commandes tactiles (Android), musiques en flux (navigateur, 50 Mo), signature macOS. | Windows et **navigateur faits (0.3.0)** ; Linux, macOS, Android sur ton signal |
+| Remappage des touches | Écran de réaffectation (les liaisons sont déjà en données). | **Fait (0.3.0)** |
