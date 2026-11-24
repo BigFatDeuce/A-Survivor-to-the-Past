@@ -125,7 +125,7 @@ Chaque jalon se termine par un point avec toi (démo + questions éventuelles).
 - **Site et README** : bouton « Jouer dans le navigateur », nouvelles captures (choix du stage, boutique), textes à
   jour en 7 langues. Vérification de l'interface : 0 problème sur 1764 écrans.
 
-### Version 0.4 : en développement (non publiée)
+### Version 0.4.0 : publiée le 25/11/2026 (Windows, navigateur, site)
 - **Menus** : la validation joue un tintement court (`message_finish`) ; la fanfare reste réservée au choix
   d'amélioration en partie.
 - **Personnages** (`data/characters/*.ron`, `crates/game/src/chars.rs`) : écran de choix avant le stage (portrait
