@@ -1,0 +1,58 @@
+// Objets passifs : bonus de statistiques par niveau (une entree par niveau).
+// Chacun est aussi la cle d'une evolution d'arme (voir weapons.ron).
+// Stats : Might (+0.1 = +10 % degats), Area, Cooldown (-0.08 = -8 %), Amount (+1 projectile),
+//         Duration, Speed (projectiles), MoveSpeed, MaxHp (10 = 1 coeur), Armor (degats recus -n),
+//         Magnet, DashCooldown, Regen (vie par seconde).
+{
+    "pegasus_boots": (
+        icon: "icon_boots",
+        levels: [
+            [(MoveSpeed, 0.07), (DashCooldown, -0.08)],
+            [(MoveSpeed, 0.07), (DashCooldown, -0.08)],
+            [(MoveSpeed, 0.07), (DashCooldown, -0.08)],
+            [(MoveSpeed, 0.07), (DashCooldown, -0.08)],
+            [(MoveSpeed, 0.07), (DashCooldown, -0.08)],
+        ],
+    ),
+    "heart_container": (
+        icon: "icon_heart_container",
+        levels: [
+            [(MaxHp, 10.0)],
+            [(MaxHp, 10.0)],
+            [(MaxHp, 10.0), (Regen, 0.15)],
+            [(MaxHp, 10.0)],
+            [(MaxHp, 10.0), (Regen, 0.15)],
+        ],
+    ),
+    "power_glove": (
+        icon: "icon_glove",
+        levels: [[(Might, 0.1)], [(Might, 0.1)], [(Might, 0.1)], [(Might, 0.1)], [(Might, 0.1)]],
+    ),
+    "mirror_shield": (
+        icon: "icon_mirror_shield",
+        levels: [[(Armor, 1.0)], [(Armor, 1.0)], [(Armor, 1.0)], [(Armor, 1.0)], [(Armor, 1.0)]],
+    ),
+    "quiver": (
+        icon: "icon_quiver",
+        weight: 0.8,
+        levels: [[(Amount, 1.0)], [(Speed, 0.15)], [(Amount, 1.0)]],
+    ),
+    "half_magic": (
+        icon: "icon_half_magic",
+        levels: [[(Cooldown, -0.08)], [(Cooldown, -0.08)], [(Cooldown, -0.08)], [(Cooldown, -0.08)], [(Cooldown, -0.08)]],
+    ),
+    "lamp": (
+        icon: "icon_lamp",
+        levels: [[(Area, 0.1)], [(Area, 0.1)], [(Area, 0.1)], [(Area, 0.1)], [(Area, 0.1)]],
+    ),
+    "bug_net": (
+        icon: "icon_bug_net",
+        levels: [
+            [(Magnet, 0.35), (Duration, 0.05)],
+            [(Magnet, 0.35), (Duration, 0.05)],
+            [(Magnet, 0.35), (Duration, 0.05)],
+            [(Magnet, 0.35), (Duration, 0.05)],
+            [(Magnet, 0.35), (Duration, 0.05)],
+        ],
+    ),
+}

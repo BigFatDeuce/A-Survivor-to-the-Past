@@ -1,0 +1,22 @@
+// Touches par action. Clavier : touches physiques (KeyW = Z sur un clavier AZERTY).
+// Manette (gilrs) : South = A/Croix, East = B/Rond, West = X/Carre, North = Y/Triangle,
+// LeftTrigger2/RightTrigger2 = gachettes. Souris : Left, Right, Middle.
+// Les reglages du joueur (settings.ron) pourront remplacer ces listes (ecran de touches a venir).
+(
+    actions: {
+        "up":          [Key(KeyW), Key(ArrowUp), Pad(DPadUp)],
+        "down":        [Key(KeyS), Key(ArrowDown), Pad(DPadDown)],
+        "left":        [Key(KeyA), Key(ArrowLeft), Pad(DPadLeft)],
+        "right":       [Key(KeyD), Key(ArrowRight), Pad(DPadRight)],
+        "attack":      [Key(KeyJ), Mouse(Left), Pad(West), Pad(RightTrigger2)],
+        "dash":        [Key(Space), Key(KeyK), Mouse(Right), Pad(South), Pad(LeftTrigger2)],
+        "toggle_auto": [Key(Tab), Key(KeyR), Pad(North)],
+        "pause":       [Key(Escape), Key(KeyP), Pad(Start)],
+        "confirm":     [Key(Enter), Key(NumpadEnter), Key(Space), Key(KeyJ), Mouse(Left), Pad(South)],
+        "back":        [Key(Escape), Key(Backspace), Mouse(Right), Pad(East)],
+        "menu_up":     [Key(KeyW), Key(ArrowUp), Pad(DPadUp)],
+        "menu_down":   [Key(KeyS), Key(ArrowDown), Pad(DPadDown)],
+        "menu_left":   [Key(KeyA), Key(ArrowLeft), Pad(DPadLeft)],
+        "menu_right":  [Key(KeyD), Key(ArrowRight), Pad(DPadRight)],
+    },
+)

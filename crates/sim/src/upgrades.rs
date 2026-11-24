@@ -1,0 +1,352 @@
+//! Progression d'une partie : statistiques du joueur, armes et objets passifs possedes,
+//! choix de niveau (1 parmi 3) et coffres (evolutions).
+use crate::defs::{Mod, Stat, WeaponDef, WeaponStats};
+use crate::world::World;
+
+/// Statistiques du joueur (somme des objets passifs).
+#[derive(Clone, Copy, Debug)]
+pub struct Stats {
+    pub might: f32,
+    pub area: f32,
+    pub cooldown: f32,
+    pub amount: u32,
+    pub duration: f32,
+    pub speed: f32,
+    pub move_speed: f32,
+    pub max_hp: f32,
+    pub armor: f32,
+    pub magnet: f32,
+    pub dash_cd: f32,
+    pub regen: f32,
+}
+
+impl Default for Stats {
+    fn default() -> Self {
+        Stats {
+            might: 1.0,
+            area: 1.0,
+            cooldown: 1.0,
+            amount: 0,
+            duration: 1.0,
+            speed: 1.0,
+            move_speed: 1.0,
+            max_hp: 0.0,
+            armor: 0.0,
+            magnet: 1.0,
+            dash_cd: 1.0,
+            regen: 0.0,
+        }
+    }
+}
+
+impl Stats {
+    pub fn add(&mut self, s: Stat, v: f32) {
+        match s {
+            Stat::Might => self.might += v,
+            Stat::Area => self.area += v,
+            Stat::Cooldown => self.cooldown += v,
+            Stat::Amount => self.amount += v.max(0.0) as u32,
+            Stat::Duration => self.duration += v,
+            Stat::Speed => self.speed += v,
+            Stat::MoveSpeed => self.move_speed += v,
+            Stat::MaxHp => self.max_hp += v,
+            Stat::Armor => self.armor += v,
+            Stat::Magnet => self.magnet += v,
+            Stat::DashCooldown => self.dash_cd += v,
+            Stat::Regen => self.regen += v,
+        }
+    }
+}
+
+/// Arme possedee.
+#[derive(Clone, Copy, Debug)]
+pub struct WeaponSlot {
+    pub id: u16,
+    pub level: u32,
+    /// Recharge restante (s).
+    pub cd: f32,
+    /// Caracteristiques effectives (niveau + statistiques du joueur).
+    pub stats: WeaponStats,
+    /// Orbite : temps actif restant et angle.
+    pub active: f32,
+    pub phase: f32,
+}
+
+/// Objet passif possede.
+#[derive(Clone, Copy, Debug)]
+pub struct PassiveSlot {
+    pub id: u16,
+    pub level: u32,
+}
+
+/// Une proposition de niveau.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Offer {
+    NewWeapon(u16),
+    UpgradeWeapon(u16),
+    NewPassive(u16),
+    UpgradePassive(u16),
+    /// Tout est au maximum : soin.
+    Heal,
+    /// Tout est au maximum : rubis.
+    Rupees,
+}
+
+/// Contenu d'un coffre ouvert.
+#[derive(Clone, Debug, Default)]
+pub struct ChestReward {
+    /// (arme d'origine, arme evoluee)
+    pub evolution: Option<(u16, u16)>,
+    pub upgrades: Vec<Offer>,
+}
+
+/// Caracteristiques d'une arme a un niveau donne, avec les statistiques du joueur.
+pub fn resolve(def: &WeaponDef, level: u32, st: &Stats) -> WeaponStats {
+    let mut w = def.base;
+    let (mut cdm, mut aream, mut spm, mut durm, mut kbm) = (1.0f32, 1.0f32, 1.0f32, 1.0f32, 1.0f32);
+    for lv in def.levels.iter().take(level.saturating_sub(1) as usize) {
+        for m in lv {
+            match *m {
+                Mod::Damage(d) => w.damage += d,
+                Mod::Cooldown(c) => cdm += c,
+                Mod::Amount(n) => w.amount += n,
+                Mod::Area(a) => aream += a,
+                Mod::Speed(s) => spm += s,
+                Mod::Duration(d) => durm += d,
+                Mod::Pierce(p) => w.pierce += p,
+                Mod::Knockback(k) => kbm += k,
+                Mod::Crit(c) => w.crit_chance += c,
+            }
+        }
+    }
+    w.damage *= st.might;
+    w.cooldown *= cdm.max(0.2) * st.cooldown.max(0.35);
+    w.amount += st.amount;
+    w.area *= aream * st.area;
+    w.speed *= spm * st.speed;
+    w.duration *= durm * st.duration;
+    w.knockback *= kbm;
+    w
+}
+
+impl World {
+    pub fn add_weapon(&mut self, id: u16) {
+        let def = &self.content.weapons[id as usize];
+        let stats = resolve(def, 1, &self.player.stats);
+        self.weapons.push(WeaponSlot { id, level: 1, cd: 0.4, stats, active: 0.0, phase: 0.0 });
+    }
+
+    fn add_passive(&mut self, id: u16) {
+        self.passives.push(PassiveSlot { id, level: 1 });
+        self.recompute_stats();
+    }
+
+    /// Recalcule les statistiques du joueur et des armes.
+    pub fn recompute_stats(&mut self) {
+        let mut st = Stats::default();
+        for p in &self.passives {
+            let def = &self.content.passives[p.id as usize];
+            for lv in def.levels.iter().take(p.level as usize) {
+                for &(s, v) in lv {
+                    st.add(s, v);
+                }
+            }
+        }
+        let pl = &mut self.player;
+        let old_max = pl.max_hp;
+        pl.stats = st;
+        pl.max_hp = pl.base_hp + st.max_hp;
+        if pl.max_hp > old_max {
+            pl.hp += pl.max_hp - old_max;
+        }
+        pl.hp = pl.hp.min(pl.max_hp);
+        pl.speed = pl.base_speed * st.move_speed;
+        pl.magnet = pl.base_magnet * st.magnet;
+        for w in &mut self.weapons {
+            w.stats = resolve(&self.content.weapons[w.id as usize], w.level, &st);
+        }
+    }
+
+    pub fn weapon_level(&self, id: u16) -> Option<u32> {
+        self.weapons.iter().find(|w| w.id == id).map(|w| w.level)
+    }
+
+    pub fn passive_level(&self, id: u16) -> Option<u32> {
+        self.passives.iter().find(|p| p.id == id).map(|p| p.level)
+    }
+
+    /// Toutes les propositions possibles avec leur poids.
+    fn candidates(&self) -> Vec<(Offer, f32)> {
+        let c = &self.content;
+        let mut out = Vec::new();
+        for w in &self.weapons {
+            let def = &c.weapons[w.id as usize];
+            if w.level < def.max_level() {
+                out.push((Offer::UpgradeWeapon(w.id), def.weight * 1.3));
+            }
+        }
+        if self.weapons.len() < c.rules.max_weapons {
+            for (i, def) in c.weapons.iter().enumerate() {
+                let id = i as u16;
+                if def.evolved || self.weapons.iter().any(|w| w.id == id) {
+                    continue;
+                }
+                // une arme dont l'evolution est deja possedee n'est plus proposee
+                if self.weapons.iter().any(|w| def.evolution.as_ref().is_some_and(|e| c.weapon_ids[w.id as usize] == e.into)) {
+                    continue;
+                }
+                out.push((Offer::NewWeapon(id), def.weight));
+            }
+        }
+        for p in &self.passives {
+            let def = &c.passives[p.id as usize];
+            if p.level < def.max_level() {
+                out.push((Offer::UpgradePassive(p.id), def.weight * 1.1));
+            }
+        }
+        if self.passives.len() < c.rules.max_passives {
+            for (i, def) in c.passives.iter().enumerate() {
+                let id = i as u16;
+                if !self.passives.iter().any(|p| p.id == id) {
+                    out.push((Offer::NewPassive(id), def.weight * 0.9));
+                }
+            }
+        }
+        out
+    }
+
+    /// Tire `n` propositions differentes (ponderees).
+    fn draw_offers(&mut self, n: usize, owned_only: bool) -> Vec<Offer> {
+        let mut pool = self.candidates();
+        if owned_only {
+            pool.retain(|(o, _)| matches!(o, Offer::UpgradeWeapon(_) | Offer::UpgradePassive(_)));
+        }
+        let mut out = Vec::new();
+        while out.len() < n && !pool.is_empty() {
+            let total: f32 = pool.iter().map(|p| p.1).sum();
+            let mut r = self.rng.f() * total;
+            let mut pick = pool.len() - 1;
+            for (k, p) in pool.iter().enumerate() {
+                if r < p.1 {
+                    pick = k;
+                    break;
+                }
+                r -= p.1;
+            }
+            out.push(pool.swap_remove(pick).0);
+        }
+        out
+    }
+
+    /// Propositions pour un niveau gagne.
+    pub fn roll_offers(&mut self) -> Vec<Offer> {
+        let n = self.content.rules.choices;
+        let mut out = self.draw_offers(n, false);
+        if out.is_empty() {
+            out = vec![Offer::Heal, Offer::Rupees];
+        }
+        out
+    }
+
+    pub fn apply_offer(&mut self, o: Offer) {
+        match o {
+            Offer::NewWeapon(id) => {
+                if self.weapons.len() < self.content.rules.max_weapons {
+                    self.add_weapon(id);
+                }
+            }
+            Offer::UpgradeWeapon(id) => {
+                if let Some(w) = self.weapons.iter_mut().find(|w| w.id == id) {
+                    w.level += 1;
+                }
+                self.recompute_stats();
+            }
+            Offer::NewPassive(id) => self.add_passive(id),
+            Offer::UpgradePassive(id) => {
+                if let Some(p) = self.passives.iter_mut().find(|p| p.id == id) {
+                    p.level += 1;
+                }
+                self.recompute_stats();
+            }
+            Offer::Heal => {
+                let h = self.content.rules.fallback_heal;
+                self.player.hp = (self.player.hp + h).min(self.player.max_hp);
+            }
+            Offer::Rupees => {
+                let r = self.content.rules.fallback_rupees;
+                self.player.rupees += r;
+            }
+        }
+    }
+
+    /// Evolution possible : (emplacement, arme evoluee).
+    pub fn evolution_ready(&self) -> Option<(usize, u16)> {
+        let c = &self.content;
+        for (slot, w) in self.weapons.iter().enumerate() {
+            let def = &c.weapons[w.id as usize];
+            let Some(evo) = &def.evolution else { continue };
+            if w.level < def.max_level() {
+                continue;
+            }
+            let Some(pid) = c.passive_index(&evo.passive) else { continue };
+            if self.passive_level(pid).is_none() {
+                continue;
+            }
+            if let Some(into) = c.weapon_index(&evo.into) {
+                return Some((slot, into));
+            }
+        }
+        None
+    }
+
+    /// Ouvre un coffre : evolution si possible, sinon des ameliorations.
+    pub fn open_chest(&mut self, big: bool) -> ChestReward {
+        let mut r = ChestReward::default();
+        if let Some((slot, into)) = self.evolution_ready() {
+            let from = self.weapons[slot].id;
+            let def = &self.content.weapons[into as usize];
+            self.weapons[slot] = WeaponSlot {
+                id: into,
+                level: 1,
+                cd: 0.2,
+                stats: resolve(def, 1, &self.player.stats),
+                active: 0.0,
+                phase: 0.0,
+            };
+            r.evolution = Some((from, into));
+        }
+        let (lo, hi) = self.content.rules.chest_upgrades;
+        let n = if big {
+            hi
+        } else if r.evolution.is_some() {
+            0
+        } else {
+            // 1 le plus souvent, parfois plus
+            let roll = self.rng.f();
+            let k = if roll < 0.7 {
+                lo
+            } else if roll < 0.93 {
+                lo + 1
+            } else {
+                hi
+            };
+            k.clamp(lo, hi)
+        };
+        for _ in 0..n {
+            // une amelioration a la fois : la suivante tient compte de la precedente
+            let pick = self.draw_offers(1, true);
+            match pick.first() {
+                Some(&o) => {
+                    self.apply_offer(o);
+                    r.upgrades.push(o);
+                }
+                None => {
+                    self.apply_offer(Offer::Rupees);
+                    r.upgrades.push(Offer::Rupees);
+                }
+            }
+        }
+        self.recompute_stats();
+        r
+    }
+}

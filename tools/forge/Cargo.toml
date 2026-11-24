@@ -1,0 +1,10 @@
+[package]
+name = "forge"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+assetkit.workspace = true
+image.workspace = true
+ron.workspace = true
+serde.workspace = true

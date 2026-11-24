@@ -1,0 +1,26 @@
+# Compilation
+/target/
+**/target/
+
+# Reglages et fichiers locaux du joueur
+/settings.ron
+/saves/
+/uicheck.txt
+/screenshots/
+*.log
+
+# Outils locaux
+/.claude/
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+node_modules/
+
+# Planches deposees pour plus tard (non utilisees par le jeu)
+/AdditionalChars/
+
+# Systeme
+.DS_Store
+Thumbs.db
+desktop.ini

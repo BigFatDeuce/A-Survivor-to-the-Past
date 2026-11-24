@@ -1,0 +1,114 @@
+// Ennemis. vitesse en pixels/s, degats : 1 coeur = 10, xp = valeur en rubis (1 vert, 5 bleu, 20 rouge).
+// Noms affiches : data/lang/*.ron (cle enemy.<id>).
+// anims : Dir4(prefix, side_faces_left, attack: Some("shoot")), Single("anim") ou Hop(idle, jump).
+// scale : agrandissement a l'affichage (1 par defaut, entier pour garder les pixels nets).
+// behavior :
+//   Chase                                   fonce droit sur le joueur
+//   Flutter(amp, freq)                      vol en zigzag (ignore la foule)
+//   Hop(rest, jump, speed)                  bonds periodiques
+//   Wander(turn)                            flane en se rapprochant
+//   Charger(range, windup, speed, time, rest)  s'arrete (annonce) puis charge en ligne droite
+//   Shooter(range, keep, cooldown, windup, shot)  garde ses distances et tire
+//   Boss(actions: [Walk(s), Charge(..), Throw(..), Summon(..)])  patron en boucle
+// Retour J1 : degats au contact releves (foncer dans la foule doit couter cher).
+{
+    "soldier_green": (
+        sprite: "soldier_green", anims: Dir4(prefix: "walk", side_faces_left: false),
+        hp: 18.0, speed: 30.0, damage: 10.0, radius: 6.0, mass: 1.0, xp: 1,
+        behavior: Chase, shadow: 1,
+    ),
+    "soldier_blue": (
+        sprite: "soldier_blue", anims: Dir4(prefix: "walk", side_faces_left: false),
+        hp: 42.0, speed: 33.0, damage: 15.0, radius: 6.5, mass: 1.6, xp: 5,
+        behavior: Chase, shadow: 1,
+    ),
+    "rope": (
+        sprite: "rope", anims: Dir4(prefix: "walk", side_faces_left: true),
+        hp: 10.0, speed: 40.0, damage: 10.0, radius: 5.0, mass: 0.8, xp: 1,
+        behavior: Charger(range: 70.0, windup: 0.35, speed: 125.0, time: 0.45, rest: 0.6), shadow: 0,
+    ),
+    "rat": (
+        sprite: "rat", anims: Dir4(prefix: "walk", side_faces_left: true),
+        hp: 6.0, speed: 52.0, damage: 5.0, radius: 4.5, mass: 0.6, xp: 1,
+        behavior: Chase, shadow: 0,
+    ),
+    "keese": (
+        sprite: "keese", anims: Single("fly"),
+        hp: 6.0, speed: 58.0, damage: 5.0, radius: 5.0, mass: 0.5, xp: 1,
+        behavior: Flutter(amp: 0.9, freq: 3.0), flying: true, shadow: 0,
+    ),
+    "tektite": (
+        sprite: "tektite", anims: Hop(idle: "idle", jump: "jump"),
+        hp: 26.0, speed: 0.0, damage: 10.0, radius: 7.0, mass: 1.4, xp: 5,
+        behavior: Hop(rest: 0.9, jump: 0.45, speed: 120.0), shadow: 2,
+    ),
+    "octorok": (
+        sprite: "octorok", anims: Dir4(prefix: "walk", side_faces_left: true, attack: Some("shoot")),
+        hp: 16.0, speed: 34.0, damage: 10.0, radius: 6.0, mass: 1.0, xp: 2,
+        behavior: Shooter(range: 170.0, keep: 110.0, cooldown: 2.6, windup: 0.4,
+                          shot: (sprite: "shot_rock", speed: 110.0, damage: 10.0, radius: 4.0)),
+        shadow: 1,
+    ),
+    "archer": (
+        sprite: "archer", anims: Dir4(prefix: "walk", side_faces_left: false),
+        hp: 26.0, speed: 30.0, damage: 10.0, radius: 6.5, mass: 1.2, xp: 3,
+        behavior: Shooter(range: 200.0, keep: 140.0, cooldown: 3.0, windup: 0.55,
+                          shot: (sprite: "proj_arrow", speed: 165.0, damage: 10.0, radius: 3.0)),
+        shadow: 1,
+    ),
+    "crow": (
+        sprite: "crow", anims: Single("fly"),
+        hp: 10.0, speed: 45.0, damage: 10.0, radius: 5.0, mass: 0.6, xp: 1,
+        behavior: Charger(range: 120.0, windup: 0.5, speed: 165.0, time: 0.6, rest: 0.8), flying: true, shadow: 0,
+    ),
+    "moblin": (
+        sprite: "moblin", anims: Dir4(prefix: "walk", side_faces_left: false),
+        hp: 48.0, speed: 28.0, damage: 15.0, radius: 7.0, mass: 1.8, xp: 5,
+        behavior: Shooter(range: 150.0, keep: 90.0, cooldown: 3.2, windup: 0.55,
+                          shot: (sprite: "shot_spear", speed: 140.0, damage: 15.0, radius: 3.0)),
+        shadow: 1,
+    ),
+    "buzz_blob": (
+        sprite: "buzz_blob", anims: Single("walk"),
+        hp: 30.0, speed: 22.0, damage: 15.0, radius: 6.0, mass: 1.2, xp: 3,
+        behavior: Wander(turn: 1.2), shadow: 1,
+    ),
+    "popo": (
+        sprite: "popo", anims: Single("walk"),
+        hp: 8.0, speed: 28.0, damage: 5.0, radius: 5.0, mass: 0.7, xp: 1,
+        behavior: Wander(turn: 0.8), shadow: 0,
+    ),
+    "hardhat": (
+        sprite: "hardhat", anims: Single("walk"),
+        hp: 64.0, speed: 20.0, damage: 10.0, radius: 7.0, mass: 5.0, xp: 5,
+        behavior: Chase, shadow: 1,
+    ),
+    "stalfos": (
+        sprite: "stalfos", anims: Dir4(prefix: "walk", side_faces_left: false),
+        hp: 34.0, speed: 32.0, damage: 15.0, radius: 6.0, mass: 1.2, xp: 3,
+        behavior: Charger(range: 90.0, windup: 0.3, speed: 110.0, time: 0.5, rest: 0.5), shadow: 1,
+    ),
+    "vulture": (
+        sprite: "vulture", anims: Single("fly"),
+        hp: 14.0, speed: 50.0, damage: 10.0, radius: 6.0, mass: 0.8, xp: 2,
+        behavior: Flutter(amp: 1.2, freq: 2.0), flying: true, shadow: 0,
+    ),
+    // Boss generique : Hinox (bombes, charge, renforts).
+    "hinox": (
+        sprite: "hinox", anims: Dir4(prefix: "walk", side_faces_left: false, attack: Some("throw")),
+        // affiche en x2 : un boss doit se lire au premier coup d'oeil dans la foule
+        hp: 2400.0, speed: 26.0, damage: 20.0, radius: 20.0, mass: 10.0, xp: 0,
+        boss: true, shadow: 2, scale: 2.0,
+        behavior: Boss(actions: [
+            Walk(3.0),
+            Throw(windup: 0.6, shot: (sprite: "shot_bomb", speed: 120.0, damage: 20.0, lob: true, radius: 22.0, count: 3, spread: 25.0)),
+            Walk(2.5),
+            Charge(windup: 0.7, speed: 170.0, time: 0.9),
+            Walk(2.0),
+            Summon(enemy: "soldier_blue", count: 6),
+            Walk(2.0),
+            Throw(windup: 0.5, shot: (sprite: "shot_bomb", speed: 130.0, damage: 20.0, lob: true, radius: 22.0, count: 5, spread: 18.0)),
+            Charge(windup: 0.55, speed: 190.0, time: 0.8),
+        ]),
+    ),
+}

@@ -1,0 +1,53 @@
+// Arene d'essai (J2) : une prairie sans fin, une pression qui monte sur 10 minutes,
+// des elites (coffres) et le boss generique a 5:00.
+// waves : flux continu (rate = ennemis/s au debut et a la fin), cap = maximum en vie de ce type.
+// bursts : apparitions d'un coup (Ring = cercle autour du joueur, Pack = groupe hors ecran).
+// elites : un ennemi renforce (contour dore) qui lache un coffre. boss : a l'instant donne.
+(
+    name: "Arene d'essai",
+    music: "hyrule_field_main_theme",
+    boss_music: "anger_of_the_guardians",
+    ground: "grass",
+    max_enemies: 4000,
+    duration: 600.0,
+    waves: [
+        (enemy: "soldier_green", from: 0.0,   to: 600.0, rate: (0.9, 7.0),  cap: 600),
+        (enemy: "rat",           from: 15.0,  to: 600.0, rate: (0.4, 4.0),  cap: 300),
+        (enemy: "keese",         from: 45.0,  to: 600.0, rate: (0.3, 3.0),  cap: 150),
+        (enemy: "rope",          from: 60.0,  to: 600.0, rate: (0.3, 3.0),  cap: 200),
+        (enemy: "octorok",       from: 75.0,  to: 600.0, rate: (0.12, 1.2), cap: 40),
+        (enemy: "popo",          from: 100.0, to: 600.0, rate: (0.3, 3.0),  cap: 200),
+        (enemy: "soldier_blue",  from: 120.0, to: 600.0, rate: (0.2, 2.5),  cap: 250),
+        (enemy: "archer",        from: 150.0, to: 600.0, rate: (0.1, 1.0),  cap: 30),
+        (enemy: "crow",          from: 170.0, to: 600.0, rate: (0.2, 2.0),  cap: 100),
+        (enemy: "buzz_blob",     from: 200.0, to: 600.0, rate: (0.15, 1.5), cap: 80),
+        (enemy: "tektite",       from: 220.0, to: 600.0, rate: (0.1, 1.2),  cap: 80),
+        (enemy: "stalfos",       from: 260.0, to: 600.0, rate: (0.15, 2.0), cap: 120),
+        (enemy: "moblin",        from: 300.0, to: 600.0, rate: (0.1, 1.2),  cap: 50),
+        (enemy: "hardhat",       from: 340.0, to: 600.0, rate: (0.1, 1.2),  cap: 80),
+        (enemy: "vulture",       from: 380.0, to: 600.0, rate: (0.15, 1.6), cap: 80),
+    ],
+    bursts: [
+        (at: 40.0,  enemy: "rat",           count: 30,  pattern: Pack),
+        (at: 70.0,  enemy: "soldier_green", count: 40,  pattern: Ring),
+        (at: 95.0,  enemy: "popo",          count: 40,  pattern: Pack),
+        (at: 130.0, enemy: "keese",         count: 50,  pattern: Pack),
+        (at: 165.0, enemy: "soldier_green", count: 80,  pattern: Ring),
+        (at: 210.0, enemy: "rope",          count: 60,  pattern: Ring),
+        (at: 255.0, enemy: "popo",          count: 80,  pattern: Pack),
+        (at: 330.0, enemy: "crow",          count: 60,  pattern: Ring),
+        (at: 400.0, enemy: "soldier_blue",  count: 80,  pattern: Ring),
+        (at: 460.0, enemy: "stalfos",       count: 80,  pattern: Ring),
+        (at: 520.0, enemy: "soldier_green", count: 200, pattern: Ring),
+        (at: 570.0, enemy: "vulture",       count: 60,  pattern: Pack),
+    ],
+    elites: [
+        (at: 90.0,  enemy: "soldier_blue"),
+        (at: 180.0, enemy: "moblin"),
+        (at: 260.0, enemy: "stalfos"),
+        (at: 360.0, enemy: "archer"),
+        (at: 450.0, enemy: "hardhat"),
+        (at: 540.0, enemy: "moblin"),
+    ],
+    boss: Some((at: 300.0, enemy: "hinox")),
+)

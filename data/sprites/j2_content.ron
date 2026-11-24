@@ -1,0 +1,151 @@
+// Manifeste d'assets du jalon 2 : icones d'objets, projectiles, effets d'armes,
+// nouveaux ennemis et boss generique (Hinox).
+// Coordonnees (x, y, largeur, hauteur) dans les planches de assets/source/.
+(
+    sheets: [
+        (
+            source: "Miscellaneous - Items (Overworld).png",
+            transparent: ["#800080"],
+            sprites: {
+                "icon_sword":           { "0": (frames: [(65, 10, 6, 12)], pivot: (0, 0), align: Center) },
+                "icon_master_sword":    { "0": (frames: [(97, 8, 7, 16)], pivot: (0, 0), align: Center) },
+                "icon_bow":             { "0": (frames: [(69, 32, 7, 16)], pivot: (0, 0), align: Center) },
+                "icon_silver_bow":      { "0": (frames: [(196, 33, 15, 15)], pivot: (0, 0), align: Center) },
+                "icon_boomerang":       { "0": (frames: [(24, 98, 8, 12)], pivot: (0, 0), align: Center) },
+                "icon_magic_boomerang": { "0": (frames: [(40, 98, 8, 12)], pivot: (0, 0), align: Center) },
+                "icon_fire_rod":        { "0": (frames: [(120, 96, 8, 16)], pivot: (0, 0), align: Center) },
+                "icon_ice_rod":         { "0": (frames: [(136, 96, 8, 16)], pivot: (0, 0), align: Center) },
+                "icon_hammer":          { "0": (frames: [(248, 97, 8, 15)], pivot: (0, 0), align: Center) },
+                "icon_bomb":            { "0": (frames: [(50, 57, 13, 14)], pivot: (0, 0), align: Center) },
+                "icon_super_bomb":      { "0": (frames: [(217, 56, 14, 16)], pivot: (0, 0), align: Center) },
+                "icon_byrna":           { "0": (frames: [(165, 120, 8, 16)], pivot: (0, 0), align: Center) },
+                "icon_lamp":            { "0": (frames: [(226, 96, 12, 16)], pivot: (0, 0), align: Center) },
+                "icon_bug_net":         { "0": (frames: [(102, 120, 13, 16)], pivot: (0, 0), align: Center) },
+                "icon_mirror_shield":   { "0": (frames: [(201, 8, 14, 16)], pivot: (0, 0), align: Center) },
+                "icon_glove":           { "0": (frames: [(137, 168, 14, 16)], pivot: (0, 0), align: Center) },
+                "icon_quiver":          { "0": (frames: [(125, 32, 14, 16)], pivot: (0, 0), align: Center) },
+                "icon_half_magic":      { "0": (frames: [(136, 273, 8, 15)], pivot: (0, 0), align: Center) },
+                "icon_heart_container": { "0": (frames: [(37, 194, 14, 13)], pivot: (0, 0), align: Center) },
+                "icon_fairy":           { "0": (frames: [(152, 272, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_rupees":          { "0": (frames: [(132, 249, 8, 14)], pivot: (0, 0), align: Center) },
+                "icon_heart":           { "0": (frames: [(61, 194, 14, 13)], pivot: (0, 0), align: Center) },
+                "proj_boomerang":       { "0": (frames: [(24, 98, 8, 12)], pivot: (0, 0), align: Center) },
+                "proj_magic_boomerang": { "0": (frames: [(40, 98, 8, 12)], pivot: (0, 0), align: Center) },
+                // lame vers le haut : tournee par le moteur
+                "beam_master":          { "0": (frames: [(97, 8, 7, 16)], pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            source: "Enemies - Hylian Knights.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "archer": {
+                    "walk_down": (frames: [(445, 360, 22, 26), (472, 359, 22, 27)], fps: 5, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(502, 357, 26, 27), (534, 358, 26, 26)], fps: 5, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(566, 355, 25, 29), (597, 355, 25, 29)], fps: 5, pivot: (0, -1), align: Bottom),
+                },
+                // fleche vers la droite : tournee par le moteur
+                "proj_arrow": { "0": (frames: [(459, 457, 15, 5)], pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            source: "Enemies - Minor Light World Enemies.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "octorok": {
+                    "walk_down":  (frames: [(288, 73, 16, 17), (310, 73, 16, 17)], fps: 6, pivot: (0, -1), align: Bottom),
+                    "walk_side":  (frames: [(333, 73, 16, 17), (355, 73, 17, 17)], fps: 6, pivot: (0, -1), align: Bottom),
+                    "walk_up":    (frames: [(380, 73, 16, 17), (402, 73, 13, 17)], fps: 6, pivot: (0, -1), align: Bottom),
+                    "shoot_down": (frames: [(287, 114, 17, 17)], pivot: (0, -1), align: Bottom),
+                    // planche : face, dos, profil (regarde a gauche)
+                    "shoot_side": (frames: [(330, 114, 17, 17)], pivot: (0, -1), align: Bottom),
+                    "shoot_up":   (frames: [(308, 114, 17, 17)], pivot: (0, -1), align: Bottom),
+                },
+                "vulture": {
+                    "fly": (frames: [(128, 545, 16, 14), (148, 545, 16, 14), (167, 545, 16, 14), (184, 544, 16, 15)], fps: 8, mode: PingPong, pivot: (0, 0), align: Center),
+                },
+                "proj_fireball": { "0": (frames: [(498, 291, 12, 12), (514, 291, 12, 12), (530, 291, 12, 12), (547, 291, 12, 12)], fps: 14, pivot: (0, 0), align: Center) },
+                "shot_rock": { "0": (frames: [(371, 118, 8, 8)], pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            source: "Enemies - Taros & Moblin.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "moblin": {
+                    "walk_down": (frames: [(13, 508, 16, 28), (37, 508, 16, 32)], fps: 4, pivot: (0, 24)),
+                    "walk_side": (frames: [(61, 510, 24, 24), (92, 509, 19, 25)], fps: 4, pivot: (8, -1), center_x: false, align: Bottom),
+                    "walk_up":   (frames: [(118, 509, 18, 25), (142, 509, 18, 25)], fps: 4, pivot: (0, -1), align: Bottom),
+                },
+                "shot_spear": { "0": (frames: [(167, 556, 13, 4)], pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            source: "Enemies - Hardhat Beetle, Chasupa, Anti-Fairy _ Bubble & Popo.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "hardhat": { "walk": (frames: [(168, 23, 16, 22), (189, 24, 16, 21)], fps: 5, pivot: (0, -1), align: Bottom) },
+                "popo":    { "walk": (frames: [(168, 172, 16, 17), (189, 172, 16, 17), (209, 172, 16, 17), (231, 172, 16, 17)], fps: 6, pivot: (0, -1), align: Bottom) },
+            },
+        ),
+        (
+            source: "Enemies - Pikit, Buzz Blob, Cukeman & Golden Bee.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "buzz_blob": { "walk": (frames: [(18, 33, 13, 17), (36, 30, 12, 20), (53, 33, 13, 17)], fps: 6, mode: PingPong, pivot: (0, -1), align: Bottom) },
+            },
+        ),
+        (
+            source: "Enemies - Stalfos.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "stalfos": {
+                    "walk_down": (frames: [(8, 79, 16, 25), (29, 78, 16, 26)], fps: 6, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(51, 78, 12, 26), (68, 78, 14, 26)], fps: 6, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(88, 79, 16, 25), (110, 78, 16, 26)], fps: 6, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        (
+            source: "Enemies - Hinox, Eyegore, Zazak, Lynel & Goriya.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "hinox": {
+                    "walk_down":  (frames: [(474, 188, 28, 30), (508, 188, 28, 30)], fps: 4, pivot: (0, -1), align: Bottom),
+                    "walk_side":  (frames: [(544, 189, 19, 29), (569, 190, 19, 28)], fps: 4, pivot: (0, -1), align: Bottom),
+                    "walk_up":    (frames: [(597, 188, 28, 30), (631, 188, 28, 30)], fps: 4, pivot: (0, -1), align: Bottom),
+                    "throw_down": (frames: [(475, 228, 33, 32), (544, 228, 34, 32)], fps: 6, pivot: (0, -1), align: Bottom),
+                    "throw_side": (frames: [(515, 231, 22, 29), (583, 231, 23, 29)], fps: 6, pivot: (0, -1), align: Bottom),
+                    "throw_up":   (frames: [(475, 228, 33, 32), (544, 228, 34, 32)], fps: 6, pivot: (0, -1), align: Bottom),
+                },
+                "shot_bomb": { "0": (frames: [(580, 276, 13, 14)], pivot: (0, -1), align: Bottom) },
+            },
+        ),
+        (
+            source: "Effects - Bombs & Explosions.png",
+            transparent: ["#ffc0ff"],
+            sprites: {
+                "proj_bomb":     { "0": (frames: [(3, 35, 13, 14)], pivot: (0, -1), align: Bottom) },
+                "proj_bomb_red": { "0": (frames: [(23, 35, 13, 14)], pivot: (0, -1), align: Bottom) },
+                "fx_explosion":  { "0": (frames: [(161, 36, 14, 14), (178, 25, 30, 30), (322, 20, 39, 39), (291, 26, 28, 30), (258, 30, 14, 14)], fps: 14, mode: Once, pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            source: "Bosses - Kholdstare.png",
+            transparent: ["#ff00ff", "#05ff51"],
+            sprites: {
+                "proj_ice":       { "0": (frames: [(152, 328, 16, 16)], pivot: (0, 0), align: Center) },
+                "fx_ice_shatter": { "0": (frames: [(264, 328, 16, 16), (288, 328, 16, 16)], fps: 12, mode: Once, pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            source: "Bosses - Trinexx.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "fx_flame":      { "0": (frames: [(928, 392, 16, 16), (952, 392, 16, 16)], fps: 10, pivot: (0, -1), align: Bottom) },
+                "fx_flame_fade": { "0": (frames: [(929, 432, 14, 8), (930, 441, 13, 7)], fps: 8, mode: Once, pivot: (0, -1), align: Bottom) },
+                "fx_byrna":      { "0": (frames: [(808, 392, 16, 16), (832, 392, 16, 16), (856, 392, 16, 16), (880, 392, 16, 16)], fps: 12, pivot: (0, 0), align: Center) },
+            },
+        ),
+    ],
+)

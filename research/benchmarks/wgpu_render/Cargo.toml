@@ -1,0 +1,15 @@
+[package]
+name = "wgpu_render_bench"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wgpu = "30"
+pollster = "1"
+bytemuck = { version = "1", features = ["derive"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+sim_core = { path = "../sim_core" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"

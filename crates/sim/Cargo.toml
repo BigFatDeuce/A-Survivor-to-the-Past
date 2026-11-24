@@ -1,0 +1,9 @@
+[package]
+name = "sim"
+version.workspace = true
+edition.workspace = true
+
+# Regles du jeu, sans rendu ni plateforme : deterministe, testable, compilable en WASM.
+[dependencies]
+glam.workspace = true
+serde.workspace = true

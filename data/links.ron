@@ -1,0 +1,7 @@
+// Liens affiches dans l'ecran « A propos » (ouverts dans le navigateur).
+(
+    discord: "https://discord.gg/N8f62M2eaK",
+    github: "https://github.com/BigFatDeuce/A-Survivor-to-the-Past",
+    website: "https://a-survivor-to-the-past.holy-c.men/",
+    releases: "https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest",
+)

@@ -1,0 +1,200 @@
+// Manifeste d'assets du jalon 1 : Link, premiers ennemis, objets, effets, polices, tuiles.
+// Coordonnees (x, y, largeur, hauteur) dans les planches de assets/source/.
+// pivot = point d'ancrage (les pieds) ; voir crates/assetkit/src/manifest.rs.
+(
+    sheets: [
+        (
+            source: "Playable Characters - Link.png",
+            transparent: ["#008080", "#004040"],
+            sprites: {
+                "link": {
+                    // frame 0 = immobile, 1..7 = cycle de marche (ALttP : 8 frames)
+                    "idle_down": (frames: [(1, 3, 16, 24)], pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(1, 58, 17, 24)], pivot: (0, -1), align: Bottom),
+                    "idle_up":   (frames: [(1, 111, 16, 24)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(19, 3, 16, 24), (36, 2, 16, 25), (53, 1, 16, 26), (70, 3, 16, 24), (87, 3, 16, 24), (104, 2, 16, 25), (121, 1, 16, 26), (1, 3, 16, 24)], fps: 16, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(20, 57, 17, 25), (38, 57, 16, 25), (55, 58, 17, 24), (73, 58, 17, 24), (91, 57, 17, 25), (109, 57, 16, 25), (126, 58, 16, 24), (1, 58, 17, 24)], fps: 16, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(19, 111, 16, 24), (36, 110, 16, 25), (53, 110, 16, 25), (70, 111, 16, 24), (87, 111, 16, 24), (104, 110, 16, 25), (121, 110, 16, 25), (1, 111, 16, 24)], fps: 16, pivot: (0, -1), align: Bottom),
+                },
+                // epees horizontales (garde a gauche) : tournees par le moteur pour le coup
+                "sword1": { "h": (frames: [(79, 277, 16, 8)], pivot: (1, 4), center_x: false) },
+                "sword2": { "h": (frames: [(174, 277, 16, 8)], pivot: (1, 4), center_x: false) },
+            },
+        ),
+        (
+            source: "Enemies - Hylian Knights.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "soldier_green": {
+                    "walk_down": (frames: [(12, 684, 22, 33), (40, 683, 22, 38), (69, 684, 22, 34), (98, 683, 22, 35)], pivot: (0, 24)),
+                    "walk_side": (frames: [(14, 791, 29, 27), (48, 792, 29, 26), (82, 791, 32, 27)], mode: PingPong, pivot: (11, 26), center_x: false),
+                    "walk_up":   (frames: [(10, 887, 22, 27), (37, 888, 22, 26), (64, 888, 22, 26), (91, 881, 22, 33)], pivot: (0, -1), align: Bottom),
+                },
+                "soldier_blue": {
+                    "walk_down": (frames: [(11, 355, 22, 33), (39, 354, 22, 38), (68, 355, 22, 34), (97, 354, 22, 35)], pivot: (0, 24)),
+                    "walk_side": (frames: [(13, 462, 29, 27), (47, 463, 29, 26), (81, 462, 32, 27)], mode: PingPong, pivot: (11, 26), center_x: false),
+                    "walk_up":   (frames: [(9, 558, 22, 27), (36, 559, 22, 26), (63, 559, 22, 26), (90, 552, 22, 33)], pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        (
+            source: "Enemies - Minor Light World Enemies.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "rope": {
+                    "walk_down": (frames: [(8, 141, 13, 16), (24, 141, 13, 16)], fps: 6, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(42, 141, 15, 16), (62, 141, 16, 16)], fps: 6, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(82, 141, 12, 16), (99, 141, 12, 16)], fps: 6, pivot: (0, -1), align: Bottom),
+                },
+                "rat": {
+                    "walk_down": (frames: [(8, 179, 12, 16), (24, 179, 12, 16)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(40, 184, 16, 11), (60, 183, 16, 12)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(81, 179, 12, 16), (97, 179, 12, 16)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+                "keese": {
+                    "fly": (frames: [(140, 106, 12, 14), (169, 106, 12, 13), (186, 106, 16, 13)], fps: 12, mode: PingPong, pivot: (0, 0), align: Center),
+                },
+                "tektite": {
+                    "idle": (frames: [(141, 21, 28, 17), (174, 21, 28, 17)], fps: 4, pivot: (0, -1), align: Bottom),
+                    "jump": (frames: [(208, 22, 24, 16)], pivot: (0, -1), align: Bottom),
+                },
+                "crow": {
+                    "idle": (frames: [(9, 62, 16, 17)], pivot: (0, -1), align: Bottom),
+                    "fly": (frames: [(8, 103, 16, 15), (31, 102, 16, 16)], fps: 8, pivot: (0, 0), align: Center),
+                },
+                "shadow": { "0": (frames: [(239, 27, 12, 6)], pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            source: "Miscellaneous - Items (Overworld).png",
+            transparent: ["#800080"],
+            sprites: {
+                "rupee_green": { "0": (frames: [(36, 249, 8, 14), (52, 249, 8, 14), (68, 249, 8, 14)], fps: 6, mode: PingPong, pivot: (0, -1), align: Bottom) },
+                "rupee_blue":  { "0": (frames: [(84, 249, 8, 14), (100, 249, 8, 14), (116, 249, 8, 14)], fps: 6, mode: PingPong, pivot: (0, -1), align: Bottom) },
+                "rupee_red":   { "0": (frames: [(132, 249, 8, 14), (148, 249, 8, 14), (164, 249, 8, 14)], fps: 6, mode: PingPong, pivot: (0, -1), align: Bottom) },
+                "heart_small": { "0": (frames: [(88, 280, 8, 7)], pivot: (0, -1), align: Bottom) },
+                "heart_big":   { "0": (frames: [(61, 194, 14, 13)], pivot: (0, -1), align: Bottom) },
+                "heart_container": { "0": (frames: [(37, 194, 14, 13)], pivot: (0, -1), align: Bottom) },
+                "chest_small": { "closed": (frames: [(88, 224, 16, 16)], pivot: (0, -1), align: Bottom), "open": (frames: [(112, 224, 16, 16)], pivot: (0, -1), align: Bottom) },
+                "chest_big":   { "closed": (frames: [(136, 216, 32, 24)], pivot: (0, -1), align: Bottom), "open": (frames: [(176, 216, 32, 24)], pivot: (0, -1), align: Bottom) },
+                "fairy": { "0": (frames: [(152, 272, 16, 16), (176, 272, 16, 16)], fps: 10, pivot: (0, 0), align: Center) },
+                "icon_boots": { "0": (frames: [(113, 169, 14, 15)], pivot: (0, 0), align: Center) },
+                "icon_moon_pearl": { "0": (frames: [(210, 170, 12, 12)], pivot: (0, 0), align: Center) },
+                "icon_medallion_bombos": { "0": (frames: [(152, 96, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_medallion_ether": { "0": (frames: [(176, 96, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_medallion_quake": { "0": (frames: [(200, 96, 16, 16)], pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            source: "Effects - Enemy Death Effects.png",
+            transparent: [],
+            sprites: {
+                "fx_poof": { "0": (frames: [(132, 4, 8, 8), (83, 8, 16, 15), (110, 9, 14, 14), (157, 5, 8, 8), (173, 5, 8, 8)], fps: 16, mode: Once, pivot: (0, 0), align: Center) },
+                "fx_spark": { "0": (frames: [(57, 7, 16, 16), (35, 12, 8, 8)], fps: 20, mode: Once, pivot: (0, 0), align: Center) },
+                "fx_dust": { "0": (frames: [(146, 4, 8, 8), (146, 18, 8, 8), (173, 19, 8, 8)], fps: 14, mode: Once, pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            source: "Miscellaneous - HUD.png",
+            transparent: ["#3f48cc", "#80ffff"],
+            sprites: {
+                "hud_heart": {
+                    "full":  (frames: [(259, 56, 7, 7)], pivot: (0, 0), center_x: false),
+                    "half":  (frames: [(283, 56, 7, 7)], pivot: (0, 0), center_x: false),
+                    "empty": (frames: [(291, 56, 7, 7)], pivot: (0, 0), center_x: false),
+                },
+            },
+        ),
+    ],
+    fonts: [
+        // Police principale : planches FRN + GER (accents d'origine), accents ES/IT/PT
+        // composes a partir des accents d'origine, kana de la planche JPN.
+        // Dessines a la main (absents des planches) : + % / et le tilde de ñ ã õ.
+        (
+            name: "main",
+            top: 2,
+            line_h: 14,
+            space: 5,
+            spacing: -1,
+            accent_rows: 4,
+            blocks: [
+                (
+                    source: "Miscellaneous - Fonts (FRN).png",
+                    origin: (32, 0),
+                    cell: (8, 16),
+                    rows: [
+                        "ABCDEFGHIJKLMNOP",
+                        "QRSTUVWXYZabcdef",
+                        "ghijklmnopqrstuv",
+                        "wxyz0123456789!?",
+                        "-.,…▶()",
+                        "¤'¤¤¤¤¤¤¤¤ö¤¤¤¤ü",
+                        "ô:¤¤¤¤èéêàùçâûîä",
+                    ],
+                ),
+                (
+                    source: "Miscellaneous - Fonts (GER).png",
+                    origin: (32, 0),
+                    cell: (8, 16),
+                    rows: ["¤", "¤", "¤", "¤", "¤", "¤", "ß¤¤¤¤¤¤¤¤¤¤¤ÄÖÜ"],
+                ),
+                (
+                    source: "Miscellaneous - Font (JPN).png",
+                    origin: (0, 0),
+                    cell: (11, 16),
+                    mono: true,
+                    rows: [
+                        "あいうえおやゆよかきくけこわをんさしすせそがぎぐたちつてとげござ",
+                        "なにぬねのじずぜはひふへほぞだぢまみむめもづでどらりるれろばびぶ",
+                        "べぼぱぴぷぺぽゃゅょっぁぃぅぇぉアイウエオヤユヨカキクケコワヲン",
+                        "サシスセソガギグタチツテトゲゴザナニヌネノジズゼハヒフヘホゾダヂ",
+                        "マミムメモヅデドラリルレロバビブベボパピプペポャュョッァィゥェォ",
+                        "¤",
+                        "¤¤¤¤「」？！、ー¤¤¤。～",
+                    ],
+                ),
+            ],
+            compose: [
+                Accent('á', 'a', 'é'), Accent('í', 'i', 'é'), Accent('ó', 'o', 'é'), Accent('ú', 'u', 'é'),
+                Accent('ì', 'i', 'è'), Accent('ò', 'o', 'è'),
+                Accent('ë', 'e', 'ä'), Accent('ï', 'i', 'ä'),
+                // majuscules accentuees (absentes des planches) : accent pose au-dessus, comme Ä
+                AccentCap('À', 'A', 'à'), AccentCap('Á', 'A', 'é'), AccentCap('Â', 'A', 'â'),
+                AccentCap('É', 'E', 'é'), AccentCap('È', 'E', 'è'), AccentCap('Ê', 'E', 'ê'),
+                AccentCap('Í', 'I', 'é'), AccentCap('Î', 'I', 'î'),
+                AccentCap('Ó', 'O', 'é'), AccentCap('Ô', 'O', 'ô'),
+                AccentCap('Ú', 'U', 'é'), AccentCap('Ù', 'U', 'ù'), AccentCap('Û', 'U', 'û'),
+                AccentArt('ñ', 'n', [".oo.o", "o..o."]),
+                AccentArt('ã', 'a', [".oo.o", "o..o."]),
+                AccentArt('õ', 'o', [".oo.o", "o..o."]),
+                Rotate('¿', '?'), Rotate('¡', '!'),
+                Art('+', 4, ["..o..", "..o..", "ooooo", "..o..", "..o.."]),
+                Art('/', 3, ["...o", "...o", "..o.", "..o.", "..o.", ".o..", ".o..", ".o..", "o...", "o..."]),
+                Art('%', 3, ["oo...o", "oo...o", "....o.", "...o..", "...o..", "..o...", "..o...", ".o....", "o...oo", "o...oo"]),
+            ],
+        ),
+        (
+            name: "hud",
+            line_h: 7,
+            space: 4,
+            blocks: [
+                (
+                    source: "Miscellaneous - HUD.png",
+                    transparent: ["#3f48cc", "#80ffff"],
+                    origin: (259, 13),
+                    cell: (8, 8),
+                    rows: ["01234", "56789"],
+                ),
+            ],
+        ),
+    ],
+    tilesets: [
+        (
+            name: "grass",
+            source: "Overworld - Light World.png",
+            size: 16,
+            // 0 herbe nue, 1-3 touffes, 4-5 fleurs, 6 buisson
+            tiles: [(2408, 3708), (2408, 3724), (2408, 3772), (2312, 3836), (2424, 3740), (2408, 3756), (2472, 3932)],
+        ),
+    ],
+)

@@ -1,0 +1,18 @@
+// Ecran titre : decor et logo tires de menubg.webp par research/tools/make_title.py
+// (le logo est detoure pour etre place a droite, le decor derriere lui est reconstruit).
+(
+    sheets: [
+        (
+            source: "title/title_bg.png",
+            sprites: {
+                "title_bg": { "0": (frames: [(0, 0, 256, 144)], pivot: (0, 0), center_x: false, align: Top) },
+            },
+        ),
+        (
+            source: "title/title_logo.png",
+            sprites: {
+                "title_logo": { "0": (frames: [(0, 0, 82, 128)], pivot: (0, 0), align: Center) },
+            },
+        ),
+    ],
+)

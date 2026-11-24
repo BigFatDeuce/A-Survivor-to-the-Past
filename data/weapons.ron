@@ -1,0 +1,179 @@
+// Armes. Une arme = une famille (kind), des caracteristiques de base (niveau 1) et les
+// ameliorations des niveaux suivants. Les noms et descriptions sont dans data/lang/*.ron
+// (cles weapon.<id>.name / weapon.<id>.desc) ; le detail des niveaux est genere.
+//
+// Familles : Swing (epee), Projectile, Boomerang, Lob (bombes), Slam (frappe au sol),
+//            Orbit, Pillars (colonnes sur l'ecran), Storm (tout l'ecran).
+// Evolution : arme au niveau max + objet passif possede -> l'arme evoluee, dans un coffre.
+//
+// base : damage, cooldown (s), amount, area (portee / rayon), speed, duration (s),
+//        pierce (0 = illimite ; epee = ennemis touches par coup), knockback, crit_chance,
+//        crit_mult, hit_interval (s entre deux touches sur un meme ennemi).
+// Mods : Damage(+n), Cooldown(-0.1 = -10 %), Amount(+n), Area(+0.1 = +10 %), Speed(..),
+//        Duration(..), Pierce(+n), Knockback(..), Crit(+0.05).
+{
+    "sword": (
+        kind: Swing, icon: "icon_sword", sfx: "swing",
+        // retour J1 : l'epee seule ne doit pas suffire. Portee courte, 3 cibles par coup.
+        base: (damage: 9.0, cooldown: 0.7, area: 24.0, duration: 0.16, pierce: 3,
+               knockback: 100.0, crit_chance: 0.08, crit_mult: 1.75),
+        // range = distance de declenchement auto : a peine plus que la lame (area + corps ennemi)
+        arc: 120.0, range: 32.0,
+        levels: [
+            [Damage(3.0)],
+            [Pierce(1), Area(0.15)],
+            [Damage(3.0), Cooldown(-0.1)],
+            [Amount(1)],
+            [Damage(4.0), Area(0.15), Pierce(2)],
+        ],
+        evolution: Some((passive: "heart_container", into: "master_sword")),
+    ),
+    "master_sword": (
+        kind: Swing, icon: "icon_master_sword", sfx: "swing_master", evolved: true,
+        base: (damage: 24.0, cooldown: 0.5, amount: 2, area: 30.0, duration: 0.15, pierce: 0,
+               knockback: 150.0, crit_chance: 0.15, crit_mult: 2.0),
+        arc: 140.0, range: 40.0,
+        beam: Some((sprite: "beam_master", damage: 0.8, speed: 260.0, life: 0.65)),
+    ),
+    "bow": (
+        kind: Projectile, icon: "icon_bow", sprite: "proj_arrow", sfx: "bow",
+        base: (damage: 10.0, cooldown: 1.25, amount: 1, area: 4.0, speed: 260.0, duration: 1.2,
+               pierce: 1, knockback: 40.0, hit_interval: 0.5),
+        arc: 10.0, range: 190.0,
+        levels: [
+            [Amount(1)],
+            [Damage(5.0)],
+            [Pierce(1), Cooldown(-0.1)],
+            [Amount(1)],
+            [Damage(6.0), Pierce(1)],
+        ],
+        evolution: Some((passive: "quiver", into: "silver_bow")),
+    ),
+    "silver_bow": (
+        kind: Projectile, icon: "icon_silver_bow", sprite: "proj_arrow", sfx: "bow", evolved: true,
+        base: (damage: 26.0, cooldown: 0.9, amount: 4, area: 5.0, speed: 340.0, duration: 1.4,
+               pierce: 0, knockback: 80.0, crit_chance: 0.2, crit_mult: 2.0, hit_interval: 0.4),
+        arc: 8.0, range: 220.0,
+    ),
+    "boomerang": (
+        kind: Boomerang, icon: "icon_boomerang", sprite: "proj_boomerang", sfx: "boomerang",
+        base: (damage: 8.0, cooldown: 1.6, amount: 1, area: 6.0, speed: 200.0, duration: 0.45,
+               pierce: 0, knockback: 70.0, hit_interval: 0.35),
+        spin: 22.0, range: 150.0,
+        status: Some(Stun(time: 0.4)),
+        levels: [
+            [Damage(3.0)],
+            [Amount(1)],
+            [Speed(0.2), Area(0.2)],
+            [Amount(1)],
+            [Damage(5.0), Duration(0.25)],
+        ],
+        evolution: Some((passive: "pegasus_boots", into: "magic_boomerang")),
+    ),
+    "magic_boomerang": (
+        kind: Boomerang, icon: "icon_magic_boomerang", sprite: "proj_magic_boomerang", sfx: "boomerang", evolved: true,
+        base: (damage: 20.0, cooldown: 1.1, amount: 3, area: 8.0, speed: 260.0, duration: 0.6,
+               pierce: 0, knockback: 100.0, hit_interval: 0.3),
+        spin: 28.0, range: 180.0,
+        status: Some(Stun(time: 1.0)),
+    ),
+    "fire_rod": (
+        kind: Projectile, icon: "icon_fire_rod", sprite: "proj_fireball", sfx: "fire_rod",
+        base: (damage: 12.0, cooldown: 1.8, amount: 1, area: 6.0, speed: 170.0, duration: 0.9,
+               pierce: 1, knockback: 30.0),
+        arc: 14.0, range: 160.0,
+        status: Some(Burn(dps: 6.0, time: 2.0)),
+        zone: Some((radius: 14.0, time: 2.0, dps: 8.0)),
+        levels: [
+            [Damage(5.0)],
+            [Amount(1)],
+            [Cooldown(-0.15)],
+            [Speed(0.25), Damage(4.0)],
+            [Amount(1), Damage(6.0)],
+        ],
+        evolution: Some((passive: "lamp", into: "bombos")),
+    ),
+    "bombos": (
+        kind: Pillars, icon: "icon_medallion_bombos", sprite: "fx_flame", sfx: "bombos", evolved: true,
+        base: (damage: 28.0, cooldown: 2.6, amount: 6, area: 20.0, knockback: 60.0),
+        range: 220.0,
+        status: Some(Burn(dps: 12.0, time: 2.5)),
+        zone: Some((radius: 16.0, time: 1.2, dps: 14.0)),
+    ),
+    "ice_rod": (
+        kind: Projectile, icon: "icon_ice_rod", sprite: "proj_ice", sfx: "ice_rod",
+        base: (damage: 9.0, cooldown: 1.7, amount: 1, area: 6.0, speed: 200.0, duration: 1.0,
+               pierce: 2, knockback: 20.0),
+        arc: 12.0, range: 170.0, spin: 9.0,
+        status: Some(Freeze(time: 1.2)),
+        levels: [
+            [Pierce(1)],
+            [Amount(1)],
+            [Damage(5.0)],
+            [Pierce(1), Speed(0.2)],
+            [Amount(1), Cooldown(-0.15)],
+        ],
+        evolution: Some((passive: "half_magic", into: "ether")),
+    ),
+    "ether": (
+        kind: Storm, icon: "icon_medallion_ether", sfx: "ether", evolved: true,
+        base: (damage: 22.0, cooldown: 5.0, area: 1.0, knockback: 0.0),
+        range: 330.0,
+        status: Some(Freeze(time: 2.5)),
+    ),
+    "hammer": (
+        kind: Slam, icon: "icon_hammer", sfx: "hammer",
+        base: (damage: 22.0, cooldown: 2.4, area: 44.0, knockback: 260.0, crit_chance: 0.1, crit_mult: 2.0),
+        status: Some(Stun(time: 0.8)),
+        levels: [
+            [Area(0.15)],
+            [Damage(8.0)],
+            [Cooldown(-0.12)],
+            [Area(0.2)],
+            [Damage(12.0), Knockback(0.3)],
+        ],
+        evolution: Some((passive: "power_glove", into: "quake")),
+    ),
+    "quake": (
+        kind: Slam, icon: "icon_medallion_quake", sfx: "quake", evolved: true,
+        base: (damage: 45.0, cooldown: 3.2, area: 130.0, knockback: 380.0, crit_chance: 0.1, crit_mult: 2.0),
+        status: Some(Stun(time: 2.0)),
+    ),
+    "bombs": (
+        kind: Lob, icon: "icon_bomb", sprite: "proj_bomb", sfx: "bomb",
+        base: (damage: 30.0, cooldown: 2.6, amount: 1, area: 30.0, duration: 0.5, knockback: 220.0),
+        range: 150.0,
+        levels: [
+            [Amount(1)],
+            [Damage(10.0)],
+            [Area(0.2)],
+            [Amount(1), Cooldown(-0.1)],
+            [Damage(15.0), Area(0.2)],
+        ],
+        evolution: Some((passive: "mirror_shield", into: "super_bomb")),
+    ),
+    "super_bomb": (
+        kind: Lob, icon: "icon_super_bomb", sprite: "proj_bomb_red", sfx: "bomb", evolved: true,
+        base: (damage: 70.0, cooldown: 2.4, amount: 3, area: 56.0, duration: 0.45, knockback: 340.0,
+               crit_chance: 0.1, crit_mult: 2.0),
+        range: 170.0,
+    ),
+    "byrna": (
+        kind: Orbit, icon: "icon_byrna", sprite: "fx_byrna", sfx: "byrna",
+        base: (damage: 7.0, cooldown: 4.0, amount: 2, area: 26.0, speed: 4.0, duration: 2.5,
+               knockback: 50.0, hit_interval: 0.5),
+        levels: [
+            [Amount(1)],
+            [Duration(0.3)],
+            [Damage(4.0)],
+            [Amount(1), Area(0.15)],
+            [Duration(0.4), Damage(5.0)],
+        ],
+        evolution: Some((passive: "bug_net", into: "fairy_ring")),
+    ),
+    "fairy_ring": (
+        kind: Orbit, icon: "icon_fairy", sprite: "fairy", sfx: "fairy", evolved: true,
+        base: (damage: 16.0, cooldown: 3.0, amount: 5, area: 34.0, speed: 3.2, duration: 3.5,
+               knockback: 80.0, hit_interval: 0.4),
+    ),
+}

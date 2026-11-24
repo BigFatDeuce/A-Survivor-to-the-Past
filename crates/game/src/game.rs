@@ -1,0 +1,1612 @@
+//! Le jeu : relie la simulation, le rendu, l'audio, les menus et le juice.
+use crate::content::{load_bindings, load_content, AudioConfig};
+use crate::director::{Director, Moment};
+use crate::hud::{Hud, GOLD};
+use crate::juice::{Juice, NumKind};
+use crate::lang::{Lang, LANGS};
+use crate::menus::{self, Nav, NavIn, Opt, OptAction, OptValues};
+use crate::settings::Settings;
+use crate::title::{self, Links, TitleVis};
+use crate::visuals::{Orient, Vis};
+use engine::app::{Ctx, Frame, Game as GameTrait};
+use engine::audio::AudioFilter;
+use engine::draw::{rgb, with_alpha, Params, WHITE};
+use engine::gfx::{Aspect, Blend, DrawList, Space, VideoFilter};
+use engine::input::{Bindings, Device, KeyCode};
+use engine::Vec2;
+use sim::arsenal::ProjKind;
+use sim::defs::{Content, Pattern, WeaponKind};
+use sim::horde::ST_WINDUP;
+use sim::pickups::PickupKind;
+use sim::rng::Rng;
+use sim::upgrades::{ChestReward, Offer};
+use sim::{Event, PlayerInput, World, DT};
+use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, TAU};
+
+#[derive(Clone, Debug)]
+pub struct Options {
+    /// Test de charge : nombre d'ennemis maintenus en permanence.
+    pub bench: Option<u32>,
+    /// Deplacement et choix automatiques (captures, essais).
+    pub demo: bool,
+    pub seed: u64,
+    pub map: String,
+    pub character: String,
+    /// Commencer la partie a cet instant (s) : essais de fin de partie, du boss.
+    pub start_time: f32,
+    /// Armes et objets donnes au depart (essais) : identifiants de `weapons.ron` / `passives.ron`.
+    pub give: Vec<String>,
+    /// Ouvrir un ecran des le depart (captures) : title, about, pause, options, gameover.
+    pub menu: Option<String>,
+    /// Langue imposee pour cette session (non enregistree).
+    pub lang: Option<String>,
+    /// Lancer directement une partie (sans ecran titre).
+    pub play: bool,
+    /// Verifier les placements de l'interface puis quitter.
+    pub uicheck: bool,
+}
+
+enum State {
+    /// Ecran titre (hors partie).
+    Title { sel: usize },
+    /// Ecran « A propos » ; `toast` = confirmation d'ouverture d'un lien.
+    About { sel: usize, toast: f32 },
+    Playing,
+    Paused { sel: usize },
+    /// Options, ouvertes depuis l'ecran titre ou depuis la pause.
+    Options { sel: usize, from_title: bool },
+    LevelUp { offers: Vec<Offer>, sel: usize, t: f32 },
+    Chest { reward: ChestReward, big: bool, t: f32 },
+    Dying(f32),
+    Dead { t: f32, sel: usize },
+}
+
+impl State {
+    /// Etats ou le jeu est fige (menus).
+    fn frozen(&self) -> bool {
+        !matches!(self, State::Playing | State::Dying(_))
+    }
+
+    /// Ecrans hors partie (le decor du titre remplace le monde).
+    fn in_title(&self) -> bool {
+        matches!(self, State::Title { .. } | State::About { .. } | State::Options { from_title: true, .. })
+    }
+}
+
+pub struct Game {
+    opts: Options,
+    content: Content,
+    audio_cfg: AudioConfig,
+    world: World,
+    vis: Vis,
+    juice: Juice,
+    hud: Hud,
+    director: Director,
+    state: State,
+    settings: Settings,
+    /// Touches d'origine (`data/input.ron`), pour l'ecran de reattribution a venir.
+    #[allow(dead_code)]
+    base_bindings: Bindings,
+    bindings: Bindings,
+    lang: Lang,
+    lang_names: Vec<String>,
+    nav: Nav,
+    cam: Option<Vec2>,
+    frame_dt: f32,
+    debug: bool,
+    rupee_chain: u32,
+    rupee_chain_t: f32,
+    low_hp_t: f32,
+    ghost_t: f32,
+    rng: Rng,
+    sort: Vec<(u32, u32)>,
+    bench_angle: f32,
+    report_t: f32,
+    events: Vec<Event>,
+    /// Coups des armes de zone pendant le pas (pour les « gros impacts »).
+    tick_area_hits: u32,
+    mass_fx_cd: f32,
+    /// Ignore les appuis (dash, bascule) juste apres la fermeture d'un menu.
+    suppress: bool,
+    boss_music: bool,
+    title_vis: TitleVis,
+    links: Links,
+    /// Temps des animations de l'ecran titre (s).
+    menu_t: f32,
+}
+
+const DUST: [f32; 4] = [0.86, 0.8, 0.58, 1.0];
+const FIRE: [f32; 4] = [1.0, 0.6, 0.2, 1.0];
+const ICE: [f32; 4] = [0.7, 0.88, 1.0, 1.0];
+
+impl Game {
+    pub fn new(ctx: &mut Ctx, opts: Options) -> Game {
+        let content = load_content(&ctx.root);
+        let audio_cfg = AudioConfig::load(&ctx.root);
+        for (name, r) in &audio_cfg.sfx {
+            ctx.audio.set_rule(
+                name,
+                engine::audio::SfxRule {
+                    max_voices: r.max_voices,
+                    min_interval: r.min_interval,
+                    volume: r.volume,
+                    pitch_jitter: r.pitch_jitter,
+                },
+            );
+        }
+        let settings = Settings::load(&ctx.root);
+        settings.apply_audio(&mut ctx.audio);
+        let base_bindings = load_bindings(&ctx.root);
+        let bindings = settings.bindings(&base_bindings);
+        let lang = Lang::load(&ctx.root, opts.lang.as_deref().unwrap_or(&settings.lang));
+        let lang_names = LANGS.iter().map(|c| Lang::name_of(&ctx.root, c)).collect();
+        let ch = content.characters.get(&opts.character).unwrap_or_else(|| panic!("personnage {}", opts.character));
+        let map = content.maps.get(&opts.map).unwrap_or_else(|| panic!("carte {}", opts.map));
+        let vis = Vis::new(&ctx.atlas, &content, ch, &map.ground);
+        let world = Self::make_world(&content, &opts, ctx.view);
+        let mut g = Game {
+            debug: opts.bench.is_some(),
+            opts,
+            content,
+            audio_cfg,
+            world,
+            vis,
+            juice: Juice::new(),
+            hud: Hud::new(),
+            director: Director::new(),
+            state: State::Playing,
+            settings,
+            base_bindings,
+            bindings,
+            lang,
+            lang_names,
+            nav: Nav::new(),
+            cam: None,
+            frame_dt: 0.0,
+            rupee_chain: 0,
+            rupee_chain_t: 0.0,
+            low_hp_t: 0.0,
+            ghost_t: 0.0,
+            rng: Rng::new(99),
+            sort: Vec::with_capacity(8192),
+            bench_angle: 0.0,
+            report_t: 0.0,
+            events: Vec::with_capacity(1024),
+            tick_area_hits: 0,
+            mass_fx_cd: 0.0,
+            suppress: false,
+            boss_music: false,
+            title_vis: TitleVis::new(ctx),
+            links: Links::load(&ctx.root),
+            menu_t: 0.0,
+        };
+        // essais (demo, charge, depart avance) : directement en partie, sinon ecran titre
+        let o = &g.opts;
+        let direct = o.play || o.demo || o.bench.is_some() || o.start_time > 0.0 || !o.give.is_empty();
+        g.state = match g.opts.menu.as_deref() {
+            Some("title") => State::Title { sel: 0 },
+            Some("about") => State::About { sel: 0, toast: 0.0 },
+            Some("pause") => State::Paused { sel: 1 },
+            Some("options") => State::Options { sel: 1, from_title: false },
+            Some("title_options") => State::Options { sel: 1, from_title: true },
+            Some("gameover") => State::Dead { t: 1.0, sel: 0 },
+            _ if direct => State::Playing,
+            _ => State::Title { sel: 0 },
+        };
+        if g.state.in_title() {
+            g.menu_t = if g.opts.menu.is_some() { 1.0 } else { 0.0 };
+            let id = g.audio_cfg.menu_music.clone();
+            g.play_music(ctx, &id, 0.5);
+        } else {
+            g.start_music(ctx);
+        }
+        g
+    }
+
+    /// Verification des placements : tous les ecrans, toutes les langues, plusieurs formats de vue.
+    fn ui_check(&mut self, ctx: &mut Ctx) {
+        use crate::uicheck::{Report, VIEWS};
+        let real_view = ctx.view;
+        let c = self.content.clone();
+        // monde rempli au maximum : 6 armes, 6 objets, gros compteurs, boss
+        let mut picks = 0;
+        for k in 0..c.weapons.len() as u16 {
+            if !c.weapons[k as usize].evolved && picks < 6 {
+                self.world.apply_offer(Offer::NewWeapon(k));
+                for _ in 0..8 {
+                    self.world.apply_offer(Offer::UpgradeWeapon(k));
+                }
+                picks += 1;
+            }
+        }
+        for k in 0..c.passives.len().min(6) as u16 {
+            self.world.apply_offer(Offer::NewPassive(k));
+        }
+        let p = &mut self.world.player;
+        p.level = 99;
+        p.kills = 99_999;
+        p.rupees = 9_999;
+        self.world.time = 599.0;
+        if let Some(h) = c.enemy_index("hinox") {
+            let at = self.world.player.pos + Vec2::new(60.0, 0.0);
+            let i = self.world.spawn_enemy(h, at);
+            self.world.boss_uid = Some(self.world.horde.uid[i]);
+        }
+        let mut offers: Vec<Offer> = (0..c.weapons.len() as u16).map(Offer::NewWeapon).collect();
+        offers.extend((0..c.passives.len() as u16).map(Offer::NewPassive));
+        offers.extend((0..c.weapons.len() as u16).filter(|&k| self.world.weapon_level(k).is_some()).map(Offer::UpgradeWeapon));
+        offers.extend([Offer::Heal, Offer::Rupees]);
+        let evo = c.weapons.iter().enumerate().find_map(|(k, w)| {
+            let e = w.evolution.as_ref()?;
+            Some((k as u16, c.weapon_index(&e.into)?))
+        });
+        self.menu_t = 5.0;
+        let mut rep = Report::default();
+        for code in LANGS {
+            self.lang = Lang::load(&ctx.root, code);
+            let boss = self.lang.get("ui.boss").to_string();
+            for &(w, h) in &VIEWS {
+                let view = Vec2::new(w, h);
+                ctx.view = view;
+                self.world.view_half = view * 0.5;
+                self.hud.banner(&boss, GOLD, 5.0);
+                let mut screens: Vec<(String, State)> = vec![
+                    ("titre".into(), State::Title { sel: 0 }),
+                    ("a_propos".into(), State::About { sel: 1, toast: 0.0 }),
+                    ("a_propos_lien_ouvert".into(), State::About { sel: 0, toast: 1.0 }),
+                    ("options_titre".into(), State::Options { sel: 0, from_title: true }),
+                    ("jeu".into(), State::Playing),
+                    ("pause".into(), State::Paused { sel: 0 }),
+                    ("options".into(), State::Options { sel: 3, from_title: false }),
+                    ("fin".into(), State::Dead { t: 2.0, sel: 0 }),
+                ];
+                for (k, chunk) in offers.chunks(3).enumerate() {
+                    screens.push((format!("niveau_{k}"), State::LevelUp { offers: chunk.to_vec(), sel: 0, t: 1.0 }));
+                }
+                let ups: Vec<Offer> = offers.iter().copied().filter(|o| matches!(o, Offer::UpgradeWeapon(_))).take(3).collect();
+                screens.push(("coffre".into(), State::Chest { reward: ChestReward { evolution: None, upgrades: ups }, big: false, t: 2.0 }));
+                if let Some(e) = evo {
+                    screens.push(("evolution".into(), State::Chest { reward: ChestReward { evolution: Some(e), upgrades: Vec::new() }, big: true, t: 2.0 }));
+                }
+                for (name, st) in screens {
+                    self.state = st;
+                    let mut list = DrawList::default();
+                    list.probe = Some(Vec::new());
+                    self.draw(ctx, 1.0, &mut list);
+                    rep.analyze(list.probe.as_deref().unwrap_or(&[]), view, ctx.atlas.font("main"), &name, code);
+                }
+            }
+        }
+        ctx.view = real_view;
+        self.state = State::Title { sel: 0 };
+        let text = rep.print();
+        println!("{text}");
+    }
+
+    /// Retour a l'ecran titre (partie abandonnee).
+    fn to_title(&mut self, ctx: &mut Ctx) {
+        self.state = State::Title { sel: 0 };
+        self.menu_t = 0.0;
+        self.juice.clear();
+        self.director.clear();
+        ctx.audio.stop_music(0.3);
+        let id = self.audio_cfg.menu_music.clone();
+        self.play_music(ctx, &id, 0.8);
+        ctx.audio.duck_music(1.0, 0.2);
+    }
+
+    fn make_world(content: &Content, opts: &Options, view: Vec2) -> World {
+        let mut w = World::new(content.clone(), &opts.character, &opts.map, opts.seed);
+        w.view_half = view * 0.5;
+        if opts.start_time > 0.0 {
+            w.skip_to(opts.start_time);
+        }
+        for id in &opts.give {
+            if let Some(k) = content.weapon_index(id) {
+                match w.weapon_level(k) {
+                    Some(_) => w.apply_offer(Offer::UpgradeWeapon(k)),
+                    None => w.apply_offer(Offer::NewWeapon(k)),
+                }
+            } else if let Some(k) = content.passive_index(id) {
+                match w.passive_level(k) {
+                    Some(_) => w.apply_offer(Offer::UpgradePassive(k)),
+                    None => w.apply_offer(Offer::NewPassive(k)),
+                }
+            } else if id == "chest" || id == "big_chest" {
+                // coffre ouvert des le debut (essais des evolutions)
+                w.pending_chests.push(id == "big_chest");
+            } else {
+                log::warn!("--give : inconnu {id}");
+            }
+        }
+        if let Some(n) = opts.bench {
+            w.spawning = false;
+            w.player.god = true;
+            let kinds: Vec<u16> = ["soldier_green", "soldier_blue", "rat", "rope", "keese"]
+                .iter()
+                .filter_map(|k| content.enemy_index(k))
+                .collect();
+            for i in 0..n {
+                let k = kinds[i as usize % kinds.len()];
+                let p = w.player.pos + w.rng.dir() * w.rng.range(40.0, view.length() * 0.5);
+                w.spawn_enemy(k, p);
+            }
+        }
+        w
+    }
+
+    fn play_music(&mut self, ctx: &mut Ctx, id: &str, fade: f32) {
+        if let Some(def) = self.audio_cfg.music_def(id) {
+            let root = ctx.root.clone();
+            ctx.audio.play_music(id, &def, &root, fade);
+        } else {
+            log::warn!("musique inconnue : {id}");
+        }
+    }
+
+    fn start_music(&mut self, ctx: &mut Ctx) {
+        let id = self.world.map.music.clone();
+        self.play_music(ctx, &id, 1.0);
+        ctx.audio.duck_music(1.0, 0.2);
+        self.boss_music = false;
+    }
+
+    fn restart(&mut self, ctx: &mut Ctx) {
+        self.world = Self::make_world(&self.content, &self.opts, ctx.view);
+        self.juice.clear();
+        self.hud = Hud::new();
+        self.director.clear();
+        self.state = State::Playing;
+        self.cam = None;
+        self.rupee_chain = 0;
+        self.suppress = true;
+        ctx.audio.stop_music(0.2);
+        self.start_music(ctx);
+    }
+
+    fn sfx(&mut self, ctx: &mut Ctx, event: &str) {
+        self.sfx_p(ctx, event, 1.0, 1.0);
+    }
+
+    fn sfx_p(&mut self, ctx: &mut Ctx, event: &str, gain: f32, pitch: f32) {
+        let Some(list) = self.audio_cfg.events.get(event) else { return };
+        if list.is_empty() {
+            return;
+        }
+        let name = &list[self.rng.below(list.len() as u32) as usize];
+        ctx.audio.play(name, gain, pitch);
+    }
+
+    /// Lit les commandes de jeu (pas de simulation).
+    fn read_input(&mut self, ctx: &Ctx) -> PlayerInput {
+        if self.opts.bench.is_some() {
+            self.bench_angle += DT * 0.5;
+            return PlayerInput {
+                move_dir: Vec2::from_angle(self.bench_angle) * 0.8,
+                aim: None,
+                attack: false,
+                dash: self.world.ticks % 150 == 0,
+                toggle_auto: false,
+            };
+        }
+        if self.opts.demo {
+            return self.demo_input();
+        }
+        let i = &ctx.input;
+        let b = &self.bindings;
+        let mut mv = Vec2::ZERO;
+        if i.action(b, "up") {
+            mv.y -= 1.0;
+        }
+        if i.action(b, "down") {
+            mv.y += 1.0;
+        }
+        if i.action(b, "left") {
+            mv.x -= 1.0;
+        }
+        if i.action(b, "right") {
+            mv.x += 1.0;
+        }
+        let mv = (mv.normalize_or_zero() + i.stick(false)).clamp_length_max(1.0);
+        let attack = i.action(b, "attack");
+        let dash = !self.suppress && i.action_pressed(b, "dash");
+        let toggle_auto = !self.suppress && i.action_pressed(b, "toggle_auto");
+        let aim = match i.last_device {
+            Device::Mouse => {
+                let cam = self.cam.unwrap_or(self.world.player.pos);
+                let off = (Vec2::new(ctx.view.x, ctx.view.y) * ctx.scale as f32 * 0.5).round();
+                let m = cam + (i.mouse_px - off) / ctx.scale as f32;
+                Some(m - (self.world.player.pos - Vec2::new(0.0, 8.0)))
+            }
+            Device::Gamepad => {
+                let r = i.stick(true);
+                (r.length_squared() > 0.05).then_some(r)
+            }
+            Device::Keyboard => None,
+        };
+        PlayerInput { move_dir: mv, aim, attack, dash, toggle_auto }
+    }
+
+    /// Pilote du mode demo : garde ses distances, ramasse les rubis et les coffres, esquive au dash.
+    /// Sert aux captures et a juger l'equilibrage sans joueur.
+    fn demo_input(&mut self) -> PlayerInput {
+        let w = &self.world;
+        let me = w.player.pos;
+        let mut flee = Vec2::ZERO;
+        let mut close = 0;
+        let mut crowd = 0;
+        let mut nearest: Option<(f32, Vec2)> = None;
+        let h = &w.horde;
+        for i in 0..h.len() {
+            let d = me - h.pos[i];
+            let l2 = d.length_squared();
+            if l2 < 60.0 * 60.0 {
+                let l = l2.sqrt().max(1.0);
+                flee += d / l * (60.0 - l) / 60.0;
+                crowd += 1;
+                if l < 22.0 {
+                    close += 1;
+                }
+            }
+            if nearest.is_none_or(|n| l2 < n.0) {
+                nearest = Some((l2, -d));
+            }
+        }
+        // peu d'ennemis autour : va au contact (portee de l'epee), sinon recule
+        if crowd <= 5 {
+            if let Some((l2, d)) = nearest {
+                let l = l2.sqrt();
+                let want = if l > 24.0 { d / l } else { -d / l.max(1.0) * 0.5 + d.perp() / l.max(1.0) };
+                flee = flee * 0.5 + want;
+            }
+        }
+        for s in &w.shots {
+            let d = me - s.pos;
+            if d.length_squared() < 40.0 * 40.0 {
+                flee += d.normalize_or_zero() * 1.5;
+            }
+        }
+        // objet le plus proche (les coffres comptent double)
+        let pk = &w.pickups;
+        let mut target: Option<(f32, Vec2)> = None;
+        for i in 0..pk.len() {
+            let d = pk.pos[i] - me;
+            let mut l = d.length();
+            if pk.kind[i].is_chest() {
+                l *= 0.5;
+            }
+            if l < 180.0 && target.is_none_or(|t| l < t.0) {
+                target = Some((l, d));
+            }
+        }
+        self.bench_angle += DT * 0.35;
+        let wander = Vec2::from_angle(self.bench_angle) * 0.35;
+        let seek = target.map(|t| t.1.normalize_or_zero() * 0.8).unwrap_or(wander);
+        let mv = (flee * 1.6 + seek).clamp_length_max(1.0);
+        PlayerInput { move_dir: mv, aim: None, attack: false, dash: close >= 3 && w.player.dash_cd <= 0.0, toggle_auto: false }
+    }
+
+    fn weapon_sfx(&mut self, ctx: &mut Ctx, weapon: u16) {
+        if let Some(d) = self.content.weapons.get(weapon as usize) {
+            let key = d.sfx.clone();
+            if !key.is_empty() {
+                self.sfx(ctx, &key);
+            }
+        }
+    }
+
+    fn on_events(&mut self, ctx: &mut Ctx) {
+        let mut evs = std::mem::take(&mut self.events);
+        evs.clear();
+        evs.append(&mut self.world.events);
+        self.tick_area_hits = 0;
+        for ev in evs.iter().copied() {
+            match ev {
+                Event::Swing { weapon, .. } => {
+                    self.weapon_sfx(ctx, weapon);
+                    if self.content.weapons[weapon as usize].beam.is_some() {
+                        self.sfx(ctx, "beam");
+                    }
+                }
+                Event::Fire { weapon, .. } => self.weapon_sfx(ctx, weapon),
+                Event::Dash { pos, dir } => {
+                    self.sfx(ctx, "dash");
+                    self.juice.anim(self.vis.dust, pos - dir * 4.0, 0.3);
+                    self.juice.debris(pos, -dir, 5, [0.85, 0.8, 0.6, 1.0], 50.0, false);
+                    self.juice.add_trauma(0.08, 0.3);
+                }
+                Event::EnemyHit { pos, kind, damage, crit, dir, weapon } => {
+                    let boss = self.content.enemies[kind as usize].boss;
+                    // brulure et flammes au sol : discret, sans etincelle ni son
+                    if weapon == u16::MAX || dir == Vec2::ZERO {
+                        self.juice.number(pos - Vec2::new(0.0, 14.0), damage, NumKind::Dot);
+                        continue;
+                    }
+                    if matches!(
+                        self.content.weapons[weapon as usize].kind,
+                        WeaponKind::Lob | WeaponKind::Slam | WeaponKind::Storm | WeaponKind::Pillars
+                    ) {
+                        self.tick_area_hits += 1;
+                    }
+                    let nk = if boss {
+                        NumKind::Boss
+                    } else if crit {
+                        NumKind::Crit
+                    } else {
+                        NumKind::Normal
+                    };
+                    let top = if boss { 58.0 } else { 14.0 };
+                    self.juice.number(pos - Vec2::new(0.0, top), damage, nk);
+                    let rot = dir.y.atan2(dir.x) + FRAC_PI_4;
+                    self.juice.anim_rot(self.vis.spark, pos - Vec2::new(0.0, 9.0) - dir * 3.0, 0.1, rot);
+                    self.juice.debris(pos - Vec2::new(0.0, 6.0), dir, 1, [1.0, 1.0, 0.8, 1.0], 90.0, true);
+                    if boss {
+                        self.sfx(ctx, "boss_hit");
+                    } else if crit {
+                        self.sfx(ctx, "enemy_crit");
+                        self.juice.add_trauma(0.1, 0.3);
+                    } else {
+                        self.sfx(ctx, "enemy_hit");
+                    }
+                }
+                Event::EnemyKilled { pos, dir, elite, .. } => {
+                    self.juice.anim(self.vis.poof, pos - Vec2::new(0.0, 7.0), 0.31);
+                    self.juice.debris(pos - Vec2::new(0.0, 5.0), dir, 3, DUST, 110.0, false);
+                    self.sfx(ctx, "enemy_die");
+                    self.juice.add_trauma(0.02, 0.2);
+                    if elite {
+                        self.juice.ring(pos - Vec2::new(0.0, 8.0), 4.0, 40.0, 0.4, GOLD);
+                        self.juice.debris(pos - Vec2::new(0.0, 8.0), Vec2::ZERO, 14, GOLD, 120.0, true);
+                        self.juice.add_trauma(0.25, 0.5);
+                    }
+                    if self.director.kill(self.world.time) {
+                        self.mass_kill(ctx);
+                    }
+                }
+                Event::PlayerHurt { pos, .. } => {
+                    self.sfx(ctx, "hurt");
+                    self.juice.add_trauma(0.5, 0.75);
+                    self.juice.hitstop(0.07);
+                    self.juice.flash([0.9, 0.1, 0.1, 0.3], 0.25);
+                    self.juice.debris(pos - Vec2::new(0.0, 8.0), Vec2::ZERO, 8, rgb(230, 40, 40), 100.0, false);
+                    self.hud.heart_shake = 1.0;
+                }
+                Event::PlayerDied { pos } => {
+                    self.sfx(ctx, "die");
+                    self.state = State::Dying(0.0);
+                    ctx.audio.stop_music(2.0);
+                    self.juice.flash([1.0, 1.0, 1.0, 0.6], 0.5);
+                    self.juice.ring(pos - Vec2::new(0.0, 8.0), 2.0, 60.0, 0.6, WHITE);
+                }
+                Event::Pickup { pos, kind, value } => match kind {
+                    PickupKind::Heart => {
+                        self.sfx(ctx, "heart");
+                        self.juice.ring(pos - Vec2::new(0.0, 6.0), 2.0, 16.0, 0.3, rgb(255, 120, 140));
+                    }
+                    PickupKind::Chest | PickupKind::BigChest => {}
+                    _ => {
+                        // les rubis ramasses en chaine montent la gamme
+                        self.rupee_chain = (self.rupee_chain + 1).min(16);
+                        self.rupee_chain_t = 0.7;
+                        let pitch = 1.0 + 0.045 * (self.rupee_chain - 1) as f32;
+                        self.sfx_p(ctx, "rupee", 1.0, pitch);
+                        self.hud.rupee_pop = 1.0;
+                        let c = match kind {
+                            PickupKind::RupeeBlue => rgb(120, 160, 255),
+                            PickupKind::RupeeRed => rgb(255, 110, 110),
+                            _ => rgb(140, 255, 140),
+                        };
+                        self.juice.debris(pos - Vec2::new(0.0, 6.0), Vec2::ZERO, if value >= 5 { 6 } else { 2 }, c, 60.0, true);
+                    }
+                },
+                Event::LevelUp { pos, .. } => {
+                    self.sfx(ctx, "level_up");
+                    self.sfx(ctx, "level_wave");
+                    let r = self.content.rules.levelup_wave_radius;
+                    self.juice.ring(pos - Vec2::new(0.0, 8.0), 4.0, r, 0.45, WHITE);
+                    self.juice.ring(pos - Vec2::new(0.0, 8.0), 2.0, r * 0.6, 0.35, GOLD);
+                    self.juice.flash([1.0, 1.0, 0.85, 0.2], 0.18);
+                    self.juice.add_trauma(0.3, 0.5);
+                }
+                Event::AutoToggled { .. } => {
+                    self.sfx(ctx, "toggle_auto");
+                    self.hud.mode_banner = 1.5;
+                }
+                Event::Explosion { pos, radius, .. } => {
+                    let sc = (radius / 20.0).clamp(1.0, 4.0).round();
+                    self.juice.anim_ex(self.vis.explosion, pos - Vec2::new(0.0, 4.0), 0.36, 0.0, sc, WHITE, false);
+                    self.juice.ring(pos - Vec2::new(0.0, 4.0), 4.0, radius, 0.3, FIRE);
+                    self.juice.debris(pos - Vec2::new(0.0, 4.0), Vec2::ZERO, 8, FIRE, 130.0, true);
+                    self.juice.add_trauma(0.12 + radius * 0.002, 0.5);
+                    self.sfx(ctx, "explosion");
+                }
+                Event::Slam { pos, radius, .. } => {
+                    self.juice.ring(pos - Vec2::new(0.0, 2.0), 6.0, radius, 0.35, rgb(240, 220, 160));
+                    let n = (radius / 8.0) as u32;
+                    for k in 0..n {
+                        let a = k as f32 / n as f32 * TAU;
+                        let p = pos + Vec2::from_angle(a) * radius * 0.7;
+                        self.juice.anim(self.vis.dust, p, 0.25);
+                    }
+                    self.juice.debris(pos, Vec2::ZERO, 10, DUST, 140.0, false);
+                    self.juice.add_trauma(if radius > 90.0 { 0.55 } else { 0.25 }, 0.7);
+                    if radius > 90.0 {
+                        self.juice.flash([1.0, 0.95, 0.8, 0.22], 0.2);
+                    }
+                }
+                Event::Storm { pos, radius, .. } => {
+                    self.juice.flash([0.7, 0.85, 1.0, 0.35], 0.3);
+                    self.juice.ring(pos - Vec2::new(0.0, 8.0), 8.0, radius, 0.45, ICE);
+                    self.juice.add_trauma(0.35, 0.6);
+                }
+                Event::Pillar { pos, radius, .. } => {
+                    let sc = (radius / 10.0).clamp(1.0, 3.0).round();
+                    self.juice.anim_ex(self.vis.flame, pos, 0.4, 0.0, sc, WHITE, true);
+                    self.juice.ring(pos - Vec2::new(0.0, 4.0), 3.0, radius, 0.25, FIRE);
+                    self.juice.add_trauma(0.06, 0.4);
+                    self.sfx(ctx, "explosion");
+                }
+                Event::Windup { pos, kind } => {
+                    if self.content.enemies[kind as usize].boss {
+                        self.juice.anim_ex(self.vis.spark, pos - Vec2::new(0.0, 66.0), 0.2, 0.0, 2.0, WHITE, true);
+                    }
+                    self.sfx(ctx, "windup");
+                }
+                Event::EnemyShot { .. } => self.sfx(ctx, "enemy_shot"),
+                Event::ShotBlast { pos, radius } => {
+                    let sc = (radius / 18.0).clamp(1.0, 3.0).round();
+                    self.juice.anim_ex(self.vis.explosion, pos - Vec2::new(0.0, 4.0), 0.36, 0.0, sc, WHITE, false);
+                    self.juice.ring(pos - Vec2::new(0.0, 4.0), 4.0, radius, 0.3, rgb(255, 90, 60));
+                    self.juice.add_trauma(0.2, 0.5);
+                    self.sfx(ctx, "shot_blast");
+                }
+                Event::EliteSpawned { pos } => {
+                    self.sfx(ctx, "elite");
+                    self.juice.ring(pos - Vec2::new(0.0, 8.0), 2.0, 30.0, 0.5, GOLD);
+                }
+                Event::BossSpawned { pos, .. } => {
+                    self.sfx(ctx, "boss_spawn");
+                    let s = self.lang.get("ui.boss").to_string();
+                    self.hud.banner(&s, rgb(255, 110, 110), 2.8);
+                    self.juice.add_trauma(0.6, 0.8);
+                    self.juice.flash([0.4, 0.0, 0.0, 0.3], 0.5);
+                    self.juice.ring(pos - Vec2::new(0.0, 16.0), 6.0, 80.0, 0.6, rgb(255, 80, 80));
+                    let id = self.world.map.boss_music.clone();
+                    if !id.is_empty() {
+                        self.play_music(ctx, &id, 1.0);
+                        self.boss_music = true;
+                    }
+                }
+                Event::BossDied { pos, .. } => {
+                    self.director.request(Moment::Boss);
+                    self.sfx(ctx, "boss_die");
+                    self.juice.flash([1.0, 1.0, 1.0, 0.7], 0.6);
+                    for (k, r) in [60.0, 110.0, 170.0].iter().enumerate() {
+                        self.juice.ring(pos - Vec2::new(0.0, 16.0), 4.0 + k as f32 * 10.0, *r, 0.5 + k as f32 * 0.15, if k == 1 { GOLD } else { WHITE });
+                    }
+                    self.juice.debris(pos - Vec2::new(0.0, 16.0), Vec2::ZERO, 40, GOLD, 180.0, true);
+                    self.juice.add_trauma(0.8, 1.0);
+                    let s = self.lang.get("ui.boss_down").to_string();
+                    self.hud.banner(&s, GOLD, 3.0);
+                    if self.boss_music {
+                        let id = self.world.map.music.clone();
+                        self.play_music(ctx, &id, 2.0);
+                        self.boss_music = false;
+                    }
+                }
+                Event::ChestDropped { pos, big } => {
+                    self.sfx(ctx, "chest_drop");
+                    self.juice.ring(pos - Vec2::new(0.0, 8.0), 2.0, if big { 50.0 } else { 30.0 }, 0.5, GOLD);
+                }
+                Event::Frozen { pos } => {
+                    self.juice.anim_ex(self.vis.ice_shatter, pos - Vec2::new(0.0, 8.0), 0.18, 0.0, 1.0, ICE, true);
+                    self.sfx(ctx, "frozen");
+                }
+            }
+        }
+        // un gros impact (explosion, seisme...) qui touche beaucoup d'ennemis : ralenti tres court
+        if self.tick_area_hits >= 18 && self.director.request(Moment::Impact) {
+            self.juice.flash([1.0, 1.0, 0.9, 0.12], 0.12);
+        }
+        self.events = evs;
+    }
+
+    /// Grosse vague vaincue : effets (toujours) et ralenti (si le directeur l'accorde).
+    fn mass_kill(&mut self, ctx: &mut Ctx) {
+        if self.mass_fx_cd > 0.0 {
+            return;
+        }
+        self.mass_fx_cd = 2.5;
+        let pos = self.world.player.pos - Vec2::new(0.0, 8.0);
+        let slowed = self.director.request(Moment::MassKill);
+        self.sfx(ctx, "mass_kill");
+        self.juice.ring(pos, 10.0, 200.0, 0.5, with_alpha(GOLD, 0.8));
+        self.juice.add_trauma(0.2, 0.5);
+        if slowed {
+            self.juice.flash([1.0, 1.0, 0.85, 0.16], 0.25);
+            self.juice.ring(pos, 4.0, 120.0, 0.4, WHITE);
+        }
+    }
+
+    /// Niveaux et coffres en attente : ouvre l'ecran correspondant.
+    fn check_pending(&mut self, ctx: &mut Ctx) -> bool {
+        // test de charge : choix automatiques, sans ecran
+        if self.opts.bench.is_some() {
+            while self.world.pending_levels > 0 {
+                self.world.pending_levels -= 1;
+                let o = self.world.roll_offers();
+                self.world.apply_offer(o[0]);
+            }
+            while let Some(big) = self.world.pending_chests.pop() {
+                self.world.open_chest(big);
+            }
+            return false;
+        }
+        if self.world.pending_levels > 0 {
+            let offers = self.world.roll_offers();
+            self.state = State::LevelUp { offers, sel: 0, t: 0.0 };
+            ctx.audio.duck_music(0.45, 0.2);
+            return true;
+        }
+        if !self.world.pending_chests.is_empty() {
+            let big = self.world.pending_chests.remove(0);
+            let reward = self.world.open_chest(big);
+            self.state = State::Chest { reward, big, t: 0.0 };
+            ctx.audio.duck_music(0.35, 0.2);
+            return true;
+        }
+        false
+    }
+
+    fn resume(&mut self, ctx: &mut Ctx) {
+        if !self.check_pending(ctx) {
+            self.state = State::Playing;
+            ctx.audio.duck_music(1.0, 0.25);
+        }
+        self.suppress = true;
+    }
+
+    fn bench_refill(&mut self) {
+        let Some(n) = self.opts.bench else { return };
+        let have = self.world.horde.len() as u32;
+        if have < n {
+            let kinds = ["soldier_green", "soldier_blue", "rat", "rope"];
+            let k = self.content.enemy_index(kinds[self.rng.below(4) as usize]).unwrap_or(0);
+            self.world.spawn_burst(k, (n - have).min(64), Pattern::Pack);
+        }
+    }
+
+    /// Applique un changement d'option.
+    fn change_option(&mut self, ctx: &mut Ctx, o: Opt, step: i32, set: Option<f32>) {
+        let s = &mut self.settings;
+        match o {
+            Opt::Language => {
+                let cur = LANGS.iter().position(|&c| c == s.lang).unwrap_or(0) as i32;
+                let next = (cur + step).rem_euclid(LANGS.len() as i32) as usize;
+                s.lang = LANGS[next].to_string();
+                self.lang = Lang::load(&ctx.root, &s.lang);
+            }
+            Opt::Video => {
+                let all = VideoFilter::ALL;
+                let cur = all.iter().position(|&f| f == s.video).unwrap_or(0) as i32;
+                s.video = all[(cur + step).rem_euclid(all.len() as i32) as usize];
+                ctx.set_video(s.video, s.aspect);
+            }
+            Opt::Aspect => {
+                s.aspect = if s.aspect == Aspect::Wide { Aspect::Classic } else { Aspect::Wide };
+                ctx.set_video(s.video, s.aspect);
+            }
+            Opt::Filter => {
+                let all = AudioFilter::ALL;
+                let cur = all.iter().position(|&f| f == s.filter).unwrap_or(0) as i32;
+                s.filter = all[(cur + step).rem_euclid(all.len() as i32) as usize];
+                s.apply_audio(&mut ctx.audio);
+            }
+            Opt::Master | Opt::Music | Opt::Sfx => {
+                let v = match o {
+                    Opt::Master => &mut s.master,
+                    Opt::Music => &mut s.music,
+                    _ => &mut s.sfx,
+                };
+                *v = match set {
+                    Some(x) => x,
+                    None => ((*v * 10.0).round() + step as f32).clamp(0.0, 10.0) / 10.0,
+                };
+                s.apply_audio(&mut ctx.audio);
+                ctx.audio.duck_music(0.35, 0.05);
+            }
+            Opt::Fullscreen => {
+                s.fullscreen = !ctx.fullscreen;
+                ctx.set_fullscreen(s.fullscreen);
+            }
+            Opt::Back => {}
+        }
+        self.sfx(ctx, "cursor");
+    }
+
+    /// Logique des menus (temps reel).
+    fn update_menus(&mut self, ctx: &mut Ctx, nav: &NavIn, dt: f32) {
+        let view = ctx.view;
+        let pause = ctx.input.action_pressed(&self.bindings, "pause");
+        let state = std::mem::replace(&mut self.state, State::Playing);
+        self.state = match state {
+            State::Title { mut sel } => {
+                let (mut pick, moved) = title::input_title(nav, view, &mut sel);
+                if self.menu_t < 0.5 {
+                    // pendant le fondu d'ouverture : pas de choix par un appui reste enfonce
+                    pick = None;
+                }
+                if pick.is_some() {
+                    log::info!("ecran titre : choix {:?} (confirmer {}, clic {})", pick, nav.confirm, nav.click);
+                }
+                if moved {
+                    self.sfx(ctx, "cursor");
+                }
+                match pick {
+                    Some(0) => {
+                        self.sfx(ctx, "pick");
+                        self.restart(ctx);
+                        return;
+                    }
+                    Some(1) => {
+                        self.sfx(ctx, "pick");
+                        self.settings.fullscreen = ctx.fullscreen;
+                        State::Options { sel: 0, from_title: true }
+                    }
+                    Some(2) => {
+                        self.sfx(ctx, "pick");
+                        State::About { sel: 0, toast: 0.0 }
+                    }
+                    Some(_) => {
+                        ctx.quit();
+                        State::Title { sel }
+                    }
+                    None => State::Title { sel },
+                }
+            }
+            State::About { mut sel, toast } => {
+                let toast = (toast - dt).max(0.0);
+                let font = ctx.atlas.font("main");
+                let (pick, moved) = title::input_about(nav, view, &self.lang, font, &mut sel);
+                if moved {
+                    self.sfx(ctx, "cursor");
+                }
+                if nav.back {
+                    self.sfx(ctx, "pick");
+                    State::Title { sel: 2 }
+                } else {
+                    match pick.map(|k| (k, title::about_url(&self.links, k))) {
+                        Some((_, None)) => {
+                            self.sfx(ctx, "pick");
+                            State::Title { sel: 2 }
+                        }
+                        Some((_, Some(url))) => {
+                            let ok = Links::open(url);
+                            self.sfx(ctx, if ok { "pick" } else { "error" });
+                            State::About { sel, toast: if ok { 2.0 } else { 0.0 } }
+                        }
+                        None => State::About { sel, toast },
+                    }
+                }
+            }
+            State::Playing => {
+                let lost_focus = !ctx.input.focused && self.opts.bench.is_none() && !self.opts.demo;
+                if pause || lost_focus {
+                    self.sfx(ctx, "pause");
+                    ctx.audio.duck_music(0.35, 0.25);
+                    State::Paused { sel: 0 }
+                } else {
+                    State::Playing
+                }
+            }
+            State::Paused { mut sel } => {
+                let (pick, moved) = menus::input_pause(nav, view, &mut sel);
+                if moved {
+                    self.sfx(ctx, "cursor");
+                }
+                match pick {
+                    _ if nav.back => {
+                        self.sfx(ctx, "unpause");
+                        self.resume(ctx);
+                        return;
+                    }
+                    Some(0) => {
+                        self.sfx(ctx, "unpause");
+                        self.resume(ctx);
+                        return;
+                    }
+                    Some(1) => {
+                        self.sfx(ctx, "pick");
+                        self.settings.fullscreen = ctx.fullscreen;
+                        State::Options { sel: 0, from_title: false }
+                    }
+                    Some(2) => {
+                        self.restart(ctx);
+                        return;
+                    }
+                    Some(_) => {
+                        self.sfx(ctx, "pick");
+                        self.to_title(ctx);
+                        return;
+                    }
+                    None => State::Paused { sel },
+                }
+            }
+            State::Options { mut sel, from_title } => {
+                let (act, moved) = menus::input_options(nav, view, &mut sel);
+                if moved {
+                    self.sfx(ctx, "cursor");
+                }
+                match act {
+                    OptAction::Back => {
+                        self.settings.save(&ctx.root);
+                        self.sfx(ctx, "pick");
+                        if from_title {
+                            State::Title { sel: 1 }
+                        } else {
+                            State::Paused { sel: 1 }
+                        }
+                    }
+                    OptAction::Step(o, d) => {
+                        self.change_option(ctx, o, d, None);
+                        State::Options { sel, from_title }
+                    }
+                    OptAction::Set(o, v) => {
+                        self.change_option(ctx, o, 0, Some(v));
+                        State::Options { sel, from_title }
+                    }
+                    OptAction::None => State::Options { sel, from_title },
+                }
+            }
+            State::LevelUp { offers, mut sel, t } => {
+                let t = t + dt;
+                let (mut pick, moved) = menus::input_levelup(nav, view, offers.len(), &mut sel, t);
+                if moved {
+                    self.sfx(ctx, "cursor");
+                }
+                if self.opts.demo && t > 1.2 {
+                    pick = Some(0);
+                }
+                match pick {
+                    Some(k) => {
+                        self.world.apply_offer(offers[k]);
+                        self.world.pending_levels = self.world.pending_levels.saturating_sub(1);
+                        self.sfx(ctx, "pick");
+                        self.juice.flash([1.0, 1.0, 1.0, 0.25], 0.12);
+                        self.resume(ctx);
+                        return;
+                    }
+                    None => State::LevelUp { offers, sel, t },
+                }
+            }
+            State::Chest { reward, big, t } => {
+                let t2 = t + dt;
+                if t < menus::CHEST_OPEN && t2 >= menus::CHEST_OPEN {
+                    self.sfx(ctx, "chest_open");
+                    if reward.evolution.is_some() {
+                        self.sfx(ctx, "evolution");
+                    }
+                }
+                let go = t2 >= menus::CHEST_DONE && (nav.confirm || nav.click || (self.opts.demo && t2 > menus::CHEST_DONE + 0.5));
+                if go {
+                    self.sfx(ctx, "pick");
+                    self.resume(ctx);
+                    return;
+                }
+                State::Chest { reward, big, t: t2 }
+            }
+            State::Dying(t) => {
+                let t = t + dt;
+                if t > 1.8 {
+                    State::Dead { t: 0.0, sel: 0 }
+                } else {
+                    State::Dying(t)
+                }
+            }
+            State::Dead { t, mut sel } => {
+                let t = t + dt;
+                if t <= menus::DEAD_LOCK {
+                    State::Dead { t, sel }
+                } else {
+                    let (pick, moved) = menus::input_dead(nav, view, &mut sel);
+                    if moved {
+                        self.sfx(ctx, "cursor");
+                    }
+                    match pick {
+                        Some(0) => {
+                            self.sfx(ctx, "pick");
+                            self.restart(ctx);
+                            return;
+                        }
+                        Some(_) => {
+                            self.sfx(ctx, "pick");
+                            self.to_title(ctx);
+                            return;
+                        }
+                        None => State::Dead { t, sel },
+                    }
+                }
+            }
+        };
+    }
+
+    fn draw_world(&mut self, ctx: &Ctx, alpha: f32, list: &mut DrawList, cam: Vec2) {
+        let atlas = &ctx.atlas;
+        let w = &self.world;
+        let half = ctx.view * 0.5;
+        let lo = cam - half - Vec2::splat(48.0);
+        let hi = cam + half + Vec2::splat(64.0);
+        let in_view = |p: Vec2| p.x >= lo.x && p.y >= lo.y && p.x <= hi.x && p.y <= hi.y;
+        let wt = w.time - DT * (1.0 - alpha);
+        let rt = ctx.real_time as f32;
+
+        // sol
+        list.set(Space::World, Blend::Alpha);
+        let tiles = &self.vis.ground;
+        if !tiles.is_empty() {
+            let t0 = ((cam - half) / 16.0).floor();
+            let t1 = ((cam + half) / 16.0).ceil();
+            for ty in t0.y as i32..t1.y as i32 {
+                for tx in t0.x as i32..t1.x as i32 {
+                    let h = (tx.wrapping_mul(73856093) ^ ty.wrapping_mul(19349663)) as u32;
+                    let h = h.wrapping_mul(2654435761) >> 16;
+                    let r = h % 1000;
+                    let idx = match r {
+                        0..=919 => 0,
+                        920..=969 => 1 + (h / 1000 % 3) as usize,
+                        970..=996 => 4 + (h / 1000 % 2) as usize,
+                        _ => 6,
+                    };
+                    let f = &tiles[idx.min(tiles.len() - 1)];
+                    list.frame(f, Vec2::new(tx as f32 * 16.0, ty as f32 * 16.0), &Params::default());
+                }
+            }
+        }
+
+        // zones au sol : flammes, annonces des colonnes de feu
+        let white = self.vis.white;
+        for z in &w.zones {
+            if !in_view(z.pos) {
+                continue;
+            }
+            if !z.fired {
+                // cercle d'annonce qui se resserre
+                let u = (z.age / z.delay.max(0.01)).clamp(0.0, 1.0);
+                let r = z.radius * (1.4 - 0.4 * u);
+                let segs = 16;
+                for k in 0..segs {
+                    let a = k as f32 / segs as f32 * TAU + rt * 2.0;
+                    let p = z.pos + Vec2::new(a.cos(), a.sin() * 0.5) * r;
+                    list.rect(&white, p.round(), Vec2::splat(2.0), [1.0, 0.5, 0.2, 0.4 + 0.5 * u]);
+                }
+                continue;
+            }
+            let left = z.delay + z.life - z.age;
+            let fade = (left / 0.35).clamp(0.0, 1.0);
+            let sc = (z.radius / 12.0).clamp(1.0, 2.0).round();
+            let anim = if left < 0.35 { self.vis.flame_fade } else { self.vis.flame };
+            let t = if left < 0.35 { 0.35 - left } else { wt + z.pos.x * 0.01 };
+            let f = atlas.frame(anim, t);
+            list.frame(f, z.pos + Vec2::new(0.0, 2.0), &Params::default().scale(Vec2::splat(sc)).color([1.0, 1.0, 1.0, 0.6 + 0.4 * fade]));
+        }
+
+        // ombres
+        let shadow = atlas.frame(self.vis.shadow, 0.0);
+        let sh = Params::default().color([1.0, 1.0, 1.0, 0.55]);
+        let h = &w.horde;
+        for i in 0..h.len() {
+            let p = h.prev[i].lerp(h.pos[i], alpha);
+            if !in_view(p) {
+                continue;
+            }
+            let big = self.vis.shadow_size[h.kind[i] as usize];
+            let es = self.vis.enemy_scale[h.kind[i] as usize];
+            let prm = if big >= 2 { sh.scale(Vec2::new(2.0, 1.0) * es) } else { sh.scale(Vec2::splat(es)) };
+            list.frame(shadow, p, &prm);
+        }
+        let pp = w.player.prev.lerp(w.player.pos, alpha);
+        list.frame(shadow, pp, &sh);
+        for p in &w.projectiles {
+            if p.kind == ProjKind::Lob && p.z > 0.5 {
+                let gp = p.prev.lerp(p.pos, alpha) + Vec2::new(0.0, 4.0);
+                list.frame(shadow, gp, &sh.scale(Vec2::new(0.75, 1.0)));
+            }
+        }
+        for s in &w.shots {
+            if s.lob {
+                list.frame(shadow, s.prev.lerp(s.pos, alpha), &sh.scale(Vec2::new(0.75, 1.0)));
+            }
+        }
+
+        // objets au sol
+        let pk = &w.pickups;
+        for i in 0..pk.len() {
+            let p = pk.prev[i].lerp(pk.pos[i], alpha);
+            if !in_view(p) {
+                continue;
+            }
+            let k = pk.kind[i];
+            let (anim, t) = match k {
+                PickupKind::Heart => (self.vis.heart_small, 0.0),
+                PickupKind::Chest => (self.vis.chest[0], 0.0),
+                PickupKind::BigChest => (self.vis.chest[1], 0.0),
+                k => (self.vis.rupees[k as usize], wt + i as f32 * 0.37),
+            };
+            if pk.z[i] > 0.5 {
+                list.frame(shadow, p, &sh.scale(Vec2::new(0.5, 1.0)));
+            }
+            let f = atlas.frame(anim, t);
+            let pos = p - Vec2::new(0.0, pk.z[i].round());
+            list.frame(f, pos, &Params::default());
+            if k.is_chest() {
+                // le coffre scintille pour attirer l'oeil
+                let glow = 0.25 + 0.25 * (rt * 5.0).sin();
+                list.set(Space::World, Blend::Add);
+                list.frame(f, pos, &Params::default().color([1.0, 0.85, 0.3, glow]));
+                list.set(Space::World, Blend::Alpha);
+            }
+        }
+
+        // personnages tries par profondeur (y)
+        self.sort.clear();
+        for i in 0..h.len() {
+            let p = h.prev[i].lerp(h.pos[i], alpha);
+            if !in_view(p) {
+                continue;
+            }
+            self.sort.push((((p.y + 65536.0) * 16.0) as u32, i as u32));
+        }
+        self.sort.push((((pp.y + 65536.0) * 16.0) as u32, u32::MAX));
+        self.sort.sort_unstable_by_key(|e| e.0);
+
+        // images remanentes du dash (sous les personnages)
+        self.juice.draw_under(list);
+        list.set(Space::World, Blend::Alpha);
+        let player = &w.player;
+        let (panim, pflip) = self.vis.player.pick(player.face, player.moving);
+        let pframe = *atlas.frame(panim, if player.moving { player.walk_t } else { 0.0 });
+        for &(_, id) in &self.sort {
+            if id == u32::MAX {
+                // Link : clignote pendant l'invulnerabilite apres un coup
+                let blink = player.hurt_t < self.content.rules.hurt_iframes && ((player.hurt_t * 24.0) as i32) % 2 == 1;
+                if !blink || !player.alive {
+                    let mut prm = Params::default().flip(pflip);
+                    if player.hurt_t < 0.12 {
+                        prm = prm.flash([1.0, 1.0, 1.0], 1.0);
+                    }
+                    if !player.alive {
+                        prm = prm.color([1.0, 0.75, 0.75, 1.0]);
+                    }
+                    list.frame(&pframe, pp, &prm);
+                }
+                continue;
+            }
+            let i = id as usize;
+            let mut p = h.prev[i].lerp(h.pos[i], alpha);
+            let k = h.kind[i] as usize;
+            let windup = h.state[i] == ST_WINDUP;
+            let (anim, flip) = self.vis.enemies[k].pick(h.face[i], h.z[i], windup);
+            let phase = (h.seed[i] & 1023) as f32 * 0.001;
+            // fige pendant le gel et l'etourdissement
+            let t = if h.held(i) { phase } else { wt + phase };
+            let f = atlas.frame(anim, t);
+            let es = self.vis.enemy_scale[k];
+            let mut prm = Params::default().flip(flip);
+            let hurt = h.hurt[i];
+            if windup {
+                // annonce d'attaque : tremble et clignote
+                p.x += ((rt * 50.0 + phase * 10.0).sin()).round();
+                if (rt * 12.0).fract() < 0.5 {
+                    prm = prm.flash([1.0, 1.0, 1.0], 0.55);
+                }
+            }
+            if h.freeze[i] > 0.0 {
+                prm = prm.flash([0.55, 0.8, 1.0], 0.55);
+            } else if h.burn[i] > 0.0 && (rt * 10.0 + phase * 7.0).fract() < 0.4 {
+                prm = prm.flash([1.0, 0.5, 0.15], 0.35);
+            }
+            if hurt < 0.1 {
+                prm = prm.flash([1.0, 1.0, 1.0], 1.0 - hurt / 0.1 * 0.5);
+            }
+            if hurt < 0.15 {
+                let u = 1.0 - hurt / 0.15;
+                prm.scale = Vec2::new(prm.scale.x * (1.0 + 0.25 * u), 1.0 - 0.2 * u);
+            }
+            prm.scale *= es;
+            let pos = p - Vec2::new(0.0, h.z[i].round());
+            if h.elite[i] {
+                // contour dore : silhouette decalee d'un pixel dans les 4 directions
+                let gold = Params { flash: [1.0, 0.82, 0.25, 1.0], ..prm };
+                for d in [Vec2::X, -Vec2::X, Vec2::Y, -Vec2::Y] {
+                    list.frame(f, pos + d * es, &gold);
+                }
+            }
+            list.frame(f, pos, &prm);
+            if h.stun[i] > 0.0 {
+                // petites etoiles qui tournent au-dessus de la tete
+                let top = pos - Vec2::new(0.0, f.h as f32 * es + 2.0);
+                for s in 0..2 {
+                    let a = rt * 8.0 + s as f32 * std::f32::consts::PI;
+                    let q = top + Vec2::new(a.cos() * 5.0, a.sin() * 1.5);
+                    list.rect(&white, q.round(), Vec2::ONE, [1.0, 1.0, 0.5, 1.0]);
+                }
+            }
+        }
+
+        // epee : lame + trainee
+        if let Some(sw) = player.swing {
+            let master = self.content.weapons[sw.weapon as usize].evolved;
+            let t_r = (sw.t - DT * (1.0 - alpha)).max(0.0);
+            let blade = atlas.frame(if master { self.vis.player.weapon_master } else { self.vis.player.weapon }, 0.0);
+            let hand = pp - Vec2::new(0.0, 9.0);
+            let glow = if master { [0.6, 0.85, 1.0] } else { [1.0, 1.0, 0.9] };
+            list.set(Space::World, Blend::Add);
+            // croissant de lumiere le long de l'arc deja parcouru
+            let a0 = sw.angle_at(0.0);
+            let a1 = sw.angle_at(t_r);
+            let steps = 18;
+            for s in 0..=steps {
+                let u = s as f32 / steps as f32;
+                let a = a0 + (a1 - a0) * u;
+                let fade = u * u;
+                for (rr, sz, al) in [(sw.radius * 0.95, 2.0, 0.55), (sw.radius * 0.75, 1.0, 0.35)] {
+                    let q = hand + Vec2::from_angle(a) * rr;
+                    list.rect(&white, q.round(), Vec2::splat(sz), [glow[0], glow[1], glow[2], al * fade]);
+                }
+            }
+            for k in 1..=4 {
+                let a = sw.angle_at((t_r - k as f32 * 0.014).max(0.0));
+                let prm = Params::default().rot(a).color([0.8, 0.9, 1.0, 0.5 - k as f32 * 0.1]);
+                list.frame(blade, hand + Vec2::from_angle(a) * 4.0, &prm);
+            }
+            list.set(Space::World, Blend::Alpha);
+            let a = sw.angle_at(t_r);
+            let len_scale = sw.radius / 30.0;
+            let prm = Params::default().rot(a).scale(Vec2::new(len_scale.max(1.0), 1.0));
+            list.frame(blade, hand + Vec2::from_angle(a) * 4.0, &prm);
+        }
+
+        // projectiles du joueur
+        for p in &w.projectiles {
+            let pos = p.prev.lerp(p.pos, alpha);
+            if !in_view(pos) {
+                continue;
+            }
+            let wv = &self.vis.weapons[p.weapon as usize];
+            let (anim, orient) = match (p.beam, wv.beam, wv.sprite) {
+                (true, Some(b), _) => b,
+                (false, _, Some(s)) => (s, wv.orient),
+                _ => continue,
+            };
+            let mut prm = Params::default();
+            if let Orient::Angle(up) = orient {
+                prm = prm.rot(p.rot + if up { FRAC_PI_2 } else { 0.0 });
+            }
+            if let Some(tint) = wv.tint {
+                prm = prm.flash(tint, 0.45);
+            }
+            let f = atlas.frame(anim, wt + p.age);
+            match p.kind {
+                ProjKind::Lob => {
+                    // bombe posee : la meche clignote de plus en plus vite
+                    if p.age >= p.flight {
+                        let u = ((p.age - p.flight) / p.life.max(0.01)).min(1.0);
+                        if (p.age * (6.0 + u * 22.0)).fract() < 0.5 {
+                            prm = prm.flash([1.0, 0.3, 0.2], 0.6);
+                        }
+                    }
+                    list.frame(f, pos + Vec2::new(0.0, 4.0) - Vec2::new(0.0, p.z.round()), &prm);
+                }
+                _ => {
+                    list.frame(f, pos, &prm);
+                    if p.beam {
+                        list.set(Space::World, Blend::Add);
+                        list.frame(f, pos, &prm.color([0.6, 0.85, 1.0, 0.6]));
+                        list.set(Space::World, Blend::Alpha);
+                    }
+                }
+            }
+        }
+
+        // objets en orbite (Canne de Byrna, fees)
+        for (slot, ws) in w.weapons.iter().enumerate() {
+            let def = &self.content.weapons[ws.id as usize];
+            if def.kind != WeaponKind::Orbit || ws.active <= 0.0 {
+                continue;
+            }
+            let Some(anim) = self.vis.weapons[ws.id as usize].sprite else { continue };
+            let phase = ws.phase - ws.stats.speed * DT * (1.0 - alpha);
+            let a = (ws.active / 0.3).min(1.0);
+            for (k, q) in w.orbit_points(slot, pp - Vec2::new(0.0, 6.0), phase).into_iter().enumerate() {
+                let f = atlas.frame(anim, wt + k as f32 * 0.13);
+                list.frame(f, q, &Params::default().color([1.0, 1.0, 1.0, a]));
+            }
+        }
+
+        // tirs ennemis
+        for s in &w.shots {
+            let pos = s.prev.lerp(s.pos, alpha);
+            if !in_view(pos) {
+                continue;
+            }
+            let Some(&(anim, orient)) = self.vis.shots.get(s.sprite as usize) else { continue };
+            let mut prm = Params::default();
+            if let Orient::Angle(up) = orient {
+                prm = prm.rot(s.vel.y.atan2(s.vel.x) + if up { FRAC_PI_2 } else { 0.0 });
+            }
+            let f = atlas.frame(anim, wt + s.age);
+            if s.lob {
+                // bombe du boss : clignote au sol avant d'exploser
+                if s.age >= s.flight && (s.age * 14.0).fract() < 0.5 {
+                    prm = prm.flash([1.0, 0.3, 0.2], 0.7);
+                }
+                list.frame(f, pos - Vec2::new(0.0, s.z.round()), &prm);
+            } else {
+                list.frame(f, pos, &prm);
+            }
+        }
+
+        // jauges sous Link
+        self.hud.draw_under_player(list, w, &self.vis, pp);
+
+        // nouvelles images remanentes pendant le dash
+        if player.dashing() {
+            self.ghost_t -= self.frame_dt;
+            if self.ghost_t <= 0.0 {
+                self.ghost_t = 0.025;
+                self.juice.ghost(pframe, pp, pflip, 0.22, [0.45, 0.75, 1.0, 1.0]);
+            }
+        }
+    }
+
+    /// Fleches au bord de l'ecran vers les coffres hors champ.
+    fn draw_chest_markers(&self, ctx: &Ctx, list: &mut DrawList, cam: Vec2) {
+        let view = ctx.view;
+        let pk = &self.world.pickups;
+        list.set(Space::Ui, Blend::Alpha);
+        for i in 0..pk.len() {
+            if !pk.kind[i].is_chest() {
+                continue;
+            }
+            let ui = pk.pos[i] - cam + view * 0.5;
+            let m = 18.0;
+            if ui.x >= 0.0 && ui.y >= 0.0 && ui.x <= view.x && ui.y <= view.y {
+                continue;
+            }
+            let c = Vec2::new(ui.x.clamp(m, view.x - m), ui.y.clamp(m + 60.0, view.y - m));
+            let blink = (ctx.real_time * 3.0).fract() < 0.7;
+            let anim = self.vis.chest[(pk.kind[i] == PickupKind::BigChest) as usize];
+            list.frame(ctx.atlas.frame(anim, 0.0), c + Vec2::new(0.0, 6.0), &Params::default().color([1.0, 1.0, 1.0, if blink { 1.0 } else { 0.6 }]));
+            // petite fleche orientee vers le coffre
+            let d = (ui - c).normalize_or_zero();
+            for s in 0..4 {
+                let q = c + d * (12.0 + s as f32);
+                let w = (4 - s) as f32;
+                list.rect(&self.vis.white, (q - Vec2::splat(w * 0.5)).round(), Vec2::splat(w), with_alpha(GOLD, 0.9));
+            }
+        }
+    }
+
+    fn draw_overlays(&self, ctx: &Ctx, list: &mut DrawList) {
+        let view = ctx.view;
+        let white = &self.vis.white;
+        list.set(Space::Ui, Blend::Alpha);
+        let (c, t, d) = self.juice.flash;
+        if t > 0.0 {
+            list.rect(white, Vec2::ZERO, view, with_alpha(c, t / d));
+        }
+        let lang = &self.lang;
+        match &self.state {
+            State::Title { .. } | State::About { .. } => {}
+            State::Paused { sel } => menus::draw_pause(list, ctx, &self.vis, lang, *sel),
+            State::Options { sel, .. } => {
+                let code_idx = LANGS.iter().position(|&c| c == self.settings.lang).unwrap_or(0);
+                let v = OptValues {
+                    lang_name: &self.lang_names[code_idx],
+                    video: ctx.video,
+                    aspect: ctx.aspect,
+                    filter: self.settings.filter,
+                    master: self.settings.master,
+                    music: self.settings.music,
+                    sfx: self.settings.sfx,
+                    fullscreen: ctx.fullscreen,
+                };
+                menus::draw_options(list, ctx, &self.vis, lang, *sel, &v);
+            }
+            State::LevelUp { offers, sel, t } => menus::draw_levelup(list, ctx, &self.world, &self.vis, lang, offers, *sel, *t),
+            State::Chest { reward, big, t } => menus::draw_chest(list, ctx, &self.world, &self.vis, lang, reward, *big, *t),
+            State::Dying(t) => {
+                let a = (t / 1.8).min(1.0) * 0.55;
+                list.rect(white, Vec2::ZERO, view, [0.25, 0.0, 0.0, a]);
+            }
+            State::Dead { t, sel } => menus::draw_dead(list, ctx, &self.world, &self.vis, lang, *t, *sel),
+            State::Playing => {}
+        }
+        if self.debug {
+            let fr = ctx.atlas.font("main");
+            let s = &ctx.stats;
+            let w = &self.world;
+            let lines = [
+                format!("{:.0} ips  image {:.2} ms", s.fps, s.frame_ms),
+                format!("sim {:.2} ms  dessin {:.2} ms  rendu {:.2} ms", s.tick_ms, s.draw_ms, s.render_ms),
+                format!("ennemis {}  objets {}  sprites {}", w.horde.len(), w.pickups.len(), s.instances),
+                format!("projectiles {}  zones {}  tirs {}", w.projectiles.len(), w.zones.len(), w.shots.len()),
+                format!("ralentis {} accordes, {} refuses", self.director.stats.0, self.director.stats.1),
+                format!("x{}  vue {}x{}  {}", ctx.scale, view.x as u32, view.y as u32, if ctx.vsync { "synchro" } else { "libre" }),
+                ctx.gpu.clone(),
+            ];
+            let y0 = view.y - 14.0 * lines.len() as f32 - 30.0;
+            list.rect(white, Vec2::new(view.x - 260.0, y0 - 3.0), Vec2::new(256.0, 14.0 * lines.len() as f32 + 4.0), [0.0, 0.0, 0.0, 0.55]);
+            for (k, l) in lines.iter().enumerate() {
+                list.text(fr, l, Vec2::new(view.x - 256.0, y0 + k as f32 * 14.0), rgb(200, 255, 200), engine::draw::Align::Left);
+            }
+        }
+    }
+}
+
+impl GameTrait for Game {
+    fn frame(&mut self, ctx: &mut Ctx, dt: f32) {
+        self.frame_dt = dt;
+        let i = &ctx.input;
+        let (f3, f4, f12) = (i.key_pressed(KeyCode::F3), i.key_pressed(KeyCode::F4), i.key_pressed(KeyCode::F12));
+        if f3 {
+            self.debug = !self.debug;
+        }
+        if f4 {
+            let v = !ctx.vsync;
+            ctx.set_vsync(v);
+        }
+        if f12 {
+            let dir = ctx.root.join("screenshots");
+            let _ = std::fs::create_dir_all(&dir);
+            let p = dir.join(format!("capture_{}.png", (ctx.real_time * 1000.0) as u64));
+            ctx.capture(p);
+        }
+        if self.opts.uicheck {
+            self.opts.uicheck = false;
+            self.ui_check(ctx);
+            ctx.quit();
+            return;
+        }
+        let nav = self.nav.read(ctx, &self.bindings, dt);
+        self.menu_t += dt;
+        self.update_menus(ctx, &nav, dt);
+
+        self.juice.hitstop = (self.juice.hitstop - dt).max(0.0);
+        if matches!(self.state, State::Playing) {
+            self.director.update(dt);
+            self.mass_fx_cd = (self.mass_fx_cd - dt).max(0.0);
+        }
+        ctx.time_scale = match self.state {
+            _ if self.state.frozen() => 0.0,
+            _ if self.juice.hitstop > 0.0 => 0.0,
+            State::Dying(_) => 0.3,
+            _ => self.director.scale(),
+        };
+        self.juice.update(dt * ctx.time_scale, dt);
+        self.hud.update(dt, &self.world);
+        self.rupee_chain_t -= dt * ctx.time_scale;
+        if self.rupee_chain_t <= 0.0 {
+            self.rupee_chain = 0;
+        }
+        self.world.view_half = ctx.view * 0.5;
+
+        // bip de vie basse facon ALttP
+        let p = &self.world.player;
+        if matches!(self.state, State::Playing) && p.alive && p.hp <= p.max_hp * 0.25 {
+            self.low_hp_t -= dt;
+            if self.low_hp_t <= 0.0 {
+                self.low_hp_t = 0.9;
+                self.sfx(ctx, "low_hp");
+            }
+        } else {
+            self.low_hp_t = 0.0;
+        }
+
+        // bilan periodique en test de charge
+        if self.opts.bench.is_some() {
+            self.report_t += dt;
+            if self.report_t >= 2.0 {
+                self.report_t = 0.0;
+                let s = &ctx.stats;
+                log::info!(
+                    "[charge] {} ennemis | {:.0} ips ({:.2} ms) | sim {:.2} ms | dessin {:.2} ms | rendu {:.2} ms | {} sprites",
+                    self.world.horde.len(),
+                    s.fps,
+                    s.frame_ms,
+                    s.tick_ms,
+                    s.draw_ms,
+                    s.render_ms,
+                    s.instances
+                );
+            }
+        }
+    }
+
+    fn tick(&mut self, ctx: &mut Ctx) {
+        if self.state.frozen() {
+            return;
+        }
+        let input = self.read_input(ctx);
+        // les appuis accumules pendant un menu ne doivent pas declencher de dash au retour
+        self.suppress = false;
+        self.world.tick(&input);
+        self.on_events(ctx);
+        self.bench_refill();
+        if matches!(self.state, State::Playing) {
+            self.check_pending(ctx);
+        }
+    }
+
+    fn draw(&mut self, ctx: &Ctx, alpha: f32, list: &mut DrawList) -> Frame {
+        if self.state.in_title() {
+            let white = self.vis.white;
+            match &self.state {
+                State::About { sel, toast } => {
+                    title::draw_about(list, ctx, &self.title_vis, &self.lang, &white, &self.links, *sel, self.menu_t, *toast)
+                }
+                State::Title { sel } => title::draw_title(list, ctx, &self.title_vis, &self.lang, &white, *sel, self.menu_t),
+                _ => {
+                    // options ouvertes depuis le titre : le decor reste visible dessous
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    self.draw_overlays(ctx, list);
+                }
+            }
+            return Frame { camera: Vec2::ZERO, clear: [0.0, 0.0, 0.0] };
+        }
+        let w = &self.world;
+        let pp = w.player.prev.lerp(w.player.pos, alpha) - Vec2::new(0.0, 8.0);
+        let cam = match self.cam {
+            None => pp,
+            Some(c) => c + (pp - c) * (1.0 - (-self.frame_dt * 12.0).exp()),
+        };
+        self.cam = Some(cam);
+        let cam_shaken = cam + self.juice.shake;
+        self.draw_world(ctx, alpha, list, cam_shaken);
+        self.juice.draw_over(list, &ctx.atlas, &self.vis.white);
+        self.juice.draw_numbers(list, &ctx.atlas);
+        self.draw_chest_markers(ctx, list, cam_shaken);
+        self.hud.draw(list, ctx, &self.world, &self.vis, &self.lang);
+        self.draw_overlays(ctx, list);
+        Frame { camera: cam_shaken, clear: [0.0, 0.0, 0.0] }
+    }
+
+    fn exit(&mut self, ctx: &mut Ctx) {
+        if self.opts.bench.is_some() {
+            let s = &ctx.stats;
+            println!(
+                "BILAN charge : {} ennemis, {:.0} ips (image {:.2} ms), sim {:.2} ms/pas, dessin {:.2} ms, rendu {:.2} ms, {} sprites, x{} ({}x{})",
+                self.world.horde.len(),
+                s.fps,
+                s.frame_ms,
+                s.tick_ms,
+                s.draw_ms,
+                s.render_ms,
+                s.instances,
+                ctx.scale,
+                ctx.view.x,
+                ctx.view.y
+            );
+        }
+        if self.opts.demo || self.opts.bench.is_some() {
+            let w = &self.world;
+            let names: Vec<String> = w
+                .weapons
+                .iter()
+                .map(|s| format!("{} {}", self.content.weapon_ids[s.id as usize], s.level))
+                .chain(w.passives.iter().map(|s| format!("{} {}", self.content.passive_ids[s.id as usize], s.level)))
+                .collect();
+            println!(
+                "BILAN partie : {:.0} s, niveau {}, {} ennemis vaincus, vie {:.0}/{:.0}, ralentis {}/{} (accordes/refuses) | {}",
+                w.time,
+                w.player.level,
+                w.player.kills,
+                w.player.hp,
+                w.player.max_hp,
+                self.director.stats.0,
+                self.director.stats.1,
+                names.join(", ")
+            );
+        }
+    }
+}
