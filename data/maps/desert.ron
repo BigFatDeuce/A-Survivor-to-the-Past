@@ -47,7 +47,7 @@
     props: [
         (sprite: "prop_skull", density: 0.03, radius: 10.0, solid: true),
         (sprite: "prop_cactus", density: 0.06, radius: 6.0, solid: true),
-        (sprite: "prop_desert_plant", density: 0.05, radius: 6.0, solid: true),
+        (sprite: "prop_desert_plant", density: 0.05, radius: 6.0, solid: false, breakable: true, break_fx: "fx_bush_break"),
         (sprite: "prop_boulder", density: 0.025, radius: 12.0, solid: true),
     ],
 )

@@ -335,7 +335,7 @@ impl World {
                 if can_hurt && h.z[i] < 6.0 && h.freeze[i] <= 0.0 {
                     let rr = self.player.radius + h.radius[i] * 0.75;
                     let dmg = def.damage * h.power[i];
-                    if dist < rr && contact.is_none_or(|d| dmg > d) {
+                    if dmg > 0.0 && dist < rr && contact.is_none_or(|d| dmg > d) {
                         contact = Some(dmg);
                     }
                 }

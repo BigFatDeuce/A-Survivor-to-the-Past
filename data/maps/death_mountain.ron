@@ -1,0 +1,54 @@
+// Montagne de la Mort
+// Stage 6 (bonus, ouvert par la victoire a la Pyramide) : vent des sommets, Lynels et Tektites,
+// puis les combats de la Tour de Ganon (Lanmola en mi-parcours, Agahnim au sommet).
+// Le boss final apparait a 9:00 ; sa defaite ouvre la porte de sortie (victoire en la franchissant).
+// props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde).
+(
+    name: "Montagne de la Mort",
+    order: 6,
+    music: "lost_ancient_ruins",
+    boss_music: "anger_of_the_guardians",
+    final_music: "priest_of_the_dark_order",
+    ground: "mountain",
+    weather: Clear,
+    ambience: Some("howling_wind"),
+    tint: Some((0.9, 0.7, 0.5, 0.05)),
+    max_enemies: 4800,
+    duration: 540.0,
+    waves: [
+        (enemy: "tektite", from: 0.0, to: 900.0, rate: (1.0, 5.5), cap: 450),
+        (enemy: "keese", from: 10.0, to: 900.0, rate: (0.5, 4.0), cap: 300),
+        (enemy: "stalfos", from: 35.0, to: 900.0, rate: (0.4, 3.5), cap: 300),
+        (enemy: "lynel", from: 60.0, to: 900.0, rate: (0.15, 1.6), cap: 80),
+        (enemy: "hardhat", from: 90.0, to: 900.0, rate: (0.3, 3.0), cap: 200),
+        (enemy: "crow", from: 120.0, to: 900.0, rate: (0.3, 3.0), cap: 200),
+        (enemy: "moblin", from: 160.0, to: 900.0, rate: (0.25, 2.5), cap: 150),
+        (enemy: "vulture", from: 200.0, to: 900.0, rate: (0.25, 2.5), cap: 150),
+        (enemy: "buzz_blob", from: 260.0, to: 900.0, rate: (0.25, 2.5), cap: 150),
+        (enemy: "soldier_blue", from: 320.0, to: 900.0, rate: (0.3, 3.0), cap: 250),
+    ],
+    bursts: [
+        (at: 30.0, enemy: "tektite", count: 90, pattern: Ring),
+        (at: 75.0, enemy: "keese", count: 100, pattern: Pack),
+        (at: 130.0, enemy: "lynel", count: 12, pattern: Ring),
+        (at: 190.0, enemy: "stalfos", count: 140, pattern: Ring),
+        (at: 250.0, enemy: "crow", count: 120, pattern: Pack),
+        (at: 340.0, enemy: "tektite", count: 200, pattern: Ring),
+        (at: 420.0, enemy: "lynel", count: 24, pattern: Ring),
+        (at: 495.0, enemy: "soldier_blue", count: 240, pattern: Ring),
+    ],
+    elites: [
+        (at: 60.0, enemy: "lynel"),
+        (at: 150.0, enemy: "hardhat"),
+        (at: 240.0, enemy: "moblin"),
+        (at: 360.0, enemy: "lynel"),
+        (at: 450.0, enemy: "stalfos"),
+    ],
+    boss: Some((at: 270.0, enemy: "lanmola")),
+    final_boss: Some((at: 540.0, enemy: "agahnim")),
+    props: [
+        (sprite: "prop_rock_pile", density: 0.08, radius: 13.0, solid: true),
+        (sprite: "prop_skull", density: 0.01, radius: 10.0, solid: true),
+        (sprite: "prop_light_rock", density: 0.05, radius: 6.0, solid: false, breakable: true, break_fx: "fx_pot_break"),
+    ],
+)

@@ -38,16 +38,29 @@ pub struct CharVis {
     pub weapon: AnimId,
     /// Lame de l'epee de legende.
     pub weapon_master: AnimId,
+    /// Le profil de la planche regarde a gauche (Minish Cap).
+    pub side_faces_left: bool,
 }
 
 impl CharVis {
-    /// (animation, miroir) pour une orientation ; le cote d'origine regarde a droite.
+    pub fn new(atlas: &Atlas, ch: &CharacterDef) -> CharVis {
+        let s = &ch.sprite;
+        CharVis {
+            idle: [atlas.get(s, "idle_down"), atlas.get(s, "idle_side"), atlas.get(s, "idle_up")],
+            walk: [atlas.get(s, "walk_down"), atlas.get(s, "walk_side"), atlas.get(s, "walk_up")],
+            weapon: atlas.get(if ch.weapon_sprite.is_empty() { "sword1" } else { &ch.weapon_sprite }, "h"),
+            weapon_master: atlas.find("sword2", "h").unwrap_or_else(|| atlas.get("sword1", "h")),
+            side_faces_left: ch.side_faces_left,
+        }
+    }
+
+    /// (animation, miroir) pour une orientation.
     pub fn pick(&self, face: u8, moving: bool) -> (AnimId, bool) {
         let set = if moving { &self.walk } else { &self.idle };
         match face {
             FACE_DOWN => (set[0], false),
             FACE_UP => (set[2], false),
-            f => (set[1], f == FACE_LEFT),
+            f => (set[1], if self.side_faces_left { f == FACE_RIGHT } else { f == FACE_LEFT }),
         }
     }
 }
@@ -83,6 +96,10 @@ pub struct WeaponVis {
     pub beam: Option<(AnimId, Orient)>,
     /// Teinte de l'image (fleches d'argent : reflet argente).
     pub tint: Option<[f32; 3]>,
+    /// Chaine entre le joueur et le projectile (grappin).
+    pub chain: bool,
+    /// Lueur des faisceaux (bleutee pour l'epee, orangee pour la Somaria).
+    pub beam_glow: [f32; 3],
 }
 
 pub struct Vis {
@@ -107,6 +124,11 @@ pub struct Vis {
     pub flame: AnimId,
     pub flame_fade: AnimId,
     pub ice_shatter: AnimId,
+    /// Objets rares du decor : filet, fee, medaillon.
+    pub specials: [AnimId; 3],
+    /// Animation de casse de chaque element du decor (meme ordre que `MapDef::props`).
+    pub prop_break: Vec<Option<AnimId>>,
+    pub bomb_red: Option<AnimId>,
     pub icon_heart: AnimId,
     pub icon_rupees: AnimId,
     pub hud_heart: [AnimId; 3],
@@ -118,13 +140,7 @@ pub struct Vis {
 
 impl Vis {
     pub fn new(atlas: &Atlas, content: &Content, ch: &CharacterDef, map: &MapDef) -> Vis {
-        let s = &ch.sprite;
-        let player = CharVis {
-            idle: [atlas.get(s, "idle_down"), atlas.get(s, "idle_side"), atlas.get(s, "idle_up")],
-            walk: [atlas.get(s, "walk_down"), atlas.get(s, "walk_side"), atlas.get(s, "walk_up")],
-            weapon: atlas.get(if ch.weapon_sprite.is_empty() { "sword1" } else { &ch.weapon_sprite }, "h"),
-            weapon_master: atlas.find("sword2", "h").unwrap_or_else(|| atlas.get("sword1", "h")),
-        };
+        let player = CharVis::new(atlas, ch);
         let enemies = content
             .enemies
             .iter()
@@ -165,6 +181,8 @@ impl Vis {
                     orient,
                     beam,
                     tint: (id == "silver_bow").then_some([0.8, 0.9, 1.0]),
+                    chain: w.chain,
+                    beam_glow: if w.kind == sim::defs::WeaponKind::Somaria { [1.0, 0.55, 0.25] } else { [0.6, 0.85, 1.0] },
                 }
             })
             .collect();
@@ -189,6 +207,9 @@ impl Vis {
             flame: atlas.get("fx_flame", "0"),
             flame_fade: atlas.get("fx_flame_fade", "0"),
             ice_shatter: atlas.get("fx_ice_shatter", "0"),
+            specials: [atlas.get("pickup_net", "0"), atlas.get("fairy", "0"), atlas.get("pickup_medallion", "0")],
+            prop_break: map.props.iter().map(|p| (!p.break_fx.is_empty()).then(|| atlas.get(&p.break_fx, "0"))).collect(),
+            bomb_red: atlas.find("bobomb", "red"),
             icon_heart: atlas.get("icon_heart", "0"),
             icon_rupees: atlas.get("icon_rupees", "0"),
             hud_heart: [atlas.get("hud_heart", "full"), atlas.get("hud_heart", "half"), atlas.get("hud_heart", "empty")],

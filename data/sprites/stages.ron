@@ -46,5 +46,12 @@
             size: 16,
             tiles: [(1184, 2512), (1296, 2544), (1312, 2832), (1440, 2816), (1312, 2544), (1376, 2544), (1232, 2512)],
         ),
+        (
+            // Montagne de la Mort : terre ocre, scintillements et pierres vertes
+            name: "mountain",
+            source: "Overworld - Light World.png",
+            size: 16,
+            tiles: [(1624, 1068), (1880, 1292), (2664, 1228), (2136, 1228), (1640, 1116), (1800, 1116), (1752, 1084)],
+        ),
     ],
 )

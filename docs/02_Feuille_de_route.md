@@ -125,6 +125,27 @@ Chaque jalon se termine par un point avec toi (démo + questions éventuelles).
 - **Site et README** : bouton « Jouer dans le navigateur », nouvelles captures (choix du stage, boutique), textes à
   jour en 7 langues. Vérification de l'interface : 0 problème sur 1764 écrans.
 
+### Version 0.4 : en développement (non publiée)
+- **Menus** : la validation joue un tintement court (`message_finish`) ; la fanfare reste réservée au choix
+  d'amélioration en partie.
+- **Personnages** (`data/characters/*.ron`, `crates/game/src/chars.rs`) : écran de choix avant le stage (portrait
+  animé, cœurs, vitesse, arme de départ, bonus). Link ; Link Minish (Minish Cap, débloqué en gagnant la Plaine
+  d'Hyrule : chance, vitesse, boomerang) ; Link sans bonnet (3000 ennemis vaincus : force, zone, armure, bombes).
+- **8 armes** : Grappin → Super grappin (Palmes de Zora), Poudre magique → Poudre de sorcière (Champignon),
+  Canne de Somaria → Grande Somaria (Livre de Mudora), Abeilles → Abeilles dorées (Cape magique).
+  **4 objets** et **2 statistiques** : Chance (coups critiques, objets du décor) et Croissance (expérience), aussi
+  à la boutique. **Écart** : le bloc de Somaria est le bloc de la Tour de la Tortue, ses rayons utilisent l'Étincelle.
+- **Bob-omb** (Minish Cap) : ennemi rare (une à la fois, toutes les 60 à 100 s), halo, étincelles, flèche quand elle
+  est hors de l'écran ; la vaincre souffle tous les ennemis à l'écran sauf les boss (flash, explosions, rubis).
+- **Décor cassable** : buissons (moins nombreux sur la Plaine), plantes du désert, pierres de la Montagne ; tirage
+  au sort : rien, rubis, cœur, ou rarement filet (aspire les rubis), fée (soin complet), médaillon d'Éther (gel).
+  **Écart** : le filet utilise l'icône du filet à papillons ; pas de jarres (aucun sprite de jarre au sol).
+- **Stage 6 bonus : Montagne de la Mort** (ouverte par la victoire à la Pyramide) : sol en tuiles de la vraie carte,
+  rochers, Lynels (nouvel ennemi, boules de feu), Lanmola en mi-parcours, Agahnim au sommet.
+- **Juice** : corps projetés, poussière de pas, bord rouge quand la vie est basse, nuage de poudre avec sa portée,
+  chaîne du grappin, éclats du décor. Traductions des 7 langues ; vérification de l'interface : 0 problème
+  sur 2142 écrans.
+
 ## Idées du 24/11/2026 : propositions (à valider)
 | Idée | Proposition | Jalon proposé |
 |---|---|---|

@@ -16,7 +16,9 @@ VERSION = re.search(r'version\s*=\s*"([^"]+)"', (ROOT / "Cargo.toml").read_text(
 EVOS = [("sword", "heart_container", "master_sword"), ("bow", "quiver", "silver_bow"),
         ("boomerang", "pegasus_boots", "magic_boomerang"), ("fire_rod", "lamp", "bombos"),
         ("ice_rod", "half_magic", "ether"), ("hammer", "power_glove", "quake"),
-        ("bombs", "mirror_shield", "super_bomb"), ("byrna", "bug_net", "fairy_ring")]
+        ("bombs", "mirror_shield", "super_bomb"), ("byrna", "bug_net", "fairy_ring"),
+        ("hookshot", "flippers", "longshot"), ("magic_powder", "mushroom", "witch_powder"),
+        ("cane_of_somaria", "book_of_mudora", "great_somaria"), ("bees", "magic_cape", "golden_bees")]
 
 LANGS = [("en", "English"), ("fr", "Français"), ("de", "Deutsch"), ("es", "Español"),
          ("it", "Italiano"), ("pt", "Português"), ("ja", "日本語")]
@@ -31,9 +33,11 @@ T = {
 Move Link through ever-growing hordes, pick up rupees to level up, choose one upgrade out of three, open the chests dropped by elites and evolve your weapons into their legendary forms. Each stage lasts about ten minutes: a mid-boss arrives at 4:30, the final boss at 9:00, and beating it opens the way out. Between runs, spend your rupees on permanent upgrades.""",
         feat_h="Features",
         feats=[
-            '**5 stages** unlocked one after the other — Hyrule Field, Lost Woods, Desert of Mystery, Frozen Lake and Pyramid of Power — each with its own weather, music, mid-boss and final boss, up to Agahnim and Ganon',
-            '**8 weapons**, each with an **evolution**, and **8 passive items** — 6 weapon slots and 6 item slots, so every choice matters',
-            '**15 enemy types** from Hyrule, **7 bosses** and **elites** that drop chests',
+            '**6 stages** unlocked one after the other — Hyrule Field, Lost Woods, Desert of Mystery, Frozen Lake, Pyramid of Power and the bonus Death Mountain — each with its own weather, music, mid-boss and final boss, up to Agahnim and Ganon',
+            '**3 playable characters** to unlock — Link, Minish Link and Capless Link from *The Minish Cap* — each with their own stats and starting weapon',
+            'A rare **Bob-omb** that blows away every enemy on screen, and **breakable scenery** hiding rupees, hearts, fairies or the Ether medallion',
+            '**12 weapons**, each with an **evolution**, and **12 passive items** — 6 weapon slots and 6 item slots, so every choice matters',
+            '**17 enemy types** from Hyrule, **7 bosses** and **elites** that drop chests',
             "**Progression between runs**: the Kakariko shop (permanent upgrades), the Great Fairy's blessings, a **relic** won on each stage, 4 **difficulties** and Ganon's **seals** to earn more rupees",
             '**Profile**: bestiary, armory, statistics, and save export / import as a text code',
             'Automatic attacks, or **manual aiming** at any time — keyboard, mouse or gamepad, and **every key can be remapped**',
@@ -45,7 +49,8 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
         evo_h="Weapons and evolutions",
         evo_cols=("Weapon", "+ Item (any level)", "Evolution (weapon at max level)"),
         shots_h="Screenshots",
-        caps=dict(stages='Stage select', shop='Kakariko shop: permanent upgrades',
+        caps=dict(chars='Character select', mountain='Death Mountain (bonus stage) and its Lynels',
+                  stages='Stage select', shop='Kakariko shop: permanent upgrades',
                   title="Title screen", levelup="Level up: choose 1 of 3", evolution="Evolution chest",
                   boss="Boss: Hinox", options="Options (language, filters, volumes)", about="About"),
         filters_cap="Video filters: none · CRT / Game Boy Advance · Game Boy / Scanlines · CRT in 4:3",
@@ -77,7 +82,7 @@ Website: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
         legal_h="Legal",
         legal=f"""**A Survivor to the Past** is an **unofficial, free and non-commercial fan game**, made for fun. **Selling it, or any part of it, is forbidden.**
 
-*The Legend of Zelda*, *A Link to the Past*, their characters, graphics, music and sound effects are trademarks and copyrighted works of **Nintendo**. All Nintendo assets used here belong to Nintendo. This project is not affiliated with, sponsored or endorsed by Nintendo.
+*The Legend of Zelda*, *A Link to the Past*, *The Minish Cap*, their characters, graphics, music and sound effects are trademarks and copyrighted works of **Nintendo**. All Nintendo assets used here belong to Nintendo. This project is not affiliated with, sponsored or endorsed by Nintendo.
 
 The [GPL-3.0 license](LICENSE) only covers the source code written for this project; it grants no rights over Nintendo's assets. Sprite sheets come from the rips shared by the community of *The Spriters Resource* — thanks to their authors.
 
@@ -92,9 +97,11 @@ Rights holders: to have content removed, open an issue or contact us on [Discord
 Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour monter de niveau, choisissez une amélioration parmi trois, ouvrez les coffres lâchés par les élites et faites évoluer vos armes vers leurs formes légendaires. Chaque stage dure une dizaine de minutes : un boss intermédiaire arrive à 4:30, le boss final à 9:00, et le vaincre ouvre la sortie. Entre deux parties, dépensez vos rubis en améliorations permanentes.""",
         feat_h="Contenu",
         feats=[
-            "**5 stages** à débloquer l'un après l'autre — Plaine d'Hyrule, Bois Perdus, Désert du Mystère, Lac gelé et Pyramide de la Puissance — chacun avec sa météo, sa musique, son boss intermédiaire et son boss final, jusqu'à Agahnim et Ganon",
-            "**8 armes**, chacune avec une **évolution**, et **8 objets passifs** — 6 emplacements d'armes et 6 d'objets : chaque choix compte",
-            "**15 types d'ennemis** d'Hyrule, **7 boss** et des **élites** qui lâchent des coffres",
+            "**6 stages** à débloquer l'un après l'autre — Plaine d'Hyrule, Bois Perdus, Désert du Mystère, Lac gelé, Pyramide de la Puissance et la Montagne de la Mort en bonus — chacun avec sa météo, sa musique, son boss intermédiaire et son boss final, jusqu'à Agahnim et Ganon",
+            '**3 personnages jouables** à débloquer — Link, Link Minish et Link sans bonnet de *The Minish Cap* — chacun avec ses statistiques et son arme de départ',
+            "Une **Bob-omb** rare qui souffle tous les ennemis à l'écran, et un **décor cassable** qui cache rubis, cœurs, fées ou médaillon d'Éther",
+            "**12 armes**, chacune avec une **évolution**, et **12 objets passifs** — 6 emplacements d'armes et 6 d'objets : chaque choix compte",
+            "**17 types d'ennemis** d'Hyrule, **7 boss** et des **élites** qui lâchent des coffres",
             '**Progression entre les parties** : la boutique de Cocorico (améliorations permanentes), les bénédictions de la Grande Fée, une **relique** gagnée sur chaque stage, 4 **difficultés** et les **sceaux** de Ganon pour gagner plus de rubis',
             '**Profil** : bestiaire, armurerie, statistiques, et export / import de la sauvegarde sous forme de code texte',
             'Attaques automatiques, ou **visée manuelle** à tout moment — clavier, souris ou manette, et **toutes les touches sont reconfigurables**',
@@ -106,7 +113,8 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
         evo_h="Armes et évolutions",
         evo_cols=("Arme", "+ Objet (n'importe quel niveau)", "Évolution (arme au niveau max)"),
         shots_h="Captures d'écran",
-        caps=dict(stages='Choix du stage', shop='Boutique de Cocorico : améliorations permanentes',
+        caps=dict(chars='Choix du personnage', mountain='Montagne de la Mort (stage bonus) et ses Lynels',
+                  stages='Choix du stage', shop='Boutique de Cocorico : améliorations permanentes',
                   title="Écran titre", levelup="Niveau supérieur : 1 choix parmi 3", evolution="Coffre d'évolution",
                   boss="Boss : Hinox", options="Options (langue, filtres, volumes)", about="À propos"),
         filters_cap="Filtres vidéo : aucun · CRT / Game Boy Advance · Game Boy / Scanlines · CRT en 4:3",
@@ -138,7 +146,7 @@ Site : [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
         legal_h="Mentions légales",
         legal=f"""**A Survivor to the Past** est un **fan game non officiel, gratuit et non commercial**, fait pour le plaisir. **Sa revente, totale ou partielle, est interdite.**
 
-*The Legend of Zelda*, *A Link to the Past*, leurs personnages, graphismes, musiques et effets sonores sont des marques et des œuvres protégées de **Nintendo**. Tous les assets Nintendo utilisés ici appartiennent à Nintendo. Ce projet n'est ni affilié à Nintendo, ni sponsorisé, ni approuvé par Nintendo.
+*The Legend of Zelda*, *A Link to the Past*, *The Minish Cap*, leurs personnages, graphismes, musiques et effets sonores sont des marques et des œuvres protégées de **Nintendo**. Tous les assets Nintendo utilisés ici appartiennent à Nintendo. Ce projet n'est ni affilié à Nintendo, ni sponsorisé, ni approuvé par Nintendo.
 
 La [licence GPL-3.0](LICENSE) ne couvre que le code source écrit pour ce projet ; elle ne donne aucun droit sur les assets de Nintendo. Les planches de sprites proviennent des extractions partagées par la communauté de *The Spriters Resource* — merci à leurs auteurs.
 
@@ -153,9 +161,11 @@ Ayants droit : pour faire retirer un contenu, ouvrez une issue ou contactez-nous
 Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähle eine von drei Verbesserungen, öffne die Truhen der Elite-Gegner und entwickle deine Waffen zu ihren legendären Formen. Jede Stage dauert etwa zehn Minuten: Bei 4:30 kommt ein Zwischenboss, bei 9:00 der Endboss, und sein Sieg öffnet den Ausgang. Zwischen den Runden gibst du deine Rubine für dauerhafte Verbesserungen aus.""",
         feat_h="Inhalt",
         feats=[
-            '**5 Stages**, die nacheinander freigeschaltet werden — Hyrule-Ebene, Verlorene Wälder, Wüste der Mysterien, Gefrorener See und Pyramide der Macht — jede mit eigenem Wetter, eigener Musik, Zwischenboss und Endboss, bis zu Agahnim und Ganon',
-            '**8 Waffen**, jede mit einer **Entwicklung**, und **8 passive Gegenstände** — 6 Waffen- und 6 Gegenstandsplätze, jede Wahl zählt',
-            '**15 Gegnertypen** aus Hyrule, **7 Bosse** und **Elite-Gegner**, die Truhen fallen lassen',
+            '**6 Stages**, die nacheinander freigeschaltet werden — Hyrule-Ebene, Verlorene Wälder, Wüste der Mysterien, Gefrorener See, Pyramide der Macht und der Bonus-Stage Todesberg — jede mit eigenem Wetter, eigener Musik, Zwischenboss und Endboss, bis zu Agahnim und Ganon',
+            '**3 spielbare Figuren** zum Freischalten — Link, Minish-Link und Link ohne Mütze aus *The Minish Cap* — jede mit eigenen Werten und eigener Startwaffe',
+            'Ein seltener **Bob-omb**, der alle Gegner auf dem Bildschirm wegsprengt, und **zerstörbare Umgebung** mit Rubinen, Herzen, Feen oder dem Äther-Medaillon',
+            '**12 Waffen**, jede mit einer **Entwicklung**, und **12 passive Gegenstände** — 6 Waffen- und 6 Gegenstandsplätze, jede Wahl zählt',
+            '**17 Gegnertypen** aus Hyrule, **7 Bosse** und **Elite-Gegner**, die Truhen fallen lassen',
             '**Fortschritt zwischen den Runden**: der Laden von Kakariko (dauerhafte Verbesserungen), die Segen der Großen Fee, eine **Reliquie** pro Stage, 4 **Schwierigkeitsgrade** und Ganons **Siegel** für mehr Rubine',
             '**Profil**: Bestiarium, Waffenkammer, Statistiken sowie Export / Import des Spielstands als Textcode',
             'Automatische Angriffe oder jederzeit **manuelles Zielen** — Tastatur, Maus oder Controller, und **alle Tasten sind frei belegbar**',
@@ -167,7 +177,8 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
         evo_h="Waffen und Entwicklungen",
         evo_cols=("Waffe", "+ Gegenstand (beliebige Stufe)", "Entwicklung (Waffe auf Höchststufe)"),
         shots_h="Bilder",
-        caps=dict(stages='Stage-Auswahl', shop='Laden von Kakariko: dauerhafte Verbesserungen',
+        caps=dict(chars='Figurenauswahl', mountain='Todesberg (Bonus-Stage) und seine Leunen',
+                  stages='Stage-Auswahl', shop='Laden von Kakariko: dauerhafte Verbesserungen',
                   title="Titelbildschirm", levelup="Stufenaufstieg: 1 aus 3 wählen", evolution="Entwicklungstruhe",
                   boss="Boss: Hinox", options="Optionen (Sprache, Filter, Lautstärke)", about="Über das Spiel"),
         filters_cap="Videofilter: keiner · CRT / Game Boy Advance · Game Boy / Scanlines · CRT in 4:3",
@@ -199,7 +210,7 @@ Webseite: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
         legal_h="Rechtliches",
         legal=f"""**A Survivor to the Past** ist ein **inoffizielles, kostenloses und nicht kommerzielles Fan-Spiel**, aus Spaß gemacht. **Der Verkauf des Spiels oder von Teilen davon ist verboten.**
 
-*The Legend of Zelda*, *A Link to the Past*, ihre Figuren, Grafiken, Musik und Soundeffekte sind Marken und urheberrechtlich geschützte Werke von **Nintendo**. Alle hier verwendeten Nintendo-Assets gehören Nintendo. Dieses Projekt steht in keiner Verbindung zu Nintendo und wird von Nintendo weder gesponsert noch unterstützt.
+*The Legend of Zelda*, *A Link to the Past*, *The Minish Cap*, ihre Figuren, Grafiken, Musik und Soundeffekte sind Marken und urheberrechtlich geschützte Werke von **Nintendo**. Alle hier verwendeten Nintendo-Assets gehören Nintendo. Dieses Projekt steht in keiner Verbindung zu Nintendo und wird von Nintendo weder gesponsert noch unterstützt.
 
 Die [GPL-3.0-Lizenz](LICENSE) gilt nur für den für dieses Projekt geschriebenen Quellcode; sie gewährt keinerlei Rechte an Nintendos Assets. Die Sprite-Sheets stammen aus den Rips der Community von *The Spriters Resource* — danke an ihre Autoren.
 
@@ -214,9 +225,11 @@ Rechteinhaber: Um Inhalte entfernen zu lassen, eröffne ein Issue oder kontaktie
 Guía a Link entre hordas cada vez más grandes, recoge rupias para subir de nivel, elige una mejora entre tres, abre los cofres que sueltan las élites y haz evolucionar tus armas a sus formas legendarias. Cada fase dura unos diez minutos: un jefe intermedio llega a los 4:30, el jefe final a los 9:00, y vencerlo abre la salida. Entre partidas, gasta tus rupias en mejoras permanentes.""",
         feat_h="Contenido",
         feats=[
-            '**5 fases** que se desbloquean una tras otra — Llanura de Hyrule, Bosque Perdido, Desierto del Misterio, Lago helado y Pirámide del Poder — cada una con su clima, su música, su jefe intermedio y su jefe final, hasta Agahnim y Ganon',
-            '**8 armas**, cada una con una **evolución**, y **8 objetos pasivos** — 6 huecos de armas y 6 de objetos: cada elección cuenta',
-            '**15 tipos de enemigos** de Hyrule, **7 jefes** y **élites** que sueltan cofres',
+            '**6 fases** que se desbloquean una tras otra — Llanura de Hyrule, Bosque Perdido, Desierto del Misterio, Lago helado, Pirámide del Poder y la Montaña de la Muerte como extra — cada una con su clima, su música, su jefe intermedio y su jefe final, hasta Agahnim y Ganon',
+            '**3 personajes jugables** por desbloquear — Link, Link Minish y Link sin gorro de *The Minish Cap* — cada uno con sus estadísticas y su arma inicial',
+            'Una **Bob-omb** rara que barre a todos los enemigos de la pantalla, y **decorado destructible** que esconde rupias, corazones, hadas o el medallón de Éter',
+            '**12 armas**, cada una con una **evolución**, y **12 objetos pasivos** — 6 huecos de armas y 6 de objetos: cada elección cuenta',
+            '**17 tipos de enemigos** de Hyrule, **7 jefes** y **élites** que sueltan cofres',
             '**Progresión entre partidas**: la tienda de Kakariko (mejoras permanentes), las bendiciones de la Gran Hada, una **reliquia** por fase, 4 **dificultades** y los **sellos** de Ganon para ganar más rupias',
             '**Perfil**: bestiario, armería, estadísticas, y exportar / importar la partida como código de texto',
             'Ataques automáticos o **apuntado manual** en cualquier momento — teclado, ratón o mando, y **todas las teclas se pueden reasignar**',
@@ -228,7 +241,8 @@ Guía a Link entre hordas cada vez más grandes, recoge rupias para subir de niv
         evo_h="Armas y evoluciones",
         evo_cols=("Arma", "+ Objeto (cualquier nivel)", "Evolución (arma al nivel máximo)"),
         shots_h="Capturas",
-        caps=dict(stages='Selección de fase', shop='Tienda de Kakariko: mejoras permanentes',
+        caps=dict(chars='Selección de personaje', mountain='Montaña de la Muerte (fase extra) y sus Lynels',
+                  stages='Selección de fase', shop='Tienda de Kakariko: mejoras permanentes',
                   title="Pantalla de título", levelup="Subida de nivel: elige 1 de 3", evolution="Cofre de evolución",
                   boss="Jefe: Hinox", options="Opciones (idioma, filtros, volumen)", about="Acerca de"),
         filters_cap="Filtros de vídeo: ninguno · CRT / Game Boy Advance · Game Boy / Scanlines · CRT en 4:3",
@@ -260,7 +274,7 @@ Web: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
         legal_h="Aviso legal",
         legal=f"""**A Survivor to the Past** es un **fangame no oficial, gratuito y sin ánimo de lucro**, hecho por diversión. **Está prohibido venderlo, total o parcialmente.**
 
-*The Legend of Zelda*, *A Link to the Past*, sus personajes, gráficos, música y efectos de sonido son marcas y obras protegidas de **Nintendo**. Todos los recursos de Nintendo usados aquí pertenecen a Nintendo. Este proyecto no está afiliado, patrocinado ni respaldado por Nintendo.
+*The Legend of Zelda*, *A Link to the Past*, *The Minish Cap*, sus personajes, gráficos, música y efectos de sonido son marcas y obras protegidas de **Nintendo**. Todos los recursos de Nintendo usados aquí pertenecen a Nintendo. Este proyecto no está afiliado, patrocinado ni respaldado por Nintendo.
 
 La [licencia GPL-3.0](LICENSE) solo cubre el código fuente escrito para este proyecto; no otorga ningún derecho sobre los recursos de Nintendo. Las hojas de sprites proceden de las extracciones compartidas por la comunidad de *The Spriters Resource* — gracias a sus autores.
 
@@ -275,9 +289,11 @@ Titulares de derechos: para retirar un contenido, abrid una issue o contactad co
 Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, scegli un potenziamento su tre, apri i forzieri lasciati dalle élite e fai evolvere le tue armi nelle loro forme leggendarie. Ogni stage dura una decina di minuti: un boss intermedio arriva a 4:30, il boss finale a 9:00, e sconfiggerlo apre l'uscita. Tra una partita e l'altra, spendi le rupie in potenziamenti permanenti.""",
         feat_h="Contenuti",
         feats=[
-            "**5 stage** da sbloccare uno dopo l'altro — Piana di Hyrule, Boschi Perduti, Deserto del Mistero, Lago ghiacciato e Piramide del Potere — ognuno con il suo meteo, la sua musica, un boss intermedio e un boss finale, fino ad Agahnim e Ganon",
-            "**8 armi**, ognuna con un'**evoluzione**, e **8 oggetti passivi** — 6 slot per le armi e 6 per gli oggetti: ogni scelta conta",
-            '**15 tipi di nemici** di Hyrule, **7 boss** ed **élite** che lasciano forzieri',
+            "**6 stage** da sbloccare uno dopo l'altro — Piana di Hyrule, Boschi Perduti, Deserto del Mistero, Lago ghiacciato, Piramide del Potere e il Monte Morte come bonus — ognuno con il suo meteo, la sua musica, un boss intermedio e un boss finale, fino ad Agahnim e Ganon",
+            '**3 personaggi giocabili** da sbloccare — Link, Link Minish e Link senza berretto da *The Minish Cap* — ognuno con le sue statistiche e la sua arma iniziale',
+            "Una **Bob-omb** rara che spazza via tutti i nemici sullo schermo, e **scenari distruttibili** che nascondono rupie, cuori, fate o il medaglione dell'Etere",
+            "**12 armi**, ognuna con un'**evoluzione**, e **12 oggetti passivi** — 6 slot per le armi e 6 per gli oggetti: ogni scelta conta",
+            '**17 tipi di nemici** di Hyrule, **7 boss** ed **élite** che lasciano forzieri',
             '**Progressi tra le partite**: il negozio di Kakariko (potenziamenti permanenti), le benedizioni della Grande Fata, una **reliquia** per ogni stage, 4 **difficoltà** e i **sigilli** di Ganon per guadagnare più rupie',
             '**Profilo**: bestiario, armeria, statistiche, ed esportazione / importazione del salvataggio come codice di testo',
             'Attacchi automatici o **mira manuale** in qualsiasi momento — tastiera, mouse o controller, e **tutti i tasti sono riassegnabili**',
@@ -289,7 +305,8 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
         evo_h="Armi ed evoluzioni",
         evo_cols=("Arma", "+ Oggetto (qualsiasi livello)", "Evoluzione (arma al livello massimo)"),
         shots_h="Immagini",
-        caps=dict(stages='Scelta dello stage', shop='Negozio di Kakariko: potenziamenti permanenti',
+        caps=dict(chars='Scelta del personaggio', mountain='Monte Morte (stage bonus) e i suoi Lynel',
+                  stages='Scelta dello stage', shop='Negozio di Kakariko: potenziamenti permanenti',
                   title="Schermata del titolo", levelup="Livello superiore: scegli 1 su 3", evolution="Forziere dell'evoluzione",
                   boss="Boss: Hinox", options="Opzioni (lingua, filtri, volumi)", about="Informazioni"),
         filters_cap="Filtri video: nessuno · CRT / Game Boy Advance · Game Boy / Scanlines · CRT in 4:3",
@@ -321,7 +338,7 @@ Sito: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
         legal_h="Note legali",
         legal=f"""**A Survivor to the Past** è un **fan game non ufficiale, gratuito e non commerciale**, fatto per divertimento. **È vietato venderlo, in tutto o in parte.**
 
-*The Legend of Zelda*, *A Link to the Past*, i loro personaggi, la grafica, le musiche e gli effetti sonori sono marchi e opere protette di **Nintendo**. Tutte le risorse Nintendo usate qui appartengono a Nintendo. Questo progetto non è affiliato, sponsorizzato né approvato da Nintendo.
+*The Legend of Zelda*, *A Link to the Past*, *The Minish Cap*, i loro personaggi, la grafica, le musiche e gli effetti sonori sono marchi e opere protette di **Nintendo**. Tutte le risorse Nintendo usate qui appartengono a Nintendo. Questo progetto non è affiliato, sponsorizzato né approvato da Nintendo.
 
 La [licenza GPL-3.0](LICENSE) copre solo il codice sorgente scritto per questo progetto; non concede alcun diritto sulle risorse di Nintendo. Gli sprite sheet provengono dai rip condivisi dalla comunità di *The Spriters Resource* — grazie ai loro autori.
 
@@ -336,9 +353,11 @@ Titolari dei diritti: per far rimuovere un contenuto, aprite una issue o contatt
 Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível, escolha uma melhoria entre três, abra os baús deixados pelas elites e evolua suas armas para as formas lendárias. Cada fase dura uns dez minutos: um chefe intermediário chega aos 4:30, o chefe final aos 9:00, e vencê-lo abre a saída. Entre as partidas, gaste suas rupias em melhorias permanentes.""",
         feat_h="Conteúdo",
         feats=[
-            '**5 fases** desbloqueadas uma após a outra — Campo de Hyrule, Bosque Perdido, Deserto do Mistério, Lago congelado e Pirâmide do Poder — cada uma com seu clima, sua música, um chefe intermediário e um chefe final, até Agahnim e Ganon',
-            '**8 armas**, cada uma com uma **evolução**, e **8 itens passivos** — 6 espaços de armas e 6 de itens: cada escolha conta',
-            '**15 tipos de inimigos** de Hyrule, **7 chefes** e **elites** que deixam baús',
+            '**6 fases** desbloqueadas uma após a outra — Campo de Hyrule, Bosque Perdido, Deserto do Mistério, Lago congelado, Pirâmide do Poder e a Montanha da Morte como bônus — cada uma com seu clima, sua música, um chefe intermediário e um chefe final, até Agahnim e Ganon',
+            '**3 personagens jogáveis** para desbloquear — Link, Link Minish e Link sem gorro de *The Minish Cap* — cada um com seus atributos e sua arma inicial',
+            'Uma **Bob-omb** rara que varre todos os inimigos da tela, e **cenário destrutível** que esconde rupias, corações, fadas ou o medalhão do Éter',
+            '**12 armas**, cada uma com uma **evolução**, e **12 itens passivos** — 6 espaços de armas e 6 de itens: cada escolha conta',
+            '**17 tipos de inimigos** de Hyrule, **7 chefes** e **elites** que deixam baús',
             '**Progressão entre partidas**: a loja de Kakariko (melhorias permanentes), as bênçãos da Grande Fada, uma **relíquia** por fase, 4 **dificuldades** e os **selos** de Ganon para ganhar mais rupias',
             '**Perfil**: bestiário, arsenal, estatísticas, e exportar / importar o progresso como código de texto',
             'Ataques automáticos ou **mira manual** a qualquer momento — teclado, mouse ou controle, e **todas as teclas podem ser reconfiguradas**',
@@ -350,7 +369,8 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
         evo_h="Armas e evoluções",
         evo_cols=("Arma", "+ Item (qualquer nível)", "Evolução (arma no nível máximo)"),
         shots_h="Imagens",
-        caps=dict(stages='Seleção de fase', shop='Loja de Kakariko: melhorias permanentes',
+        caps=dict(chars='Seleção de personagem', mountain='Montanha da Morte (fase bônus) e seus Lynels',
+                  stages='Seleção de fase', shop='Loja de Kakariko: melhorias permanentes',
                   title="Tela de título", levelup="Subir de nível: escolha 1 de 3", evolution="Baú de evolução",
                   boss="Chefe: Hinox", options="Opções (idioma, filtros, volumes)", about="Sobre"),
         filters_cap="Filtros de vídeo: nenhum · CRT / Game Boy Advance · Game Boy / Scanlines · CRT em 4:3",
@@ -382,7 +402,7 @@ Site: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
         legal_h="Aviso legal",
         legal=f"""**A Survivor to the Past** é um **fangame não oficial, gratuito e sem fins comerciais**, feito por diversão. **É proibido vendê-lo, no todo ou em parte.**
 
-*The Legend of Zelda*, *A Link to the Past*, seus personagens, gráficos, músicas e efeitos sonoros são marcas e obras protegidas da **Nintendo**. Todos os recursos da Nintendo usados aqui pertencem à Nintendo. Este projeto não é afiliado, patrocinado nem endossado pela Nintendo.
+*The Legend of Zelda*, *A Link to the Past*, *The Minish Cap*, seus personagens, gráficos, músicas e efeitos sonoros são marcas e obras protegidas da **Nintendo**. Todos os recursos da Nintendo usados aqui pertencem à Nintendo. Este projeto não é afiliado, patrocinado nem endossado pela Nintendo.
 
 A [licença GPL-3.0](LICENSE) cobre apenas o código-fonte escrito para este projeto; ela não concede nenhum direito sobre os recursos da Nintendo. As folhas de sprites vêm das extrações compartilhadas pela comunidade do *The Spriters Resource* — obrigado aos seus autores.
 
@@ -397,9 +417,11 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
 増え続ける大群の中でリンクを動かし、ルピーを集めてレベルアップ。3つの強化から1つを選び、エリートが落とす宝箱を開けて、武器を伝説の姿へ進化させましょう。各ステージは約10分。4:30 に中ボス、9:00 にラスボスが現れ、倒すと出口が開きます。プレイの合間には、ルピーで永続的な強化を買いましょう。""",
         feat_h="特徴",
         feats=[
-            '順番に解放される**5つのステージ** — ハイラル平原、迷いの森、幻の砂漠、凍った湖、力のピラミッド。それぞれ天候、音楽、中ボス、ラスボスが異なり、最後はアグニムとガノンが待ち受けます',
-            '**8種類の武器**（それぞれ**進化**あり）と**8種類のパッシブアイテム** — 武器枠6つ、アイテム枠6つで、選択が重要です',
-            'ハイラルの**15種類の敵**、**7体のボス**、宝箱を落とす**エリート**',
+            '順番に解放される**6つのステージ** — ハイラル平原、迷いの森、幻の砂漠、凍った湖、力のピラミッド、ボーナスのデスマウンテン。それぞれ天候、音楽、中ボス、ラスボスが異なり、最後はアグニムとガノンが待ち受けます',
+            '解放できる**3人のキャラクター** — リンク、『ふしぎのぼうし』のミニッシュリンクと帽子なしのリンク。能力と最初の武器がそれぞれ異なります',
+            '画面の敵をすべて吹き飛ばすレアな**ボム兵**と、ルピー・ハート・妖精・エーテルのメダルが隠れた**壊せる背景**',
+            '**12種類の武器**（それぞれ**進化**あり）と**12種類のパッシブアイテム** — 武器枠6つ、アイテム枠6つで、選択が重要です',
+            'ハイラルの**17種類の敵**、**7体のボス**、宝箱を落とす**エリート**',
             '**プレイをまたぐ成長**：カカリコのショップ（永続強化）、大妖精の祝福、ステージごとの**レリック**、4段階の**難易度**、ルピーが増えるガノンの**封印**',
             '**プロフィール**：モンスター図鑑、武器図鑑、統計、テキストコードによるセーブのエクスポート / インポート',
             '自動攻撃、またはいつでも**手動照準** — キーボード、マウス、コントローラーに対応し、**すべてのキーを変更可能**',
@@ -411,7 +433,8 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
         evo_h="武器と進化",
         evo_cols=("武器", "＋ アイテム（レベル不問）", "進化（武器が最大レベル）"),
         shots_h="スクリーンショット",
-        caps=dict(stages='ステージ選択', shop='カカリコのショップ：永続強化',
+        caps=dict(chars='キャラクター選択', mountain='デスマウンテン（ボーナスステージ）とライネル',
+                  stages='ステージ選択', shop='カカリコのショップ：永続強化',
                   title="タイトル画面", levelup="レベルアップ：3つから1つを選ぶ", evolution="進化の宝箱",
                   boss="ボス：ヒノックス", options="オプション（言語・フィルター・音量）", about="このゲームについて"),
         filters_cap="映像フィルター：なし · CRT / ゲームボーイアドバンス · ゲームボーイ / スキャンライン · CRT（4:3）",
@@ -443,7 +466,7 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
         legal_h="法的事項",
         legal=f"""**A Survivor to the Past** は、楽しみのために作られた**非公式・無料・非営利のファンゲーム**です。**本作の全部または一部の販売を禁止します。**
 
-*ゼルダの伝説*、*神々のトライフォース*、およびそのキャラクター・グラフィック・音楽・効果音は**任天堂**の商標および著作物です。本作で使用している任天堂の素材はすべて任天堂に帰属します。本プロジェクトは任天堂とは一切関係がなく、任天堂の後援・承認を受けたものではありません。
+*ゼルダの伝説*、*神々のトライフォース*、*ふしぎのぼうし*、およびそのキャラクター・グラフィック・音楽・効果音は**任天堂**の商標および著作物です。本作で使用している任天堂の素材はすべて任天堂に帰属します。本プロジェクトは任天堂とは一切関係がなく、任天堂の後援・承認を受けたものではありません。
 
 [GPL-3.0 ライセンス](LICENSE)は本プロジェクトのために書かれたソースコードのみに適用され、任天堂の素材に関する権利を与えるものではありません。スプライトシートは *The Spriters Resource* のコミュニティが共有したものです。作者の皆さんに感謝します。
 
@@ -520,7 +543,7 @@ def readme(code):
         "<table>",
     ]
     caps = t["caps"]
-    for a, b in (("title", "stages"), ("levelup", "evolution"), ("boss", "shop"), ("options", "about")):
+    for a, b in (("title", "stages"), ("chars", "mountain"), ("levelup", "evolution"), ("boss", "shop"), ("options", "about")):
         out.append("<tr>")
         for k in (a, b):
             out.append(f'<td width="50%" align="center"><img src="media/{k}.png" alt="{caps[k]}"><br><sub>{caps[k]}</sub></td>')

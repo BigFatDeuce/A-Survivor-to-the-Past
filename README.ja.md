@@ -1,7 +1,7 @@
 <p align="center"><img src="media/icon.png" width="128" height="128" alt="A Survivor to the Past"></p>
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i><b>神々のトライフォース</b>の世界で生き残れ。ハイラルの魔物の大群に立ち向かうサバイバーライク。</i></p>
-<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.3.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.4.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
 <p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Windows 版をダウンロード</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ ブラウザでプレイ</b></a></p>
 <p align="center"><a href="README.md">English</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a> · <a href="README.it.md">Italiano</a> · <a href="README.pt.md">Português</a> · <b>日本語</b></p>
 
@@ -15,9 +15,11 @@
 
 ## 特徴
 
-- 順番に解放される**5つのステージ** — ハイラル平原、迷いの森、幻の砂漠、凍った湖、力のピラミッド。それぞれ天候、音楽、中ボス、ラスボスが異なり、最後はアグニムとガノンが待ち受けます
-- **8種類の武器**（それぞれ**進化**あり）と**8種類のパッシブアイテム** — 武器枠6つ、アイテム枠6つで、選択が重要です
-- ハイラルの**15種類の敵**、**7体のボス**、宝箱を落とす**エリート**
+- 順番に解放される**6つのステージ** — ハイラル平原、迷いの森、幻の砂漠、凍った湖、力のピラミッド、ボーナスのデスマウンテン。それぞれ天候、音楽、中ボス、ラスボスが異なり、最後はアグニムとガノンが待ち受けます
+- 解放できる**3人のキャラクター** — リンク、『ふしぎのぼうし』のミニッシュリンクと帽子なしのリンク。能力と最初の武器がそれぞれ異なります
+- 画面の敵をすべて吹き飛ばすレアな**ボム兵**と、ルピー・ハート・妖精・エーテルのメダルが隠れた**壊せる背景**
+- **12種類の武器**（それぞれ**進化**あり）と**12種類のパッシブアイテム** — 武器枠6つ、アイテム枠6つで、選択が重要です
+- ハイラルの**17種類の敵**、**7体のボス**、宝箱を落とす**エリート**
 - **プレイをまたぐ成長**：カカリコのショップ（永続強化）、大妖精の祝福、ステージごとの**レリック**、4段階の**難易度**、ルピーが増えるガノンの**封印**
 - **プロフィール**：モンスター図鑑、武器図鑑、統計、テキストコードによるセーブのエクスポート / インポート
 - 自動攻撃、またはいつでも**手動照準** — キーボード、マウス、コントローラーに対応し、**すべてのキーを変更可能**
@@ -38,6 +40,10 @@
 | マジカルハンマー | パワーグローブ | **クエイクのメダル** |
 | バクダン | ミラーシールド | **スーパーバクダン** |
 | バイラのつえ | むしとりあみ | **ようせいの わ** |
+| フックショット | ゾーラの フィン | **ロングフック** |
+| まほうの こな | キノコ | **まじょの こな** |
+| ソマリアの つえ | ムドラの しょ | **グレート ソマリア** |
+| ハチ | まほうの マント | **ゴールドの ハチ** |
 
 ## スクリーンショット
 
@@ -45,6 +51,10 @@
 <tr>
 <td width="50%" align="center"><img src="media/title.png" alt="タイトル画面"><br><sub>タイトル画面</sub></td>
 <td width="50%" align="center"><img src="media/stages.png" alt="ステージ選択"><br><sub>ステージ選択</sub></td>
+</tr>
+<tr>
+<td width="50%" align="center"><img src="media/chars.png" alt="キャラクター選択"><br><sub>キャラクター選択</sub></td>
+<td width="50%" align="center"><img src="media/mountain.png" alt="デスマウンテン（ボーナスステージ）とライネル"><br><sub>デスマウンテン（ボーナスステージ）とライネル</sub></td>
 </tr>
 <tr>
 <td width="50%" align="center"><img src="media/levelup.png" alt="レベルアップ：3つから1つを選ぶ"><br><sub>レベルアップ：3つから1つを選ぶ</sub></td>
@@ -64,7 +74,7 @@
 
 ## 遊ぶ
 
-このゲームは**アルファ版**（バージョン 0.3.0）です。**Windows**：[リリースページ](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest)から最新版をダウンロードし、zip をすべて展開して `A Survivor to the Past.exe` を起動してください。署名がないため Windows に警告された場合は、*詳細情報* → *実行* をクリックします。その後は**自動でアップデート**されます。起動時に GitHub で新しいバージョンを確認し、バックグラウンドでダウンロードして次回起動時にインストールします（オプション → アップデート：じどう / かくにん する / オフ）。設定はそのまま残り、通信先は GitHub だけで、個人情報は送信されません。
+このゲームは**アルファ版**（バージョン 0.4.0）です。**Windows**：[リリースページ](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest)から最新版をダウンロードし、zip をすべて展開して `A Survivor to the Past.exe` を起動してください。署名がないため Windows に警告された場合は、*詳細情報* → *実行* をクリックします。その後は**自動でアップデート**されます。起動時に GitHub で新しいバージョンを確認し、バックグラウンドでダウンロードして次回起動時にインストールします（オプション → アップデート：じどう / かくにん する / オフ）。設定はそのまま残り、通信先は GitHub だけで、個人情報は送信されません。
 
 **ブラウザ**：[サイト上で直接プレイ](https://a-survivor-to-the-past.holy-c.men/play/)でき、インストールは不要です。パソコンの Chrome、Edge、Firefox がおすすめで、進行状況はブラウザに保存されます。Linux・macOS・Android 版は今後予定しています。それまでは [Rust](https://rustup.rs)（stable）でソースからビルドできます：
 
@@ -107,7 +117,7 @@ Linux では ALSA と udev の開発パッケージ（`libasound2-dev`、`libude
 
 **A Survivor to the Past** は、楽しみのために作られた**非公式・無料・非営利のファンゲーム**です。**本作の全部または一部の販売を禁止します。**
 
-*ゼルダの伝説*、*神々のトライフォース*、およびそのキャラクター・グラフィック・音楽・効果音は**任天堂**の商標および著作物です。本作で使用している任天堂の素材はすべて任天堂に帰属します。本プロジェクトは任天堂とは一切関係がなく、任天堂の後援・承認を受けたものではありません。
+*ゼルダの伝説*、*神々のトライフォース*、*ふしぎのぼうし*、およびそのキャラクター・グラフィック・音楽・効果音は**任天堂**の商標および著作物です。本作で使用している任天堂の素材はすべて任天堂に帰属します。本プロジェクトは任天堂とは一切関係がなく、任天堂の後援・承認を受けたものではありません。
 
 [GPL-3.0 ライセンス](LICENSE)は本プロジェクトのために書かれたソースコードのみに適用され、任天堂の素材に関する権利を与えるものではありません。スプライトシートは *The Spriters Resource* のコミュニティが共有したものです。作者の皆さんに感謝します。
 

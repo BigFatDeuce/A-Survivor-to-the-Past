@@ -11,10 +11,14 @@ pub enum PKind {
     Anim(AnimId),
     /// Carre de couleur (debris, etincelles).
     Pixel(f32),
+    /// Image fixe (corps d'un ennemi projete), avec miroir.
+    Frame(Frame, bool),
 }
 
 pub struct Particle {
     pub rot: f32,
+    /// Vitesse de rotation (radians/s).
+    pub spin: f32,
     pub scale: f32,
     pub pos: Vec2,
     pub vel: Vec2,
@@ -88,6 +92,8 @@ const NUM_LIFE: f32 = 0.55;
 const MAX_PARTICLES: usize = 900;
 const MAX_NUMBERS: usize = 90;
 const MAX_ANIMS: usize = 70;
+/// Corps projetes a l'ecran en meme temps.
+const MAX_CORPSES: usize = 40;
 
 impl Juice {
     pub fn new() -> Juice {
@@ -148,6 +154,7 @@ impl Juice {
         self.n_anims += 1;
         self.particles.push(Particle {
             rot,
+            spin: 0.0,
             scale,
             pos,
             vel: Vec2::ZERO,
@@ -173,6 +180,7 @@ impl Juice {
             let sp = speed * self.rng.range(0.4, 1.0);
             self.particles.push(Particle {
                 rot: 0.0,
+                spin: 0.0,
                 scale: 1.0,
                 pos,
                 vel: d * sp,
@@ -187,6 +195,37 @@ impl Juice {
                 additive,
             });
         }
+    }
+
+    /// Ennemi vaincu projete en tournoyant (le corps s'envole puis s'efface).
+    pub fn corpse(&mut self, frame: Frame, pos: Vec2, dir: Vec2, flip: bool, scale: f32, power: f32) {
+        let n = self.particles.iter().filter(|p| matches!(p.kind, PKind::Frame(..))).count();
+        if n >= MAX_CORPSES || self.particles.len() >= MAX_PARTICLES {
+            return;
+        }
+        // pivot au centre : le corps tourne sur lui-meme
+        let mut frame = frame;
+        frame.px = (frame.w / 2) as i16;
+        frame.py = (frame.h / 2) as i16;
+        let pos = pos - Vec2::new(0.0, frame.h as f32 * 0.5 * scale);
+        let d = (dir.normalize_or_zero() + self.rng.dir() * 0.35).normalize_or_zero();
+        let side = if d.x < 0.0 { -1.0 } else { 1.0 };
+        self.particles.push(Particle {
+            rot: 0.0,
+            spin: side * self.rng.range(9.0, 16.0),
+            scale,
+            pos,
+            vel: d * self.rng.range(90.0, 150.0) * power,
+            z: 2.0,
+            vz: self.rng.range(90.0, 150.0) * power,
+            gravity: 420.0,
+            drag: 1.5,
+            t: 0.0,
+            life: 0.42,
+            kind: PKind::Frame(frame, flip),
+            color: WHITE,
+            additive: false,
+        });
     }
 
     pub fn number(&mut self, pos: Vec2, value: f32, kind: NumKind) {
@@ -225,6 +264,7 @@ impl Juice {
         let mut n_anims = 0;
         self.particles.retain_mut(|p| {
             p.t += dt;
+            p.rot += p.spin * dt;
             p.vel *= (-p.drag * dt).exp();
             p.pos += p.vel * dt;
             if p.gravity > 0.0 {
@@ -308,6 +348,18 @@ impl Juice {
             PKind::Pixel(sz) => {
                 let a = (1.0 - p.t / p.life).clamp(0.0, 1.0);
                 list.rect(white, pos.round(), Vec2::splat(sz), with_alpha(p.color, a));
+            }
+            PKind::Frame(ref f, flip) => {
+                // blanc au depart, puis s'efface
+                let u = (p.t / p.life).clamp(0.0, 1.0);
+                let a = if u > 0.6 { 1.0 - (u - 0.6) / 0.4 } else { 1.0 };
+                let prm = Params::default()
+                    .flip(flip)
+                    .rot(p.rot)
+                    .scale(Vec2::splat(p.scale))
+                    .flash([1.0, 1.0, 1.0], (1.0 - u * 3.0).max(0.0))
+                    .color([1.0, 1.0, 1.0, a]);
+                list.frame(f, pos, &prm);
             }
         }
     }

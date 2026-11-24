@@ -48,5 +48,6 @@
         (sprite: "prop_boulder", density: 0.05, radius: 12.0, solid: true, tint: Some((0.75, 0.9, 1.0, 0.35))),
         (sprite: "prop_tree", density: 0.04, radius: 13.0, solid: true, tint: Some((0.85, 0.95, 1.0, 0.3))),
         (sprite: "prop_stump", density: 0.03, radius: 9.0, solid: true, tint: Some((0.8, 0.9, 1.0, 0.3))),
+        (sprite: "prop_bush", density: 0.04, radius: 6.0, solid: false, tint: Some((0.8, 0.92, 1.0, 0.45)), breakable: true, break_fx: "fx_bush_break"),
     ],
 )

@@ -1,0 +1,18 @@
+// Link sans bonnet (Minish Cap) : robuste et puissant, part avec les bombes.
+// Debloque apres 3000 ennemis vaincus (toutes parties confondues).
+(
+    name: "Link (sans bonnet)",
+    sprite: "link_capless",
+    side_faces_left: true,
+    max_hp: 70.0,
+    speed: 80.0,
+    radius: 5.0,
+    magnet: 30.0,
+    dash: (speed: 320.0, duration: 0.15, cooldown: 2.0),
+    weapon: "bombs",
+    weapon_sprite: "sword1",
+    // +10 % de degats et de zone, +1 d'armure
+    stats: [(Might, 0.1), (Area, 0.1), (Armor, 1.0)],
+    order: 2,
+    unlock: Some(Kills(3000)),
+)

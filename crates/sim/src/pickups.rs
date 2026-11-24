@@ -12,6 +12,12 @@ pub enum PickupKind {
     Chest = 4,
     /// Grand coffre (boss).
     BigChest = 5,
+    /// Filet a papillons : attire tous les rubis.
+    Magnet = 6,
+    /// Fee : soigne entierement.
+    Fairy = 7,
+    /// Medaillon d'Ether : gele les ennemis a l'ecran.
+    Medallion = 8,
 }
 
 impl PickupKind {
@@ -20,6 +26,10 @@ impl PickupKind {
     }
     pub fn is_chest(self) -> bool {
         matches!(self, PickupKind::Chest | PickupKind::BigChest)
+    }
+    /// Objet rare du decor (jamais oublie au loin, ni fusionne).
+    pub fn is_special(self) -> bool {
+        matches!(self, PickupKind::Magnet | PickupKind::Fairy | PickupKind::Medallion)
     }
 }
 

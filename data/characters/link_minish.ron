@@ -1,0 +1,18 @@
+// Link (Minish Cap) : leger et chanceux, part avec le boomerang.
+// Debloque en gagnant la Plaine d'Hyrule.
+(
+    name: "Link (Minish)",
+    sprite: "link_minish",
+    side_faces_left: true,
+    max_hp: 50.0,
+    speed: 90.0,
+    radius: 5.0,
+    magnet: 40.0,
+    dash: (speed: 340.0, duration: 0.15, cooldown: 1.5),
+    weapon: "boomerang",
+    weapon_sprite: "sword1",
+    // +20 % de chance, +5 % de vitesse
+    stats: [(Luck, 0.2), (MoveSpeed, 0.05)],
+    order: 1,
+    unlock: Some(Win("hyrule_field")),
+)

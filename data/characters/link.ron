@@ -10,4 +10,5 @@
     dash: (speed: 330.0, duration: 0.15, cooldown: 1.8),
     weapon: "sword",
     weapon_sprite: "sword1",
+    order: 0,
 )

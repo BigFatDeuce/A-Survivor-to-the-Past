@@ -1,7 +1,7 @@
 <p align="center"><img src="media/icon.png" width="128" height="128" alt="A Survivor to the Past"></p>
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i>Un survivors-like dans l'univers de <b>A Link to the Past</b> : tenez face aux hordes de monstres d'Hyrule.</i></p>
-<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.3.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.4.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
 <p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Télécharger pour Windows</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ Jouer dans le navigateur</b></a></p>
 <p align="center"><a href="README.md">English</a> · <b>Français</b> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a> · <a href="README.it.md">Italiano</a> · <a href="README.pt.md">Português</a> · <a href="README.ja.md">日本語</a></p>
 
@@ -15,9 +15,11 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
 
 ## Contenu
 
-- **5 stages** à débloquer l'un après l'autre — Plaine d'Hyrule, Bois Perdus, Désert du Mystère, Lac gelé et Pyramide de la Puissance — chacun avec sa météo, sa musique, son boss intermédiaire et son boss final, jusqu'à Agahnim et Ganon
-- **8 armes**, chacune avec une **évolution**, et **8 objets passifs** — 6 emplacements d'armes et 6 d'objets : chaque choix compte
-- **15 types d'ennemis** d'Hyrule, **7 boss** et des **élites** qui lâchent des coffres
+- **6 stages** à débloquer l'un après l'autre — Plaine d'Hyrule, Bois Perdus, Désert du Mystère, Lac gelé, Pyramide de la Puissance et la Montagne de la Mort en bonus — chacun avec sa météo, sa musique, son boss intermédiaire et son boss final, jusqu'à Agahnim et Ganon
+- **3 personnages jouables** à débloquer — Link, Link Minish et Link sans bonnet de *The Minish Cap* — chacun avec ses statistiques et son arme de départ
+- Une **Bob-omb** rare qui souffle tous les ennemis à l'écran, et un **décor cassable** qui cache rubis, cœurs, fées ou médaillon d'Éther
+- **12 armes**, chacune avec une **évolution**, et **12 objets passifs** — 6 emplacements d'armes et 6 d'objets : chaque choix compte
+- **17 types d'ennemis** d'Hyrule, **7 boss** et des **élites** qui lâchent des coffres
 - **Progression entre les parties** : la boutique de Cocorico (améliorations permanentes), les bénédictions de la Grande Fée, une **relique** gagnée sur chaque stage, 4 **difficultés** et les **sceaux** de Ganon pour gagner plus de rubis
 - **Profil** : bestiaire, armurerie, statistiques, et export / import de la sauvegarde sous forme de code texte
 - Attaques automatiques, ou **visée manuelle** à tout moment — clavier, souris ou manette, et **toutes les touches sont reconfigurables**
@@ -38,6 +40,10 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
 | Marteau magique | Gant de puissance | **Médaillon Séisme** |
 | Bombes | Bouclier miroir | **Super bombe** |
 | Canne de Byrna | Filet à papillons | **Ronde des fées** |
+| Grappin | Palmes de Zora | **Super grappin** |
+| Poudre magique | Champignon | **Poudre de la sorcière** |
+| Canne de Somaria | Livre de Mudora | **Grande Somaria** |
+| Abeilles | Cape magique | **Abeilles dorées** |
 
 ## Captures d'écran
 
@@ -45,6 +51,10 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
 <tr>
 <td width="50%" align="center"><img src="media/title.png" alt="Écran titre"><br><sub>Écran titre</sub></td>
 <td width="50%" align="center"><img src="media/stages.png" alt="Choix du stage"><br><sub>Choix du stage</sub></td>
+</tr>
+<tr>
+<td width="50%" align="center"><img src="media/chars.png" alt="Choix du personnage"><br><sub>Choix du personnage</sub></td>
+<td width="50%" align="center"><img src="media/mountain.png" alt="Montagne de la Mort (stage bonus) et ses Lynels"><br><sub>Montagne de la Mort (stage bonus) et ses Lynels</sub></td>
 </tr>
 <tr>
 <td width="50%" align="center"><img src="media/levelup.png" alt="Niveau supérieur : 1 choix parmi 3"><br><sub>Niveau supérieur : 1 choix parmi 3</sub></td>
@@ -64,7 +74,7 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
 
 ## Jouer
 
-Le jeu est en **alpha** (version 0.3.0). **Windows** : téléchargez la dernière version sur la [page des versions](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), extrayez tout le zip et lancez `A Survivor to the Past.exe`. Windows peut prévenir que le jeu n'est pas signé : cliquez sur *Informations complémentaires* → *Exécuter quand même*. Ensuite, le jeu **se met à jour tout seul** : au lancement, il vérifie sur GitHub s'il existe une nouvelle version, la télécharge en arrière-plan et l'installe au lancement suivant (Options → Mises à jour : Automatiques / Me demander / Non). Vos réglages sont conservés, et seul GitHub est contacté, sans aucune donnée personnelle.
+Le jeu est en **alpha** (version 0.4.0). **Windows** : téléchargez la dernière version sur la [page des versions](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), extrayez tout le zip et lancez `A Survivor to the Past.exe`. Windows peut prévenir que le jeu n'est pas signé : cliquez sur *Informations complémentaires* → *Exécuter quand même*. Ensuite, le jeu **se met à jour tout seul** : au lancement, il vérifie sur GitHub s'il existe une nouvelle version, la télécharge en arrière-plan et l'installe au lancement suivant (Options → Mises à jour : Automatiques / Me demander / Non). Vos réglages sont conservés, et seul GitHub est contacté, sans aucune donnée personnelle.
 
 **Navigateur** : [jouez directement sur le site](https://a-survivor-to-the-past.holy-c.men/play/), sans rien installer. Idéal sur ordinateur, dans Chrome, Edge ou Firefox ; votre progression est enregistrée dans le navigateur. Les versions Linux, macOS et Android viendront plus tard. En attendant, vous pouvez compiler le jeu depuis les sources avec [Rust](https://rustup.rs) (stable) :
 
@@ -107,7 +117,7 @@ Site : [a-survivor-to-the-past.holy-c.men](https://a-survivor-to-the-past.holy-c
 
 **A Survivor to the Past** est un **fan game non officiel, gratuit et non commercial**, fait pour le plaisir. **Sa revente, totale ou partielle, est interdite.**
 
-*The Legend of Zelda*, *A Link to the Past*, leurs personnages, graphismes, musiques et effets sonores sont des marques et des œuvres protégées de **Nintendo**. Tous les assets Nintendo utilisés ici appartiennent à Nintendo. Ce projet n'est ni affilié à Nintendo, ni sponsorisé, ni approuvé par Nintendo.
+*The Legend of Zelda*, *A Link to the Past*, *The Minish Cap*, leurs personnages, graphismes, musiques et effets sonores sont des marques et des œuvres protégées de **Nintendo**. Tous les assets Nintendo utilisés ici appartiennent à Nintendo. Ce projet n'est ni affilié à Nintendo, ni sponsorisé, ni approuvé par Nintendo.
 
 La [licence GPL-3.0](LICENSE) ne couvre que le code source écrit pour ce projet ; elle ne donne aucun droit sur les assets de Nintendo. Les planches de sprites proviennent des extractions partagées par la communauté de *The Spriters Resource* — merci à leurs auteurs.
 

@@ -1,7 +1,7 @@
 <p align="center"><img src="media/icon.png" width="128" height="128" alt="A Survivor to the Past"></p>
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i>Um survivors-like no mundo de <b>A Link to the Past</b>: resista às hordas de monstros de Hyrule.</i></p>
-<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.3.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.4.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
 <p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Baixar para Windows</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ Jogar no navegador</b></a></p>
 <p align="center"><a href="README.md">English</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a> · <a href="README.it.md">Italiano</a> · <b>Português</b> · <a href="README.ja.md">日本語</a></p>
 
@@ -15,9 +15,11 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
 
 ## Conteúdo
 
-- **5 fases** desbloqueadas uma após a outra — Campo de Hyrule, Bosque Perdido, Deserto do Mistério, Lago congelado e Pirâmide do Poder — cada uma com seu clima, sua música, um chefe intermediário e um chefe final, até Agahnim e Ganon
-- **8 armas**, cada uma com uma **evolução**, e **8 itens passivos** — 6 espaços de armas e 6 de itens: cada escolha conta
-- **15 tipos de inimigos** de Hyrule, **7 chefes** e **elites** que deixam baús
+- **6 fases** desbloqueadas uma após a outra — Campo de Hyrule, Bosque Perdido, Deserto do Mistério, Lago congelado, Pirâmide do Poder e a Montanha da Morte como bônus — cada uma com seu clima, sua música, um chefe intermediário e um chefe final, até Agahnim e Ganon
+- **3 personagens jogáveis** para desbloquear — Link, Link Minish e Link sem gorro de *The Minish Cap* — cada um com seus atributos e sua arma inicial
+- Uma **Bob-omb** rara que varre todos os inimigos da tela, e **cenário destrutível** que esconde rupias, corações, fadas ou o medalhão do Éter
+- **12 armas**, cada uma com uma **evolução**, e **12 itens passivos** — 6 espaços de armas e 6 de itens: cada escolha conta
+- **17 tipos de inimigos** de Hyrule, **7 chefes** e **elites** que deixam baús
 - **Progressão entre partidas**: a loja de Kakariko (melhorias permanentes), as bênçãos da Grande Fada, uma **relíquia** por fase, 4 **dificuldades** e os **selos** de Ganon para ganhar mais rupias
 - **Perfil**: bestiário, arsenal, estatísticas, e exportar / importar o progresso como código de texto
 - Ataques automáticos ou **mira manual** a qualquer momento — teclado, mouse ou controle, e **todas as teclas podem ser reconfiguradas**
@@ -38,6 +40,10 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
 | Martelo mágico | Luva de poder | **Medalhão Tremor** |
 | Bombas | Escudo espelhado | **Superbomba** |
 | Cetro de Byrna | Rede de insetos | **Roda de fadas** |
+| Gancho | Nadadeiras de Zora | **Supergancho** |
+| Pó mágico | Cogumelo | **Pó da bruxa** |
+| Bastão de Somaria | Livro de Mudora | **Grande Somaria** |
+| Abelhas | Capa mágica | **Abelhas douradas** |
 
 ## Imagens
 
@@ -45,6 +51,10 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
 <tr>
 <td width="50%" align="center"><img src="media/title.png" alt="Tela de título"><br><sub>Tela de título</sub></td>
 <td width="50%" align="center"><img src="media/stages.png" alt="Seleção de fase"><br><sub>Seleção de fase</sub></td>
+</tr>
+<tr>
+<td width="50%" align="center"><img src="media/chars.png" alt="Seleção de personagem"><br><sub>Seleção de personagem</sub></td>
+<td width="50%" align="center"><img src="media/mountain.png" alt="Montanha da Morte (fase bônus) e seus Lynels"><br><sub>Montanha da Morte (fase bônus) e seus Lynels</sub></td>
 </tr>
 <tr>
 <td width="50%" align="center"><img src="media/levelup.png" alt="Subir de nível: escolha 1 de 3"><br><sub>Subir de nível: escolha 1 de 3</sub></td>
@@ -64,7 +74,7 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
 
 ## Jogar
 
-O jogo está em **alfa** (versão 0.3.0). **Windows**: baixe a versão mais recente na [página de versões](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), extraia o zip inteiro e abra `A Survivor to the Past.exe`. O Windows pode avisar que o jogo não é assinado: clique em *Mais informações* → *Executar assim mesmo*. Depois, o jogo **se atualiza sozinho**: ao iniciar, ele verifica no GitHub se há uma nova versão, baixa em segundo plano e instala no próximo início (Opções → Atualizações: Automáticas / Perguntar / Não). Suas configurações são mantidas e só o GitHub é contatado, sem nenhum dado pessoal.
+O jogo está em **alfa** (versão 0.4.0). **Windows**: baixe a versão mais recente na [página de versões](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), extraia o zip inteiro e abra `A Survivor to the Past.exe`. O Windows pode avisar que o jogo não é assinado: clique em *Mais informações* → *Executar assim mesmo*. Depois, o jogo **se atualiza sozinho**: ao iniciar, ele verifica no GitHub se há uma nova versão, baixa em segundo plano e instala no próximo início (Opções → Atualizações: Automáticas / Perguntar / Não). Suas configurações são mantidas e só o GitHub é contatado, sem nenhum dado pessoal.
 
 **Navegador**: [jogue direto no site](https://a-survivor-to-the-past.holy-c.men/play/), sem instalar nada. Funciona melhor no computador, no Chrome, Edge ou Firefox, e seu progresso fica salvo no navegador. As versões para Linux, macOS e Android virão depois. Enquanto isso, você pode compilar o jogo a partir do código-fonte com [Rust](https://rustup.rs) (stable):
 
@@ -107,7 +117,7 @@ Site: [a-survivor-to-the-past.holy-c.men](https://a-survivor-to-the-past.holy-c.
 
 **A Survivor to the Past** é um **fangame não oficial, gratuito e sem fins comerciais**, feito por diversão. **É proibido vendê-lo, no todo ou em parte.**
 
-*The Legend of Zelda*, *A Link to the Past*, seus personagens, gráficos, músicas e efeitos sonoros são marcas e obras protegidas da **Nintendo**. Todos os recursos da Nintendo usados aqui pertencem à Nintendo. Este projeto não é afiliado, patrocinado nem endossado pela Nintendo.
+*The Legend of Zelda*, *A Link to the Past*, *The Minish Cap*, seus personagens, gráficos, músicas e efeitos sonoros são marcas e obras protegidas da **Nintendo**. Todos os recursos da Nintendo usados aqui pertencem à Nintendo. Este projeto não é afiliado, patrocinado nem endossado pela Nintendo.
 
 A [licença GPL-3.0](LICENSE) cobre apenas o código-fonte escrito para este projeto; ela não concede nenhum direito sobre os recursos da Nintendo. As folhas de sprites vêm das extrações compartilhadas pela comunidade do *The Spriters Resource* — obrigado aos seus autores.
 

@@ -145,7 +145,7 @@ fn mod_text(lang: &Lang, m: &Mod, kind: WeaponKind) -> String {
     format!("{} {v}", lang.get(k))
 }
 
-fn stat_text(lang: &Lang, s: Stat, v: f32) -> String {
+pub fn stat_text(lang: &Lang, s: Stat, v: f32) -> String {
     let (k, val) = match s {
         Stat::Might => ("stat.might", pct(v)),
         Stat::Area => ("stat.area", pct(v)),
@@ -160,6 +160,8 @@ fn stat_text(lang: &Lang, s: Stat, v: f32) -> String {
         Stat::DashCooldown => ("stat.dash_cd", pct(v)),
         // vie par seconde -> coeurs par minute
         Stat::Regen => ("stat.regen", format!("{}/min", signed(v * 6.0))),
+        Stat::Luck => ("stat.luck", pct(v)),
+        Stat::Growth => ("stat.growth", pct(v)),
     };
     format!("{} {val}", lang.get(k))
 }

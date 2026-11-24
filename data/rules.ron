@@ -26,4 +26,20 @@
     // quand tout est au maximum
     fallback_heal: 20.0,
     fallback_rupees: 25,
+    // Bob-omb : une toutes les 60 a 100 s (pas deux a la fois) ; vaincue, elle vide l'ecran
+    bomb_enemy: "bobomb",
+    bomb_every: (60.0, 100.0),
+    // decor cassable : butin (objet, poids) ; la Chance rend le « rien » plus rare
+    prop_drops: [
+        (Nothing, 58.0),
+        (RupeeGreen, 24.0),
+        (RupeeBlue, 6.0),
+        (RupeeRed, 1.5),
+        (Heart, 6.0),
+        (Magnet, 1.2),
+        (Fairy, 0.8),
+        (Medallion, 1.0),
+    ],
+    // Chance : +10 % de chance = +3 points de critique
+    luck_crit: 0.3,
 )

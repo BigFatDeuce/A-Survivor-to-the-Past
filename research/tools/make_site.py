@@ -40,7 +40,7 @@ UI = {
                nav_shots="スクリーンショット", nav_evo="進化", nav_road="今後の予定", horde="3:30 の大群"),
 }
 
-SHOTS = ["title", "stages", "levelup", "evolution", "boss", "shop", "options", "about"]
+SHOTS = ["title", "stages", "chars", "mountain", "levelup", "evolution", "boss", "shop", "options", "about"]
 
 
 def md(s):

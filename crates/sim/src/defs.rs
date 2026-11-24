@@ -31,6 +31,31 @@ pub struct CharacterDef {
     /// Sprite de l'epee pour l'affichage (ex. "sword1").
     #[serde(default)]
     pub weapon_sprite: String,
+    /// Les images de profil regardent a gauche (retournees pour aller a droite).
+    #[serde(default)]
+    pub side_faces_left: bool,
+    /// Bonus de depart (meme format que les objets passifs).
+    #[serde(default)]
+    pub stats: Vec<(Stat, f32)>,
+    /// Rang dans le choix du personnage.
+    #[serde(default)]
+    pub order: u32,
+    /// Condition de deblocage (aucune : disponible des le depart).
+    #[serde(default)]
+    pub unlock: Option<UnlockDef>,
+}
+
+/// Condition de deblocage d'un personnage (verifiee par le jeu, d'apres le profil).
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub enum UnlockDef {
+    /// Gagner ce stage.
+    Win(String),
+    /// Vaincre n ennemis au total.
+    Kills(u64),
+    /// Vaincre n boss au total.
+    Bosses(u32),
+    /// Atteindre ce niveau dans une partie.
+    Level(u32),
 }
 
 fn default_player_radius() -> f32 {
@@ -71,6 +96,10 @@ pub enum Stat {
     DashCooldown,
     /// Vie rendue par seconde.
     Regen,
+    /// Chance (+0.1 = +10 %) : coups critiques, butin du decor.
+    Luck,
+    /// Croissance (+0.1 = +10 % d'experience).
+    Growth,
 }
 
 /// Objet passif : bonus de statistiques par niveau.
@@ -110,6 +139,12 @@ pub enum WeaponKind {
     Pillars,
     /// Frappe tout l'ecran (Ether).
     Storm,
+    /// Nuage autour du joueur qui blesse en continu (Poudre magique).
+    Aura,
+    /// Bloc pose au sol qui eclate en rayons (Canne de Somaria).
+    Somaria,
+    /// Projectiles qui poursuivent les ennemis (abeilles).
+    Bees,
 }
 
 /// Effet d'etat inflige au contact.
@@ -245,6 +280,16 @@ pub struct WeaponDef {
     /// Son de declenchement (cle d'evenement de `audio.ron`).
     #[serde(default)]
     pub sfx: String,
+    /// Chaine dessinee entre le joueur et le projectile (grappin).
+    #[serde(default)]
+    pub chain: bool,
+    /// Canne de Somaria : nombre de rayons a l'eclatement du bloc.
+    #[serde(default = "rays_default")]
+    pub rays: u32,
+}
+
+fn rays_default() -> u32 {
+    4
 }
 
 fn range_default() -> f32 {
@@ -418,6 +463,12 @@ pub struct PropDef {
     /// Teinte (rouge, vert, bleu, force) : arbre givre, rocher sombre...
     #[serde(default)]
     pub tint: Option<(f32, f32, f32, f32)>,
+    /// Se casse au moindre coup (buissons, pots) et peut laisser un objet.
+    #[serde(default)]
+    pub breakable: bool,
+    /// Animation jouee a la casse (sprite de l'atlas).
+    #[serde(default)]
+    pub break_fx: String,
 }
 
 fn one_u32() -> u32 {
@@ -528,6 +579,42 @@ pub struct RulesDef {
     pub fallback_heal: f32,
     /// Rubis proposes quand tout est au maximum.
     pub fallback_rupees: u32,
+    /// Bob-omb : ennemi rare qui, vaincu, souffle tous les ennemis a l'ecran (hors boss).
+    #[serde(default)]
+    pub bomb_enemy: String,
+    /// Delai entre deux Bob-ombs (s, minimum et maximum) ; la premiere arrive apres un delai tire de meme.
+    #[serde(default = "bomb_every_default")]
+    pub bomb_every: (f32, f32),
+    /// Butin du decor cassable : (objet, poids).
+    #[serde(default)]
+    pub prop_drops: Vec<(DropDef, f32)>,
+    /// Chance : points de critique ajoutes par +1 de chance (0.3 : +10 % de chance = +3 points).
+    #[serde(default = "luck_crit_default")]
+    pub luck_crit: f32,
+}
+
+fn bomb_every_default() -> (f32, f32) {
+    (70.0, 110.0)
+}
+
+fn luck_crit_default() -> f32 {
+    0.3
+}
+
+/// Objet laisse par un element de decor casse.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+pub enum DropDef {
+    Nothing,
+    RupeeGreen,
+    RupeeBlue,
+    RupeeRed,
+    Heart,
+    /// Filet : attire tous les rubis.
+    Magnet,
+    /// Fee : soigne entierement.
+    Fairy,
+    /// Medaillon : gele les ennemis a l'ecran.
+    Medallion,
 }
 
 /// Tout le contenu charge, indexe pour la simulation.

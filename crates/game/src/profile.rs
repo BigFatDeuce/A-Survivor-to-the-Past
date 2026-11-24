@@ -96,6 +96,9 @@ pub struct Profile {
     pub evolutions: BTreeSet<String>,
     #[serde(default)]
     pub totals: Totals,
+    /// Dernier personnage choisi.
+    #[serde(default)]
+    pub character: String,
 }
 
 fn d_difficulty() -> usize {

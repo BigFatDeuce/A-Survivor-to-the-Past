@@ -15,6 +15,10 @@ pub enum ProjKind {
     Boomerang,
     /// Lancer en cloche, puis meche, puis explosion.
     Lob,
+    /// Bloc pose au sol (Somaria) : blesse au contact puis eclate en rayons.
+    Block,
+    /// Poursuit l'ennemi le plus proche en zigzaguant (abeilles) ; `flight` = vitesse.
+    Homing,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -186,6 +190,9 @@ impl World {
                 }
                 WeaponKind::Pillars => self.fire_pillars(slot),
                 WeaponKind::Storm => self.fire_storm(slot),
+                WeaponKind::Aura => self.fire_aura(slot),
+                WeaponKind::Somaria => self.fire_somaria(slot),
+                WeaponKind::Bees => self.fire_bees(slot),
             };
             if fired {
                 self.weapons[slot].cd = w.stats.cooldown;
@@ -517,6 +524,98 @@ impl World {
         true
     }
 
+    /// Poudre magique : blesse tout ce qui est dans le nuage autour du joueur.
+    fn fire_aura(&mut self, slot: usize) -> bool {
+        let w = self.weapons[slot];
+        let pp = self.player.pos - Vec2::new(0.0, 4.0);
+        let status = self.content.weapons[w.id as usize].status;
+        for i in self.enemies_in(pp, w.stats.area) {
+            let dir = (self.horde.pos[i] - pp).normalize_or(Vec2::Y);
+            self.strike(i, slot, w.id, w.stats.damage, (w.stats.crit_chance, w.stats.crit_mult), dir, w.stats.knockback, w.stats.hit_interval, status);
+        }
+        true
+    }
+
+    /// Canne de Somaria : pose des blocs sur des ennemis proches.
+    fn fire_somaria(&mut self, slot: usize) -> bool {
+        let w = self.weapons[slot];
+        let range = self.content.weapons[w.id as usize].range;
+        let n = w.stats.amount.max(1) as usize;
+        let targets = self.random_enemies(range, n);
+        if targets.is_empty() {
+            return false;
+        }
+        for k in 0..n {
+            let at = match targets.get(k) {
+                Some(&i) => self.horde.pos[i],
+                None => self.player.pos + self.rng.dir() * self.rng.range(30.0, 70.0),
+            };
+            // le point de touche est 6 px sous la position : le bloc couvre l'ennemi
+            let mut p = self.base_projectile(slot, at - Vec2::new(0.0, 6.0), Vec2::ZERO, ProjKind::Block);
+            p.rot = 0.0;
+            p.radius = 9.0 * self.player.stats.area.sqrt();
+            self.projectiles.push(p);
+        }
+        true
+    }
+
+    /// Le bloc eclate : rayons dans toutes les directions.
+    fn somaria_burst(&mut self, p: &Projectile) {
+        let def = &self.content.weapons[p.weapon as usize];
+        let Some(b) = def.beam.clone() else { return };
+        let n = def.rays.max(1);
+        let st = self.player.stats;
+        for k in 0..n {
+            let a = k as f32 * TAU / n as f32;
+            let dir = Vec2::from_angle(a);
+            self.projectiles.push(Projectile {
+                pos: p.pos + dir * 4.0,
+                prev: p.pos,
+                vel: dir * b.speed * st.speed,
+                kind: ProjKind::Straight,
+                weapon: p.weapon,
+                slot: p.slot,
+                damage: p.damage * b.damage,
+                crit: p.crit,
+                knockback: p.knockback * 0.6,
+                interval: 0.3,
+                radius: 7.0 * st.area,
+                pierce: u32::MAX,
+                life: b.life * st.duration,
+                age: 0.0,
+                rot: a,
+                z: 0.0,
+                flight: 0.0,
+                start: p.pos,
+                target: p.pos,
+                blast: 0.0,
+                returning: false,
+                beam: true,
+                dead: false,
+            });
+        }
+        self.events.push(Event::Burst { pos: p.pos, weapon: p.weapon });
+    }
+
+    /// Abeilles : s'envolent autour du joueur puis piquent les ennemis.
+    fn fire_bees(&mut self, slot: usize) -> bool {
+        let w = self.weapons[slot];
+        let range = self.content.weapons[w.id as usize].range;
+        if self.nearest_enemies(self.player.pos, range, 1).is_empty() {
+            return false;
+        }
+        let origin = self.player.pos - Vec2::new(0.0, 8.0);
+        for _ in 0..w.stats.amount.max(1) {
+            let dir = self.rng.dir();
+            let mut p = self.base_projectile(slot, origin + dir * 4.0, dir * w.stats.speed * 0.7, ProjKind::Homing);
+            p.flight = w.stats.speed;
+            // phase du zigzag
+            p.target = Vec2::new(self.rng.f() * TAU, 0.0);
+            self.projectiles.push(p);
+        }
+        true
+    }
+
     /// Positions des objets en orbite d'une arme (angle `phase`).
     pub fn orbit_points(&self, slot: usize, center: Vec2, phase: f32) -> Vec<Vec2> {
         let w = &self.weapons[slot];
@@ -595,6 +694,27 @@ impl World {
                     }
                     continue;
                 }
+                ProjKind::Block => {
+                    if p.age >= p.life {
+                        p.dead = true;
+                        self.somaria_burst(p);
+                    }
+                }
+                ProjKind::Homing => {
+                    let near = self.nearest_enemies(p.pos, 150.0, 1);
+                    let fwd = p.vel.normalize_or(Vec2::X);
+                    let want = match near.first() {
+                        Some(&i) => (self.horde.pos[i] - Vec2::new(0.0, 6.0) - p.pos).normalize_or(fwd),
+                        None => fwd,
+                    };
+                    let wob = Vec2::from_angle(ang(want) + (p.age * 9.0 + p.target.x).sin() * 0.8);
+                    p.vel += (wob * p.flight - p.vel) * (6.0 * DT);
+                    p.pos += p.vel * DT;
+                    p.rot = ang(p.vel);
+                    if p.age >= p.life {
+                        p.dead = true;
+                    }
+                }
             }
             if p.dead || p.radius <= 0.0 {
                 continue;
@@ -631,7 +751,7 @@ impl World {
             }
         }
         list.retain(|p| !p.dead);
-        // projectiles tires pendant la mise a jour (aucun pour l'instant) + liste traitee
+        // projectiles tires pendant la mise a jour (rayons de Somaria) + liste traitee
         list.append(&mut self.projectiles);
         self.projectiles = list;
     }

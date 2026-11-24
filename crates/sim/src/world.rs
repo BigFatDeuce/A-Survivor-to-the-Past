@@ -2,13 +2,14 @@
 //! Les armes sont dans `arsenal.rs`, les comportements ennemis dans `enemies.rs`,
 //! les choix de niveau et coffres dans `upgrades.rs`.
 use crate::arsenal::{EnemyShot, Projectile, Zone};
-use crate::defs::{CharacterDef, Content, DashDef, MapDef, Pattern, StatusDef};
+use crate::defs::{CharacterDef, Content, DashDef, DropDef, MapDef, Pattern, Stat, StatusDef, WeaponKind};
 use crate::grid::Grid;
 use crate::horde::{face_from, Horde, FACE_DOWN, HIT_SLOTS};
 use crate::pickups::{PickupKind, Pickups};
 use crate::rng::Rng;
 use crate::upgrades::{PassiveSlot, Stats, WeaponSlot};
 use glam::Vec2;
+use std::collections::HashSet;
 
 pub const DT: f32 = 1.0 / 60.0;
 
@@ -67,6 +68,16 @@ pub enum Event {
     Victory { pos: Vec2 },
     ChestDropped { pos: Vec2, big: bool },
     Frozen { pos: Vec2 },
+    /// Une Bob-omb arrive (annonce).
+    BombSpawned { pos: Vec2 },
+    /// Bob-omb vaincue : les ennemis a l'ecran sont souffles.
+    ScreenClear { pos: Vec2, count: u32 },
+    /// Element de decor casse (indice dans `MapDef::props`).
+    PropBroken { pos: Vec2, kind: u16 },
+    /// Bloc de Somaria qui eclate en rayons.
+    Burst { pos: Vec2, weapon: u16 },
+    /// Medaillon ramasse : ennemis a l'ecran geles.
+    Medallion { pos: Vec2 },
 }
 
 /// Coup d'epee en cours.
@@ -234,6 +245,17 @@ pub struct World {
     pub won: bool,
     /// Graine du decor (placement des arbres, rochers...).
     pub prop_seed: u32,
+    /// Cases du decor dont l'element a ete casse.
+    pub broken: HashSet<(i32, i32)>,
+    /// La carte a du decor cassable.
+    breakables: bool,
+    /// Bonus du personnage (appliques avec les objets passifs).
+    pub char_stats: Vec<(Stat, f32)>,
+    /// Bob-omb : type d'ennemi et temps avant la prochaine.
+    pub bomb_kind: Option<u16>,
+    bomb_t: f32,
+    /// Premier evenement du pas en cours.
+    ev0: usize,
     wave_acc: Vec<f32>,
     wave_kind: Vec<Option<u16>>,
     bursts_done: Vec<bool>,
@@ -296,9 +318,27 @@ impl World {
             portal_t: 0.0,
             won: false,
             prop_seed: (seed as u32) ^ ((seed >> 32) as u32).wrapping_mul(0x9e37_79b9) ^ 0x2545_f491,
+            broken: HashSet::new(),
+            breakables: false,
+            char_stats: c.stats.clone(),
+            bomb_kind: None,
+            bomb_t: 0.0,
+            ev0: 0,
             accel: Vec::new(),
             content,
         };
+        w.breakables = w.map.props.iter().any(|p| p.breakable);
+        let bomb = w.content.rules.bomb_enemy.clone();
+        if !bomb.is_empty() {
+            w.bomb_kind = w.content.enemy_index(&bomb);
+            if w.bomb_kind.is_none() {
+                eprintln!("bob-omb : ennemi inconnu {bomb}");
+            }
+        }
+        let (a, b) = w.content.rules.bomb_every;
+        w.bomb_t = w.rng.range(a, b) * 0.6;
+        w.recompute_stats();
+        w.player.hp = w.player.max_hp;
         match w.content.weapon_index(&c.weapon) {
             Some(id) => w.add_weapon(id),
             None => eprintln!("arme de depart inconnue : {}", c.weapon),
@@ -384,6 +424,7 @@ impl World {
     pub fn tick(&mut self, input: &PlayerInput) {
         self.time += DT;
         self.ticks += 1;
+        self.ev0 = self.events.len();
         self.player.prev = self.player.pos;
         self.horde.prev.copy_from_slice(&self.horde.pos);
         self.pickups.prev.copy_from_slice(&self.pickups.pos);
@@ -404,6 +445,9 @@ impl World {
         self.update_weapons(input);
         self.update_projectiles();
         self.update_zones();
+        if self.breakables {
+            self.update_props();
+        }
         self.update_horde();
         self.update_statuses();
         self.update_shots();
@@ -510,7 +554,10 @@ impl World {
             return false;
         }
         self.horde.hit_cd[i][slot.min(HIT_SLOTS - 1)] = (interval / DT).round().clamp(1.0, 255.0) as u8;
-        let is_crit = crit.0 > 0.0 && self.rng.chance(crit.0);
+        // la chance ajoute des points de critique aux armes qui peuvent en faire
+        let luck = ((self.player.stats.luck - 1.0) * self.content.rules.luck_crit).max(0.0);
+        let chance = if crit.1 > 1.0 { crit.0 + luck } else { 0.0 };
+        let is_crit = chance > 0.0 && self.rng.chance(chance);
         let dmg = if is_crit { damage * crit.1 } else { damage };
         if let Some(st) = status {
             self.apply_status(i, st);
@@ -561,6 +608,16 @@ impl World {
         let pos = self.horde.pos[i];
         self.events.push(Event::EnemyHit { pos, kind: k, damage: dmg, crit, dir, weapon });
         if self.horde.hp[i] <= 0.0 {
+            self.on_death(i, dir);
+        }
+    }
+
+    /// Mort d'un ennemi : butin, coffres, fin de boss, souffle de la Bob-omb.
+    fn on_death(&mut self, i: usize, dir: Vec2) {
+        let k = self.horde.kind[i];
+        let pos = self.horde.pos[i];
+        let boss = self.content.enemies[k as usize].boss;
+        {
             let elite = self.horde.elite[i];
             self.events.push(Event::EnemyKilled { pos, kind: k, dir, elite });
             self.player.kills += 1;
@@ -588,10 +645,154 @@ impl World {
                 self.events.push(Event::ChestDropped { pos, big: false });
                 let xp = self.content.rules.elite_xp;
                 self.pickups.spawn(PickupKind::rupee_for(xp), xp, pos, self.rng.dir() * 40.0, 90.0);
+            } else if Some(k) == self.bomb_kind {
+                self.drop_loot(k, pos, dir);
+                self.screen_clear(pos);
             } else {
                 self.drop_loot(k, pos, dir);
             }
         }
+    }
+
+    /// Souffle de la Bob-omb : tous les ennemis visibles meurent (sauf les boss).
+    pub fn screen_clear(&mut self, at: Vec2) {
+        let lim = self.view_half + Vec2::splat(16.0);
+        let pp = self.player.pos;
+        let mut count = 0;
+        for j in 0..self.horde.len() {
+            if self.horde.hp[j] <= 0.0 {
+                continue;
+            }
+            let k = self.horde.kind[j];
+            if self.content.enemies[k as usize].boss || Some(k) == self.bomb_kind {
+                continue;
+            }
+            let d = (self.horde.pos[j] - pp).abs();
+            if d.x > lim.x || d.y > lim.y {
+                continue;
+            }
+            self.horde.hp[j] = 0.0;
+            let dir = (self.horde.pos[j] - at).normalize_or(Vec2::Y);
+            self.on_death(j, dir);
+            count += 1;
+        }
+        self.events.push(Event::ScreenClear { pos: at, count });
+    }
+
+    /// Medaillon : gele les ennemis visibles (les boss un instant seulement).
+    fn medallion(&mut self, at: Vec2) {
+        let lim = self.view_half + Vec2::splat(16.0);
+        let pp = self.player.pos;
+        for j in 0..self.horde.len() {
+            let d = (self.horde.pos[j] - pp).abs();
+            if self.horde.hp[j] <= 0.0 || d.x > lim.x || d.y > lim.y {
+                continue;
+            }
+            let boss = self.content.enemies[self.horde.kind[j] as usize].boss;
+            self.horde.freeze[j] = self.horde.freeze[j].max(if boss { 1.5 } else { 6.0 });
+        }
+        self.events.push(Event::Medallion { pos: at });
+    }
+
+    /// Decor cassable : touche par l'epee, les projectiles, les explosions, les orbites et le dash.
+    fn update_props(&mut self) {
+        let mut hits: Vec<(Vec2, f32)> = Vec::new();
+        let pp = self.player.pos;
+        if let Some(sw) = self.player.swing {
+            let d = Vec2::from_angle(sw.angle_at(sw.t));
+            hits.push((pp + d * sw.radius * 0.6, sw.radius * 0.45));
+        }
+        if self.player.dashing() {
+            hits.push((pp, self.player.radius + 4.0));
+        }
+        for p in &self.projectiles {
+            if p.radius > 0.0 && p.z < 4.0 {
+                hits.push((p.pos + Vec2::new(0.0, 6.0), p.radius));
+            }
+        }
+        for e in &self.events[self.ev0..] {
+            match *e {
+                Event::Explosion { pos, radius, .. } | Event::Slam { pos, radius, .. } | Event::Pillar { pos, radius, .. } => {
+                    hits.push((pos, radius))
+                }
+                _ => {}
+            }
+        }
+        for slot in 0..self.weapons.len() {
+            let w = self.weapons[slot];
+            match self.content.weapons[w.id as usize].kind {
+                WeaponKind::Orbit if w.active > 0.0 => {
+                    for pt in self.orbit_points(slot, pp - Vec2::new(0.0, 6.0), w.phase) {
+                        hits.push((pt, 8.0));
+                    }
+                }
+                WeaponKind::Aura => hits.push((pp, w.stats.area * 0.8)),
+                _ => {}
+            }
+        }
+        for (at, r) in hits {
+            self.hit_props(at, r.min(120.0));
+        }
+    }
+
+    /// Casse les elements cassables touches par un cercle.
+    pub fn hit_props(&mut self, at: Vec2, r: f32) {
+        use crate::props::{prop_at, CELL};
+        let (x0, y0) = (((at.x - r - 8.0) / CELL).floor() as i32, ((at.y - r - 8.0) / CELL).floor() as i32);
+        let (x1, y1) = (((at.x + r + 8.0) / CELL).floor() as i32, ((at.y + r + 8.0) / CELL).floor() as i32);
+        for cy in y0..=y1 {
+            for cx in x0..=x1 {
+                if self.broken.contains(&(cx, cy)) {
+                    continue;
+                }
+                let Some(p) = prop_at(&self.map.props, self.prop_seed, cx, cy) else { continue };
+                let def = &self.map.props[p.kind as usize];
+                if !def.breakable {
+                    continue;
+                }
+                // le centre visuel est un peu au-dessus du pied
+                let c = p.pos - Vec2::new(0.0, 4.0);
+                if (c - at).length() > r + def.radius.max(6.0) {
+                    continue;
+                }
+                self.broken.insert((cx, cy));
+                self.events.push(Event::PropBroken { pos: p.pos, kind: p.kind });
+                self.prop_drop(c);
+            }
+        }
+    }
+
+    /// Butin d'un element casse (la chance rend le « rien » plus rare).
+    fn prop_drop(&mut self, pos: Vec2) {
+        let luck = self.player.stats.luck.max(0.1);
+        let weight = |d: DropDef, w: f32| if d == DropDef::Nothing { w / luck } else { w };
+        let drops = self.content.rules.prop_drops.clone();
+        let total: f32 = drops.iter().map(|&(d, w)| weight(d, w)).sum();
+        if total <= 0.0 {
+            return;
+        }
+        let mut u = self.rng.f() * total;
+        let mut pick = DropDef::Nothing;
+        for &(d, w) in &drops {
+            let w = weight(d, w);
+            if u < w {
+                pick = d;
+                break;
+            }
+            u -= w;
+        }
+        let (kind, value) = match pick {
+            DropDef::Nothing => return,
+            DropDef::RupeeGreen => (PickupKind::RupeeGreen, 1),
+            DropDef::RupeeBlue => (PickupKind::RupeeBlue, 5),
+            DropDef::RupeeRed => (PickupKind::RupeeRed, 20),
+            DropDef::Heart => (PickupKind::Heart, 0),
+            DropDef::Magnet => (PickupKind::Magnet, 0),
+            DropDef::Fairy => (PickupKind::Fairy, 0),
+            DropDef::Medallion => (PickupKind::Medallion, 0),
+        };
+        let v = self.rng.dir() * 14.0;
+        self.pickups.spawn(kind, value, pos, v, 95.0);
     }
 
     fn drop_loot(&mut self, kind: u16, pos: Vec2, dir: Vec2) {
@@ -731,13 +932,19 @@ impl World {
             }
             PickupKind::Chest => self.pending_chests.push(false),
             PickupKind::BigChest => self.pending_chests.push(true),
+            PickupKind::Magnet => self.vacuum(),
+            PickupKind::Fairy => {
+                let p = &mut self.player;
+                p.hp = p.max_hp;
+            }
+            PickupKind::Medallion => self.medallion(pos),
             _ => self.gain_xp(value),
         }
     }
 
     pub(crate) fn gain_xp(&mut self, value: u32) {
         self.player.rupees += value;
-        self.player.xp += value as f32 * self.mods.xp;
+        self.player.xp += value as f32 * self.mods.xp * self.player.stats.growth;
         while self.player.xp >= self.player.xp_next {
             self.player.xp -= self.player.xp_next;
             self.player.level += 1;
@@ -788,6 +995,19 @@ impl World {
                     let bias = Some(self.player.vel);
                     let p = self.offscreen_point(bias);
                     self.spawn_enemy(kind, p);
+                }
+            }
+        }
+        if let Some(bk) = self.bomb_kind {
+            self.bomb_t -= DT;
+            if self.bomb_t <= 0.0 {
+                let (a, b) = self.content.rules.bomb_every;
+                self.bomb_t = self.rng.range(a, b);
+                if self.horde.alive[bk as usize] == 0 && self.horde.len() < max {
+                    let bias = Some(self.player.vel);
+                    let p = self.offscreen_point(bias);
+                    self.spawn_enemy(bk, p);
+                    self.events.push(Event::BombSpawned { pos: p });
                 }
             }
         }
@@ -876,7 +1096,7 @@ impl World {
         let mut i = 0;
         while i < self.pickups.len() {
             let d = (self.pickups.pos[i] - pp).abs();
-            if (d.x > lim2.x || d.y > lim2.y) && !self.pickups.kind[i].is_chest() {
+            if (d.x > lim2.x || d.y > lim2.y) && !self.pickups.kind[i].is_chest() && !self.pickups.kind[i].is_special() {
                 self.pickups.remove(i);
             } else {
                 i += 1;

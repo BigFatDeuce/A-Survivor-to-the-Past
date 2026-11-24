@@ -70,13 +70,13 @@ Source : {REPO}
 
 LEGAL / MENTIONS LÉGALES
 Unofficial, free and non-commercial fan game, made for fun. SELLING IT IS FORBIDDEN.
-The Legend of Zelda, A Link to the Past, their characters, graphics, music and sounds belong to
-Nintendo. This project is not affiliated with, sponsored or endorsed by Nintendo.
+The Legend of Zelda, A Link to the Past, The Minish Cap, their characters, graphics, music and
+sounds belong to Nintendo. This project is not affiliated with, sponsored or endorsed by Nintendo.
 The GPL-3.0 license (LICENSE) only covers the source code of this project.
 
 Fan game non officiel, gratuit et non commercial, fait pour le plaisir. SA REVENTE EST INTERDITE.
-The Legend of Zelda, A Link to the Past, leurs personnages, graphismes, musiques et sons
-appartiennent à Nintendo. Ce projet n'est ni affilié, ni sponsorisé, ni approuvé par Nintendo.
+The Legend of Zelda, A Link to the Past, The Minish Cap, leurs personnages, graphismes, musiques
+et sons appartiennent à Nintendo. Ce projet n'est ni affilié, ni sponsorisé, ni approuvé par Nintendo.
 La licence GPL-3.0 (LICENSE) ne couvre que le code source de ce projet.
 """
 

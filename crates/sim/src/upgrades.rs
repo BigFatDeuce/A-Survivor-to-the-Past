@@ -18,6 +18,8 @@ pub struct Stats {
     pub magnet: f32,
     pub dash_cd: f32,
     pub regen: f32,
+    pub luck: f32,
+    pub growth: f32,
 }
 
 impl Default for Stats {
@@ -35,6 +37,8 @@ impl Default for Stats {
             magnet: 1.0,
             dash_cd: 1.0,
             regen: 0.0,
+            luck: 1.0,
+            growth: 1.0,
         }
     }
 }
@@ -54,6 +58,8 @@ impl Stats {
             Stat::Magnet => self.magnet += v,
             Stat::DashCooldown => self.dash_cd += v,
             Stat::Regen => self.regen += v,
+            Stat::Luck => self.luck += v,
+            Stat::Growth => self.growth += v,
         }
     }
 }
@@ -144,6 +150,9 @@ impl World {
     /// Recalcule les statistiques du joueur et des armes.
     pub fn recompute_stats(&mut self) {
         let mut st = Stats::default();
+        for &(s, v) in &self.char_stats {
+            st.add(s, v);
+        }
         for &(s, v) in &self.mods.stats {
             st.add(s, v);
         }

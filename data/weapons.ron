@@ -3,7 +3,10 @@
 // (cles weapon.<id>.name / weapon.<id>.desc) ; le detail des niveaux est genere.
 //
 // Familles : Swing (epee), Projectile, Boomerang, Lob (bombes), Slam (frappe au sol),
-//            Orbit, Pillars (colonnes sur l'ecran), Storm (tout l'ecran).
+//            Orbit, Pillars (colonnes sur l'ecran), Storm (tout l'ecran),
+//            Aura (nuage autour du joueur), Somaria (bloc qui eclate en rayons : beam + rays),
+//            Bees (projectiles qui poursuivent les ennemis).
+// chain: true dessine une chaine entre le joueur et le projectile (grappin).
 // Evolution : arme au niveau max + objet passif possede -> l'arme evoluee, dans un coffre.
 //
 // base : damage, cooldown (s), amount, area (portee / rayon), speed, duration (s),
@@ -175,5 +178,91 @@
         kind: Orbit, icon: "icon_fairy", sprite: "fairy", sfx: "fairy", evolved: true,
         base: (damage: 16.0, cooldown: 3.0, amount: 5, area: 34.0, speed: 3.2, duration: 3.5,
                knockback: 80.0, hit_interval: 0.4),
+    ),
+    // 0.4 : grappin, poudre magique, canne de Somaria, abeilles
+    "hookshot": (
+        kind: Boomerang, icon: "icon_hookshot", sprite: "proj_hookshot", sfx: "hookshot", chain: true,
+        base: (damage: 12.0, cooldown: 1.5, amount: 1, area: 6.0, speed: 340.0, duration: 0.3,
+               pierce: 0, knockback: 30.0, hit_interval: 0.3, crit_chance: 0.05),
+        range: 140.0,
+        status: Some(Stun(time: 0.8)),
+        levels: [
+            [Damage(4.0)],
+            [Duration(0.2)],
+            [Amount(1)],
+            [Damage(5.0), Speed(0.15)],
+            [Amount(1), Cooldown(-0.15)],
+        ],
+        evolution: Some((passive: "flippers", into: "longshot")),
+    ),
+    "longshot": (
+        kind: Boomerang, icon: "icon_hookshot", sprite: "proj_hookshot", sfx: "hookshot", chain: true, evolved: true,
+        base: (damage: 30.0, cooldown: 1.0, amount: 3, area: 8.0, speed: 430.0, duration: 0.42,
+               pierce: 0, knockback: 70.0, hit_interval: 0.25, crit_chance: 0.12, crit_mult: 2.0),
+        range: 190.0,
+        status: Some(Stun(time: 1.4)),
+    ),
+    "magic_powder": (
+        kind: Aura, icon: "icon_magic_powder", sprite: "fx_powder",
+        // cooldown = rythme des touches ; pas de son (le nuage est permanent)
+        base: (damage: 4.0, cooldown: 0.5, area: 30.0, knockback: 12.0, hit_interval: 0.45),
+        weight: 0.9,
+        levels: [
+            [Area(0.15)],
+            [Damage(2.0)],
+            [Area(0.15), Cooldown(-0.1)],
+            [Damage(3.0)],
+            [Area(0.2), Damage(3.0)],
+        ],
+        evolution: Some((passive: "mushroom", into: "witch_powder")),
+    ),
+    "witch_powder": (
+        kind: Aura, icon: "icon_magic_powder", sprite: "fx_powder", evolved: true,
+        base: (damage: 13.0, cooldown: 0.35, area: 50.0, knockback: 30.0, hit_interval: 0.3,
+               crit_chance: 0.1, crit_mult: 2.0),
+        status: Some(Burn(dps: 6.0, time: 1.5)),
+    ),
+    "cane_of_somaria": (
+        kind: Somaria, icon: "icon_somaria", sprite: "proj_somaria_block", sfx: "somaria",
+        // duration = temps avant l'eclatement ; rays = rayons (beam : part des degats, vitesse, vie)
+        base: (damage: 14.0, cooldown: 2.2, amount: 1, area: 9.0, duration: 0.9, knockback: 60.0,
+               hit_interval: 0.5),
+        range: 150.0, rays: 4,
+        beam: Some((sprite: "fx_somaria_ray", damage: 0.8, speed: 190.0, life: 0.6)),
+        levels: [
+            [Damage(5.0)],
+            [Amount(1)],
+            [Cooldown(-0.15)],
+            [Amount(1)],
+            [Damage(8.0)],
+        ],
+        evolution: Some((passive: "book_of_mudora", into: "great_somaria")),
+    ),
+    "great_somaria": (
+        kind: Somaria, icon: "icon_somaria", sprite: "proj_somaria_block", sfx: "somaria", evolved: true,
+        base: (damage: 32.0, cooldown: 1.6, amount: 3, area: 10.0, duration: 0.8, knockback: 90.0,
+               hit_interval: 0.4, crit_chance: 0.1, crit_mult: 2.0),
+        range: 170.0, rays: 8,
+        beam: Some((sprite: "fx_somaria_ray", damage: 0.9, speed: 230.0, life: 0.8)),
+    ),
+    "bees": (
+        kind: Bees, icon: "icon_bee_bottle", sprite: "proj_bee", sfx: "bees",
+        base: (damage: 5.0, cooldown: 2.0, amount: 2, area: 5.0, speed: 120.0, duration: 3.0,
+               pierce: 3, knockback: 10.0, hit_interval: 0.4),
+        range: 160.0,
+        levels: [
+            [Amount(1)],
+            [Damage(2.0)],
+            [Pierce(2), Duration(0.2)],
+            [Amount(1)],
+            [Damage(3.0), Amount(1)],
+        ],
+        evolution: Some((passive: "magic_cape", into: "golden_bees")),
+    ),
+    "golden_bees": (
+        kind: Bees, icon: "icon_golden_bee", sprite: "proj_golden_bee", sfx: "bees", evolved: true,
+        base: (damage: 14.0, cooldown: 1.5, amount: 6, area: 6.0, speed: 155.0, duration: 4.0,
+               pierce: 0, knockback: 20.0, hit_interval: 0.35, crit_chance: 0.15, crit_mult: 2.0),
+        range: 190.0,
     ),
 }

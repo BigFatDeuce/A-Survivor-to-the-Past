@@ -1,7 +1,8 @@
 // Plaine d'Hyrule sous l'orage
 // Stage 1 : la plaine, la pluie et les soldats du chateau
 // Le boss final apparait a 9:00 ; sa defaite ouvre la porte de sortie (victoire en la franchissant).
-// props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde).
+// props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde,
+//         breakable = se casse au moindre coup et peut laisser un objet, break_fx = animation).
 (
     name: "Plaine d'Hyrule sous l'orage",
     order: 1,
@@ -46,7 +47,7 @@
     final_boss: Some((at: 540.0, enemy: "armos_knight")),
     props: [
         (sprite: "prop_tree", density: 0.07, radius: 13.0, solid: true),
-        (sprite: "prop_bush", density: 0.08, radius: 6.0, solid: true),
+        (sprite: "prop_bush", density: 0.05, radius: 6.0, solid: false, breakable: true, break_fx: "fx_bush_break"),
         (sprite: "prop_stump", density: 0.02, radius: 9.0, solid: true),
     ],
 )

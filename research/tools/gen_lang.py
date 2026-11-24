@@ -430,6 +430,10 @@ import lang_controls  # noqa: E402  (ecran Commandes)
 KEYS += lang_controls.KEYS
 for _code, _t in lang_controls.EXTRA.items():
     L[_code].update(_t)
+import lang_v04  # noqa: E402  (personnages, Bob-omb, decor cassable, armes et objets 0.4)
+KEYS += lang_v04.KEYS
+for _code, _t in lang_v04.EXTRA.items():
+    L[_code].update(_t)
 
 
 def esc(s):

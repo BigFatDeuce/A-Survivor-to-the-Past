@@ -2,7 +2,8 @@
 // Chacun est aussi la cle d'une evolution d'arme (voir weapons.ron).
 // Stats : Might (+0.1 = +10 % degats), Area, Cooldown (-0.08 = -8 %), Amount (+1 projectile),
 //         Duration, Speed (projectiles), MoveSpeed, MaxHp (10 = 1 coeur), Armor (degats recus -n),
-//         Magnet, DashCooldown, Regen (vie par seconde).
+//         Magnet, DashCooldown, Regen (vie par seconde), Luck (+0.1 = +10 % : critiques, butin du
+//         decor), Growth (+0.1 = +10 % d'experience).
 {
     "pegasus_boots": (
         icon: "icon_boots",
@@ -53,6 +54,29 @@
             [(Magnet, 0.35), (Duration, 0.05)],
             [(Magnet, 0.35), (Duration, 0.05)],
             [(Magnet, 0.35), (Duration, 0.05)],
+        ],
+    ),
+    // 0.4
+    "book_of_mudora": (
+        icon: "icon_book",
+        levels: [[(Growth, 0.08)], [(Growth, 0.08)], [(Growth, 0.08)], [(Growth, 0.08)], [(Growth, 0.08)]],
+    ),
+    "mushroom": (
+        icon: "icon_mushroom",
+        levels: [[(Luck, 0.1)], [(Luck, 0.1)], [(Luck, 0.1)], [(Luck, 0.1)], [(Luck, 0.1)]],
+    ),
+    "magic_cape": (
+        icon: "icon_cape",
+        levels: [[(Duration, 0.1)], [(Duration, 0.1)], [(Duration, 0.1)], [(Duration, 0.1)], [(Duration, 0.1)]],
+    ),
+    "flippers": (
+        icon: "icon_flippers",
+        levels: [
+            [(Speed, 0.1), (MoveSpeed, 0.03)],
+            [(Speed, 0.1), (MoveSpeed, 0.03)],
+            [(Speed, 0.1), (MoveSpeed, 0.03)],
+            [(Speed, 0.1), (MoveSpeed, 0.03)],
+            [(Speed, 0.1), (MoveSpeed, 0.03)],
         ],
     ),
 }

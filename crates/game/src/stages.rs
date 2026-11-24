@@ -366,7 +366,7 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let content = crate::content::load_content(&root);
         let ids = super::stage_ids(&content);
-        assert_eq!(ids.len(), 5, "5 stages attendus : {ids:?}");
+        assert_eq!(ids.len(), 6, "6 stages attendus : {ids:?}");
         for id in &ids {
             let mut w = World::new(content.clone(), "link", id, 7);
             w.player.god = true;
