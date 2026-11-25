@@ -10,6 +10,7 @@ Usage : python research/tools/make_web.py [--no-build]
 Necessite la cible wasm32-unknown-unknown et wasm-bindgen-cli de la meme version que la crate.
 """
 import argparse
+import json
 import re
 import shutil
 import struct
@@ -48,6 +49,37 @@ def write_pak(files, dest):
     return dest.stat().st_size
 
 
+# Ecran de chargement : sprites tires de l'atlas du jeu (A Link to the Past), assembles en une bande.
+LOADER = [
+    ("link", "walk_side"), ("link", "idle_side"), ("link", "idle_down"),
+    ("soldier_green", "walk_side"), ("octorok", "walk_side"), ("moblin", "walk_side"),
+    ("bobomb", "walk"), ("bobomb", "red"), ("ganon", "walk_side"), ("rupee_green", "0"),
+]
+
+
+def build_loader(dest):
+    """Ecrit loader.png (bande d'images) et renvoie {"sprite.anim": {"fps", "frames": [[x, y, w, h, px, py]]}}."""
+    from PIL import Image
+    text = (ROOT / "assets/gen/atlas.ron").read_text(encoding="utf-8")
+    atlas = Image.open(ROOT / "assets/gen" / re.search(r'image:\s*"([^"]+)"', text).group(1)).convert("RGBA")
+    out, crops, x = {}, [], 0
+    for sprite, anim in LOADER:
+        block = re.search(r'\n        "%s": \{(.*?)\n        \},' % re.escape(sprite), text, re.S).group(1)
+        m = re.search(r'"%s": \(frames: \[(.*?)\](?:, fps: ([\d.]+))?' % re.escape(anim), block)
+        frames = []
+        for f in re.findall(r'\(x: (\d+), y: (\d+), w: (\d+), h: (\d+), px: (-?\d+), py: (-?\d+)\)', m.group(1)):
+            fx, fy, w, h, px, py = map(int, f)
+            crops.append((atlas.crop((fx, fy, fx + w, fy + h)), x))
+            frames.append([x, 0, w, h, px, py])
+            x += w + 1
+        out[f"{sprite}.{anim}"] = {"fps": float(m.group(2) or 8), "frames": frames}
+    strip = Image.new("RGBA", (x, max(c.height for c, _ in crops)), (0, 0, 0, 0))
+    for c, at in crops:
+        strip.paste(c, (at, 0))
+    strip.save(dest, optimize=True)
+    return out
+
+
 def music_files():
     text = (ROOT / "data/audio.ron").read_text(encoding="utf-8")
     return sorted(set(re.findall(r'file:\s*"([^"]+)"', text)))
@@ -68,8 +100,10 @@ PAGE = """<!doctype html>
 <div id="overlay">
   <img src="../img/icon_192.png" width="96" height="96" alt="">
   <h1>A Survivor to the Past</h1>
+  <canvas id="scene" width="220" height="60" aria-hidden="true"></canvas>
   <p id="status">Loading...</p>
   <div id="bar"><div id="fill"></div></div>
+  <p id="tip"></p>
   <button id="start" hidden>Play</button>
   <p id="note"></p>
   <p class="small"><a href="../">a-survivor-to-the-past</a> · v{v}</p>
@@ -87,6 +121,9 @@ canvas#game { display: block; width: 100vw; height: 100vh; outline: none; touch-
 #overlay[hidden] { display: none; }
 #overlay img { image-rendering: pixelated; }
 h1 { margin: 0; font-size: 28px; color: #f8d858; letter-spacing: .5px; }
+#scene { width: min(540px, 92vw); aspect-ratio: 11 / 3; image-rendering: pixelated; }
+#tip { min-height: 1.4em; margin: 0; font-style: italic; color: #b8b0e8; max-width: 520px; transition: opacity .3s; }
+#tip.out { opacity: 0; }
 #bar { width: min(360px, 80vw); height: 10px; border: 2px solid #f8d858; border-radius: 3px; }
 #fill { width: 0; height: 100%; background: #f8d858; transition: width .15s; }
 #start { font: 700 20px system-ui, sans-serif; color: #10102a; background: #f8d858; border: 0; border-radius: 6px;
@@ -117,6 +154,7 @@ const T = {
   ja: { load: 'よみこみちゅう...', ready: 'じゅんび OK!', play: 'プレイ', err: 'ゲームを はじめられませんでした。',
         note: 'キーボード、マウス、コントローラー。パソコンの Chrome、Edge、Firefox がおすすめ。しんこうは このブラウザに ほぞんされます。' },
 };
+const TIPS = {"en": ["Teaching Octoroks to aim...", "Hiding the Bob-ombs (even fewer than before)...", "Cutting every single bush for rupees...", "Asking Ganon to wait his turn...", "Polishing the Master Sword...", "Shadow Link is choosing his color. Black. Again.", "Feeding the chickens. Do NOT hit the chickens.", "Counting rupees: 1, 2, 999...", "Convincing the guards that Link is innocent...", "Untangling Moldorm..."], "fr": ["On apprend aux Octoroks à viser...", "On cache les Bob-ombs (encore moins qu'avant)...", "On coupe chaque buisson pour les rubis...", "On demande à Ganon d'attendre son tour...", "On astique l'épée de légende...", "Shadow Link choisit sa couleur. Noir. Encore.", "On nourrit les poules. NE frappez PAS les poules.", "On compte les rubis : 1, 2, 999...", "On convainc les gardes que Link est innocent...", "On démêle Moldorm..."], "de": ["Die Oktoroks lernen das Zielen...", "Wir verstecken die Bob-ombs (noch weniger als vorher)...", "Jeder Busch wird für Rubine geschnitten...", "Ganon wird gebeten, zu warten...", "Das Master-Schwert wird poliert...", "Shadow Link wählt seine Farbe. Schwarz. Schon wieder.", "Die Hühner werden gefüttert. Hühner NICHT schlagen.", "Rubine zählen: 1, 2, 999...", "Die Wachen glauben langsam, dass Link unschuldig ist...", "Moldorm wird entknotet..."], "es": ["Enseñando a apuntar a los Octoroks...", "Escondiendo las Bob-ombs (aún menos que antes)...", "Cortando cada arbusto en busca de rupias...", "Pidiendo a Ganon que espere su turno...", "Puliendo la Espada Maestra...", "Shadow Link elige su color. Negro. Otra vez.", "Dando de comer a los pollos. NO golpees a los pollos.", "Contando rupias: 1, 2, 999...", "Convenciendo a los guardias de que Link es inocente...", "Desenredando a Moldorm..."], "it": ["Insegniamo agli Octorok a prendere la mira...", "Nascondiamo le Bob-omba (ancora meno di prima)...", "Tagliamo ogni cespuglio per le rupie...", "Chiediamo a Ganon di aspettare il suo turno...", "Lucidiamo la Spada Suprema...", "Shadow Link sceglie il suo colore. Nero. Di nuovo.", "Diamo da mangiare ai polli. NON colpite i polli.", "Contiamo le rupie: 1, 2, 999...", "Convinciamo le guardie che Link è innocente...", "Sciogliamo i nodi di Moldorm..."], "pt": ["Ensinando os Octoroks a mirar...", "Escondendo as Bob-ombs (ainda menos que antes)...", "Cortando cada arbusto atrás de rupias...", "Pedindo ao Ganon que espere a vez dele...", "Polindo a Espada Mestra...", "Shadow Link escolhe sua cor. Preto. De novo.", "Alimentando as galinhas. NÃO bata nas galinhas.", "Contando rupias: 1, 2, 999...", "Convencendo os guardas de que Link é inocente...", "Desembaraçando o Moldorm..."], "ja": ["オクタロックに ねらいかたを おしえています...", "バクダンを かくしています（まえより さらに すくなく）...", "ルピーを さがして くさを ぜんぶ かっています...", "ガノンに じゅんばんを まってもらっています...", "マスターソードを みがいています...", "シャドウリンクが いろを えらんでいます。くろ。また くろ。", "ニワトリに えさを あげています。ニワトリを たたかないで！", "ルピーを かぞえています：1、2、999...", "リンクは わるくないと へいしを せっとくしています...", "モルドームを ほどいています..."]};
 const params = new URLSearchParams(location.search);
 const code = (params.get('lang') || navigator.language || 'en').slice(0, 2).toLowerCase();
 const t = T[code] || T.en;
@@ -129,6 +167,7 @@ start.textContent = t.play;
 $('note').textContent = t.note;
 
 function fail(msg) {
+  failed = true;
   overlay.hidden = false;
   $('bar').hidden = true;
   start.hidden = true;
@@ -138,6 +177,108 @@ function fail(msg) {
   $('note').className = 'error';
 }
 window.astpCrash = fail;
+
+// --- petite scene : Link court sur la barre, poursuivi par la horde ; une fois pret, il se retourne ---
+const tips = (TIPS[code] || TIPS.en).slice().sort(() => Math.random() - 0.5);
+let tipAt = 0;
+const tip = $('tip');
+function nextTip() {
+  tip.classList.add('out');
+  setTimeout(() => { tip.textContent = tips[tipAt++ % tips.length]; tip.classList.remove('out'); }, 300);
+}
+tip.textContent = tips[tipAt++];
+const tipTimer = setInterval(nextTip, 2800);
+
+const L = {loader};
+const sheet = new Image();
+sheet.src = 'loader.png?v={v}';
+const cv = $('scene'), g = cv.getContext('2d');
+const W = cv.width, H = cv.height, GY = 50;
+let prog = 0, shown = 0, ready = 0, arrive = 0, failed = false, last = performance.now(), clock = 0;
+const horde = [
+  { s: 'soldier_green.walk_side', off: 30, flip: false },
+  { s: 'octorok.walk_side', off: 52, flip: true },
+  { s: 'moblin.walk_side', off: 72, flip: false },
+  { s: 'bobomb.walk', off: 94, flip: false },
+  { s: 'ganon.walk_side', off: 134, flip: false },
+];
+horde.forEach((h, i) => { h.x = -30 - h.off; h.seed = i * 1.7; });
+const dust = [];
+
+function spr(name, t, x, y, flip) {
+  const a = L[name];
+  const [sx, sy, w, h, px, py] = a.frames[Math.floor(t * a.fps) % a.frames.length];
+  g.save();
+  g.translate(Math.round(x), Math.round(y));
+  if (flip) g.scale(-1, 1);
+  g.drawImage(sheet, sx, sy, w, h, -px, -py, w, h);
+  g.restore();
+}
+function bang(x, y) {
+  g.font = 'bold 12px system-ui, sans-serif';
+  g.textAlign = 'center';
+  g.lineWidth = 3;
+  g.strokeStyle = '#10102a';
+  g.strokeText('!', x, y);
+  g.fillStyle = '#f8d858';
+  g.fillText('!', x, y);
+}
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000);
+  last = now;
+  clock += dt;
+  g.clearRect(0, 0, W, H);
+  // sol : herbe et chemin
+  g.fillStyle = '#28462c';
+  g.fillRect(0, GY - 4, W, H - GY + 4);
+  g.fillStyle = '#3c6a3a';
+  for (let i = 0; i < W; i += 13) g.fillRect((i * 7) % W, GY + ((i * 3) % 7), 2, 2);
+  if (sheet.complete && sheet.naturalWidth) {
+    // vitesse plafonnee : meme si tout est deja en cache, la poursuite dure environ 3 s
+    shown += Math.max(0, Math.min(prog - shown, dt * 0.33));
+    if (!arrive && ready && shown >= 0.999) arrive = now;
+    const lx = 14 + shown * (W - 28);
+    const after = arrive ? (now - arrive) / 1000 : -1;
+    // horde
+    for (const h of horde) {
+      let flip = h.flip, t = clock + h.seed;
+      if (after < 0 || failed) {
+        h.x += (lx - h.off - h.x) * Math.min(1, dt * 2.2);
+      } else if (after < 0.8) {
+        t = h.seed;  // figes
+      } else {
+        h.x -= dt * (h.s.startsWith('ganon') ? 140 : 190);
+        flip = !flip;
+        t = clock * 2 + h.seed;
+      }
+      const name = h.s === 'bobomb.walk' && Math.floor(clock * 4 + h.seed) % 6 === 0 ? 'bobomb.red' : h.s;
+      const hop = after < 0 ? Math.abs(Math.sin(clock * 9 + h.seed)) * 1.5 : 0;
+      spr(name, t, h.x, GY - hop, flip);
+      if (after >= 0.15 && after < 1.4 && !failed) bang(h.x, GY - 30 - (h.s.startsWith('ganon') ? 14 : 0));
+    }
+    // poussiere derriere Link
+    if (!arrive && prog - shown > 0.002 && Math.random() < dt * 14) dust.push({ x: lx - 6, y: GY - 2, t: 0 });
+    for (let i = dust.length - 1; i >= 0; i--) {
+      const d = dust[i];
+      d.t += dt;
+      if (d.t > 0.5) { dust.splice(i, 1); continue; }
+      g.fillStyle = `rgba(220, 210, 180, ${0.6 * (1 - d.t * 2)})`;
+      g.fillRect(Math.round(d.x - d.t * 10), Math.round(d.y - d.t * 8), 2, 2);
+    }
+    // Link
+    if (failed) spr('link.idle_down', 0, lx, GY, false);
+    else if (after < 0) spr('link.walk_side', clock, lx, GY - Math.abs(Math.sin(clock * 10)), false);
+    else if (after < 1.8) spr('link.idle_side', 0, lx, GY, true);
+    else {
+      spr('link.idle_down', 0, lx, GY, false);
+      const r = Math.min(1, (after - 1.8) * 2);
+      spr('rupee_green.0', clock, lx, GY - 24 - r * 6, false);
+    }
+  }
+  if (!overlay.hidden) requestAnimationFrame(frame);
+  else clearInterval(tipTimer);
+}
+requestAnimationFrame(frame);
 
 async function download(url) {
   const r = await fetch(url);
@@ -151,7 +292,8 @@ async function download(url) {
     if (done) break;
     parts.push(value);
     got += value.length;
-    fill.style.width = Math.min(100, (got / total) * 100).toFixed(1) + '%';
+    prog = Math.min(1, got / total);
+    fill.style.width = (prog * 100).toFixed(1) + '%';
   }
   const out = new Uint8Array(got);
   let at = 0;
@@ -166,6 +308,8 @@ try {
   });
   const [pak, wasm] = await Promise.all([download('game.pak?v={v}'), wasmBytes]);
   fill.style.width = '100%';
+  prog = 1;
+  ready = performance.now();
   status.textContent = t.ready;
   start.hidden = false;
   start.focus();
@@ -208,7 +352,9 @@ def main():
     v = VERSION
     (OUT / "index.html").write_text(PAGE.replace("{v}", v), encoding="utf-8", newline="\n")
     (OUT / "play.css").write_text(CSS, encoding="utf-8", newline="\n")
-    (OUT / "play.js").write_text(JS.replace("{v}", v).replace("{pak}", str(size)), encoding="utf-8", newline="\n")
+    loader = build_loader(OUT / "loader.png")
+    js = JS.replace("{v}", v).replace("{pak}", str(size)).replace("{loader}", json.dumps(loader, separators=(",", ":")))
+    (OUT / "play.js").write_text(js, encoding="utf-8", newline="\n")
     wasm = (OUT / "game_bg.wasm").stat().st_size
     print(f"web v{v} : {len(files)} fichiers dans game.pak ({size / 1e6:.1f} Mo), {len(music)} musiques, "
           f"wasm {wasm / 1e6:.1f} Mo -> {OUT}")
