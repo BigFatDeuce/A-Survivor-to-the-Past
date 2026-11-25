@@ -38,7 +38,6 @@ If you are the author of one of these sheets and want a credit corrected, added 
 | The Minish Cap (GBA) - Bob-omb | Bob-omb | Robbydude |
 | Four Swords (GBA) - Princess Zelda | Zelda | Deathbringer |
 | Four Swords Adventures (GameCube) - Link (Green, Red, Blue, Purple), Shadow Link (itemless) | Four Swords Link and its colors, Shadow Link | Vaati |
-| Zelda II: The Adventure of Link (NES) - Link | Zelda II Link | Mister Mike |
 
 ## Custom sprites (fan art)
 

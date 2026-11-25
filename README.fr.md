@@ -16,7 +16,7 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
 ## Contenu
 
 - **6 stages** à débloquer l'un après l'autre — Plaine d'Hyrule, Bois Perdus, Désert du Mystère, Lac gelé, Pyramide de la Puissance et la Montagne de la Mort en bonus — chacun avec sa météo, sa musique, son boss intermédiaire et son boss final, jusqu'à Agahnim et Ganon
-- **13 personnages jouables** à débloquer — Link, Link Minish, Link sans bonnet, Sonic, la princesse Zelda, le Link de la NES, le Link de *Four Swords* (4 couleurs), ceux de *Link's Awakening* et de *Zelda II*, Link adulte, Link Mojo, Maskass et Shadow Link (en battant Ganon) — chacun avec ses forces, ses faiblesses et son arme de départ
+- **12 personnages jouables** à débloquer — Link, Link Minish, Link sans bonnet, Sonic, la princesse Zelda, le Link de la NES, le Link de *Four Swords* (4 couleurs), celui de *Link's Awakening*, Link adulte, Link Mojo, Maskass et Shadow Link (en battant Ganon) — chacun avec ses forces, ses faiblesses et son arme de départ
 - Une **Bob-omb** rare qui souffle tous les ennemis à l'écran, et un **décor cassable** qui cache rubis, cœurs, fées ou médaillon d'Éther
 - Des **rencontres** aléatoires : un champion errant attend quelque part, une flèche indique où aller — battez-le pour une bénédiction, une amélioration spéciale d'arme ou une relique gardée si vous gagnez
 - **12 armes**, chacune avec une **évolution**, et **12 objets passifs** — 6 emplacements d'armes et 6 d'objets : chaque choix compte

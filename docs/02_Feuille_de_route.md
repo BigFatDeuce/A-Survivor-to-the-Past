@@ -163,15 +163,17 @@ Chaque jalon se termine par un point avec toi (démo + questions éventuelles).
   (gardée à l'évolution), relique de rencontre (effet immédiat, gardée si la partie est gagnée) et bénédiction.
 - **Reliques** : 15 au total (Miroir magique pour la Montagne de la Mort, 8 reliques de rencontre) ;
   **écart** : 3 emplacements au lieu de 2.
-- **Sept personnages de plus (13 au total)**, planches de `AdditionalChars` / `MoreSprites` découpées par
+- **Six personnages de plus (12 au total)**, planches de `AdditionalChars` / `MoreSprites` découpées par
   `research/tools/gen_chars.py` (planches « Derived » réalignées) : Link de *Four Swords* (un seul personnage,
-  4 couleurs au choix avec gauche / droite, gardées dans le profil), Link de *Link's Awakening*, Link de *Zelda II*,
+  4 couleurs au choix avec gauche / droite, gardées dans le profil), Link de *Link's Awakening*,
   Link adulte (style Chrono Trigger, ombre retirée), Link Mojo, Maskass, et **Shadow Link débloqué en battant
   Ganon** (`UnlockDef::Slain`). Liste des personnages qui défile. **Écarts** : Link enfant non repris (planche
-  sans cycle de marche) ; Link de *Zelda II* n'a que le profil (servi aussi de face et de dos) ; Shadow Link est
+  sans cycle de marche) ; Shadow Link est
   un personnage à part (même planche que *Four Swords*), pas une couleur.
 - **Flèches d'indication** (champion, Bob-omb, coffres hors écran) : sprite de flèche de la police d'*A Link to the
   Past*, tourné par quarts de tour, au lieu d'une flèche dessinée.
+- **0.5.1** : Link de *Zelda II* retiré (planche de profil seulement) ; écran de chargement web avec un seul
+  message traduit (« No Nintendo lawyers approved this game! »).
 - **Crédits** : `CREDITS.md` liste l'auteur de chaque planche (nom inscrit sur la planche), lien dans les README.
 - Traductions des 7 langues (`lang_v05.py`, `lang_v05b.py`) ; tests 10/10 ; vérification de l'interface :
   0 problème sur 2940 écrans.

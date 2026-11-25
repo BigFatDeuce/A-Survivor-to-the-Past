@@ -34,7 +34,7 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
         feat_h="Features",
         feats=[
             '**6 stages** unlocked one after the other — Hyrule Field, Lost Woods, Desert of Mystery, Frozen Lake, Pyramid of Power and the bonus Death Mountain — each with its own weather, music, mid-boss and final boss, up to Agahnim and Ganon',
-            '**13 playable characters** to unlock — Link, Minish Link, Capless Link, Sonic, Princess Zelda, NES Link, Four Swords Link (4 colors), the Links of *Link\'s Awakening* and *Zelda II*, Adult Link, Deku Link, Shy Guy and Shadow Link (defeat Ganon) — each with strengths, weaknesses and a starting weapon',
+            '**12 playable characters** to unlock — Link, Minish Link, Capless Link, Sonic, Princess Zelda, NES Link, Four Swords Link (4 colors), *Link\'s Awakening* Link, Adult Link, Deku Link, Shy Guy and Shadow Link (defeat Ganon) — each with strengths, weaknesses and a starting weapon',
             'A rare **Bob-omb** that blows away every enemy on screen, and **breakable scenery** hiding rupees, hearts, fairies or the Ether medallion',
             'Random **encounters**: a wandering champion waits somewhere, an arrow shows the way — beat it for a blessing, a special weapon upgrade or a relic you keep if you win',
             '**12 weapons**, each with an **evolution**, and **12 passive items** — 6 weapon slots and 6 item slots, so every choice matters',
@@ -101,7 +101,7 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
         feat_h="Contenu",
         feats=[
             "**6 stages** à débloquer l'un après l'autre — Plaine d'Hyrule, Bois Perdus, Désert du Mystère, Lac gelé, Pyramide de la Puissance et la Montagne de la Mort en bonus — chacun avec sa météo, sa musique, son boss intermédiaire et son boss final, jusqu'à Agahnim et Ganon",
-            '**13 personnages jouables** à débloquer — Link, Link Minish, Link sans bonnet, Sonic, la princesse Zelda, le Link de la NES, le Link de *Four Swords* (4 couleurs), ceux de *Link\'s Awakening* et de *Zelda II*, Link adulte, Link Mojo, Maskass et Shadow Link (en battant Ganon) — chacun avec ses forces, ses faiblesses et son arme de départ',
+            '**12 personnages jouables** à débloquer — Link, Link Minish, Link sans bonnet, Sonic, la princesse Zelda, le Link de la NES, le Link de *Four Swords* (4 couleurs), celui de *Link\'s Awakening*, Link adulte, Link Mojo, Maskass et Shadow Link (en battant Ganon) — chacun avec ses forces, ses faiblesses et son arme de départ',
             "Une **Bob-omb** rare qui souffle tous les ennemis à l'écran, et un **décor cassable** qui cache rubis, cœurs, fées ou médaillon d'Éther",
             "Des **rencontres** aléatoires : un champion errant attend quelque part, une flèche indique où aller — battez-le pour une bénédiction, une amélioration spéciale d'arme ou une relique gardée si vous gagnez",
             "**12 armes**, chacune avec une **évolution**, et **12 objets passifs** — 6 emplacements d'armes et 6 d'objets : chaque choix compte",
@@ -168,7 +168,7 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
         feat_h="Inhalt",
         feats=[
             '**6 Stages**, die nacheinander freigeschaltet werden — Hyrule-Ebene, Verlorene Wälder, Wüste der Mysterien, Gefrorener See, Pyramide der Macht und der Bonus-Stage Todesberg — jede mit eigenem Wetter, eigener Musik, Zwischenboss und Endboss, bis zu Agahnim und Ganon',
-            '**13 spielbare Figuren** zum Freischalten — Link, Minish-Link, Link ohne Mütze, Sonic, Prinzessin Zelda, NES-Link, Four-Swords-Link (4 Farben), die Links aus *Link\'s Awakening* und *Zelda II*, Erwachsener Link, Deku-Link, Shy Guy und Shadow Link (Ganon besiegen) — jede mit Stärken, Schwächen und eigener Startwaffe',
+            '**12 spielbare Figuren** zum Freischalten — Link, Minish-Link, Link ohne Mütze, Sonic, Prinzessin Zelda, NES-Link, Four-Swords-Link (4 Farben), der Link aus *Link\'s Awakening*, Erwachsener Link, Deku-Link, Shy Guy und Shadow Link (Ganon besiegen) — jede mit Stärken, Schwächen und eigener Startwaffe',
             'Ein seltener **Bob-omb**, der alle Gegner auf dem Bildschirm wegsprengt, und **zerstörbare Umgebung** mit Rubinen, Herzen, Feen oder dem Äther-Medaillon',
             'Zufällige **Begegnungen**: Ein wandernder Champion wartet irgendwo, ein Pfeil zeigt den Weg — besiege ihn für einen Segen, eine Spezialverbesserung oder ein Relikt, das bleibt, wenn du gewinnst',
             '**12 Waffen**, jede mit einer **Entwicklung**, und **12 passive Gegenstände** — 6 Waffen- und 6 Gegenstandsplätze, jede Wahl zählt',
@@ -235,7 +235,7 @@ Guía a Link entre hordas cada vez más grandes, recoge rupias para subir de niv
         feat_h="Contenido",
         feats=[
             '**6 fases** que se desbloquean una tras otra — Llanura de Hyrule, Bosque Perdido, Desierto del Misterio, Lago helado, Pirámide del Poder y la Montaña de la Muerte como extra — cada una con su clima, su música, su jefe intermedio y su jefe final, hasta Agahnim y Ganon',
-            '**13 personajes jugables** por desbloquear — Link, Link Minish, Link sin gorro, Sonic, la princesa Zelda, el Link de NES, el Link de *Four Swords* (4 colores), los de *Link\'s Awakening* y *Zelda II*, Link adulto, Link Deku, Shy Guy y Shadow Link (derrotando a Ganon) — cada uno con sus puntos fuertes, sus debilidades y su arma inicial',
+            '**12 personajes jugables** por desbloquear — Link, Link Minish, Link sin gorro, Sonic, la princesa Zelda, el Link de NES, el Link de *Four Swords* (4 colores), el de *Link\'s Awakening*, Link adulto, Link Deku, Shy Guy y Shadow Link (derrotando a Ganon) — cada uno con sus puntos fuertes, sus debilidades y su arma inicial',
             'Una **Bob-omb** rara que barre a todos los enemigos de la pantalla, y **decorado destructible** que esconde rupias, corazones, hadas o el medallón de Éter',
             '**Encuentros** aleatorios: un campeón errante espera en algún lugar y una flecha indica el camino — derrótalo para obtener una bendición, una mejora especial de arma o una reliquia que conservas si ganas',
             '**12 armas**, cada una con una **evolución**, y **12 objetos pasivos** — 6 huecos de armas y 6 de objetos: cada elección cuenta',
@@ -302,7 +302,7 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
         feat_h="Contenuti",
         feats=[
             "**6 stage** da sbloccare uno dopo l'altro — Piana di Hyrule, Boschi Perduti, Deserto del Mistero, Lago ghiacciato, Piramide del Potere e il Monte Morte come bonus — ognuno con il suo meteo, la sua musica, un boss intermedio e un boss finale, fino ad Agahnim e Ganon",
-            '**13 personaggi giocabili** da sbloccare — Link, Link Minish, Link senza berretto, Sonic, la principessa Zelda, il Link del NES, il Link di *Four Swords* (4 colori), quelli di *Link\'s Awakening* e *Zelda II*, Link adulto, Link Deku, Tipo Timido e Shadow Link (sconfiggendo Ganon) — ognuno con punti di forza, debolezze e la sua arma iniziale',
+            '**12 personaggi giocabili** da sbloccare — Link, Link Minish, Link senza berretto, Sonic, la principessa Zelda, il Link del NES, il Link di *Four Swords* (4 colori), quello di *Link\'s Awakening*, Link adulto, Link Deku, Tipo Timido e Shadow Link (sconfiggendo Ganon) — ognuno con punti di forza, debolezze e la sua arma iniziale',
             "Una **Bob-omb** rara che spazza via tutti i nemici sullo schermo, e **scenari distruttibili** che nascondono rupie, cuori, fate o il medaglione dell'Etere",
             '**Incontri** casuali: un campione errante aspetta da qualche parte, una freccia indica la strada — sconfiggilo per una benedizione, un potenziamento speciale o una reliquia che resta se vinci',
             "**12 armi**, ognuna con un'**evoluzione**, e **12 oggetti passivi** — 6 slot per le armi e 6 per gli oggetti: ogni scelta conta",
@@ -369,7 +369,7 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
         feat_h="Conteúdo",
         feats=[
             '**6 fases** desbloqueadas uma após a outra — Campo de Hyrule, Bosque Perdido, Deserto do Mistério, Lago congelado, Pirâmide do Poder e a Montanha da Morte como bônus — cada uma com seu clima, sua música, um chefe intermediário e um chefe final, até Agahnim e Ganon',
-            '**13 personagens jogáveis** para desbloquear — Link, Link Minish, Link sem gorro, Sonic, a princesa Zelda, o Link do NES, o Link de *Four Swords* (4 cores), os de *Link\'s Awakening* e *Zelda II*, Link adulto, Link Deku, Shy Guy e Shadow Link (derrotando Ganon) — cada um com pontos fortes, fraquezas e sua arma inicial',
+            '**12 personagens jogáveis** para desbloquear — Link, Link Minish, Link sem gorro, Sonic, a princesa Zelda, o Link do NES, o Link de *Four Swords* (4 cores), o de *Link\'s Awakening*, Link adulto, Link Deku, Shy Guy e Shadow Link (derrotando Ganon) — cada um com pontos fortes, fraquezas e sua arma inicial',
             'Uma **Bob-omb** rara que varre todos os inimigos da tela, e **cenário destrutível** que esconde rupias, corações, fadas ou o medalhão do Éter',
             '**Encontros** aleatórios: um campeão errante espera em algum lugar e uma seta mostra o caminho — derrote-o para ganhar uma bênção, uma melhoria especial de arma ou uma relíquia mantida se você vencer',
             '**12 armas**, cada uma com uma **evolução**, e **12 itens passivos** — 6 espaços de armas e 6 de itens: cada escolha conta',
@@ -436,7 +436,7 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
         feat_h="特徴",
         feats=[
             '順番に解放される**6つのステージ** — ハイラル平原、迷いの森、幻の砂漠、凍った湖、力のピラミッド、ボーナスのデスマウンテン。それぞれ天候、音楽、中ボス、ラスボスが異なり、最後はアグニムとガノンが待ち受けます',
-            '解放できる**13人のキャラクター** — リンク、ミニッシュリンク、帽子なしのリンク、ソニック、ゼルダ姫、ファミコン版リンク、『4つの剣』のリンク（4色）、『夢をみる島』と『リンクの冒険』のリンク、大人のリンク、デクリンク、ヘイホー、シャドウリンク（ガノンを倒すと解放）。それぞれ長所と短所、最初の武器が異なります',
+            '解放できる**12人のキャラクター** — リンク、ミニッシュリンク、帽子なしのリンク、ソニック、ゼルダ姫、ファミコン版リンク、『4つの剣』のリンク（4色）、『夢をみる島』のリンク、大人のリンク、デクリンク、ヘイホー、シャドウリンク（ガノンを倒すと解放）。それぞれ長所と短所、最初の武器が異なります',
             '画面の敵をすべて吹き飛ばすレアな**ボム兵**と、ルピー・ハート・妖精・エーテルのメダルが隠れた**壊せる背景**',
             'ランダムな**遭遇戦**：どこかで待つ放浪のチャンピオンを矢印が示します。倒すと祝福、武器の特別強化、勝利すれば持ち帰れるレリックが手に入ります',
             '**12種類の武器**（それぞれ**進化**あり）と**12種類のパッシブアイテム** — 武器枠6つ、アイテム枠6つで、選択が重要です',

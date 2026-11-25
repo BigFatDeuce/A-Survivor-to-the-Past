@@ -122,8 +122,7 @@ canvas#game { display: block; width: 100vw; height: 100vh; outline: none; touch-
 #overlay img { image-rendering: pixelated; }
 h1 { margin: 0; font-size: 28px; color: #f8d858; letter-spacing: .5px; }
 #scene { width: min(540px, 92vw); aspect-ratio: 11 / 3; image-rendering: pixelated; }
-#tip { min-height: 1.4em; margin: 0; font-style: italic; color: #b8b0e8; max-width: 520px; transition: opacity .3s; }
-#tip.out { opacity: 0; }
+#tip { min-height: 1.4em; margin: 0; font-style: italic; color: #b8b0e8; max-width: 520px; }
 #bar { width: min(360px, 80vw); height: 10px; border: 2px solid #f8d858; border-radius: 3px; }
 #fill { width: 0; height: 100%; background: #f8d858; transition: width .15s; }
 #start { font: 700 20px system-ui, sans-serif; color: #10102a; background: #f8d858; border: 0; border-radius: 6px;
@@ -154,7 +153,7 @@ const T = {
   ja: { load: 'よみこみちゅう...', ready: 'じゅんび OK!', play: 'プレイ', err: 'ゲームを はじめられませんでした。',
         note: 'キーボード、マウス、コントローラー。パソコンの Chrome、Edge、Firefox がおすすめ。しんこうは このブラウザに ほぞんされます。' },
 };
-const TIPS = {"en": ["Teaching Octoroks to aim...", "Hiding the Bob-ombs (even fewer than before)...", "Cutting every single bush for rupees...", "Asking Ganon to wait his turn...", "Polishing the Master Sword...", "Shadow Link is choosing his color. Black. Again.", "Feeding the chickens. Do NOT hit the chickens.", "Counting rupees: 1, 2, 999...", "Convincing the guards that Link is innocent...", "Untangling Moldorm..."], "fr": ["On apprend aux Octoroks à viser...", "On cache les Bob-ombs (encore moins qu'avant)...", "On coupe chaque buisson pour les rubis...", "On demande à Ganon d'attendre son tour...", "On astique l'épée de légende...", "Shadow Link choisit sa couleur. Noir. Encore.", "On nourrit les poules. NE frappez PAS les poules.", "On compte les rubis : 1, 2, 999...", "On convainc les gardes que Link est innocent...", "On démêle Moldorm..."], "de": ["Die Oktoroks lernen das Zielen...", "Wir verstecken die Bob-ombs (noch weniger als vorher)...", "Jeder Busch wird für Rubine geschnitten...", "Ganon wird gebeten, zu warten...", "Das Master-Schwert wird poliert...", "Shadow Link wählt seine Farbe. Schwarz. Schon wieder.", "Die Hühner werden gefüttert. Hühner NICHT schlagen.", "Rubine zählen: 1, 2, 999...", "Die Wachen glauben langsam, dass Link unschuldig ist...", "Moldorm wird entknotet..."], "es": ["Enseñando a apuntar a los Octoroks...", "Escondiendo las Bob-ombs (aún menos que antes)...", "Cortando cada arbusto en busca de rupias...", "Pidiendo a Ganon que espere su turno...", "Puliendo la Espada Maestra...", "Shadow Link elige su color. Negro. Otra vez.", "Dando de comer a los pollos. NO golpees a los pollos.", "Contando rupias: 1, 2, 999...", "Convenciendo a los guardias de que Link es inocente...", "Desenredando a Moldorm..."], "it": ["Insegniamo agli Octorok a prendere la mira...", "Nascondiamo le Bob-omba (ancora meno di prima)...", "Tagliamo ogni cespuglio per le rupie...", "Chiediamo a Ganon di aspettare il suo turno...", "Lucidiamo la Spada Suprema...", "Shadow Link sceglie il suo colore. Nero. Di nuovo.", "Diamo da mangiare ai polli. NON colpite i polli.", "Contiamo le rupie: 1, 2, 999...", "Convinciamo le guardie che Link è innocente...", "Sciogliamo i nodi di Moldorm..."], "pt": ["Ensinando os Octoroks a mirar...", "Escondendo as Bob-ombs (ainda menos que antes)...", "Cortando cada arbusto atrás de rupias...", "Pedindo ao Ganon que espere a vez dele...", "Polindo a Espada Mestra...", "Shadow Link escolhe sua cor. Preto. De novo.", "Alimentando as galinhas. NÃO bata nas galinhas.", "Contando rupias: 1, 2, 999...", "Convencendo os guardas de que Link é inocente...", "Desembaraçando o Moldorm..."], "ja": ["オクタロックに ねらいかたを おしえています...", "バクダンを かくしています（まえより さらに すくなく）...", "ルピーを さがして くさを ぜんぶ かっています...", "ガノンに じゅんばんを まってもらっています...", "マスターソードを みがいています...", "シャドウリンクが いろを えらんでいます。くろ。また くろ。", "ニワトリに えさを あげています。ニワトリを たたかないで！", "ルピーを かぞえています：1、2、999...", "リンクは わるくないと へいしを せっとくしています...", "モルドームを ほどいています..."]};
+const TIPS = {"en": "No Nintendo lawyers approved this game!", "fr": "Aucun avocat de Nintendo n'a approuvé ce jeu !", "de": "Kein Nintendo-Anwalt hat dieses Spiel genehmigt!", "es": "¡Ningún abogado de Nintendo ha aprobado este juego!", "it": "Nessun avvocato di Nintendo ha approvato questo gioco!", "pt": "Nenhum advogado da Nintendo aprovou este jogo!", "ja": "このゲームは 任天堂の べんごしに みとめられていません！"};
 const params = new URLSearchParams(location.search);
 const code = (params.get('lang') || navigator.language || 'en').slice(0, 2).toLowerCase();
 const t = T[code] || T.en;
@@ -179,15 +178,7 @@ function fail(msg) {
 window.astpCrash = fail;
 
 // --- petite scene : Link court sur la barre, poursuivi par la horde ; une fois pret, il se retourne ---
-const tips = (TIPS[code] || TIPS.en).slice().sort(() => Math.random() - 0.5);
-let tipAt = 0;
-const tip = $('tip');
-function nextTip() {
-  tip.classList.add('out');
-  setTimeout(() => { tip.textContent = tips[tipAt++ % tips.length]; tip.classList.remove('out'); }, 300);
-}
-tip.textContent = tips[tipAt++];
-const tipTimer = setInterval(nextTip, 2800);
+$('tip').textContent = TIPS[code] || TIPS.en;
 
 const L = {loader};
 const sheet = new Image();
@@ -276,7 +267,6 @@ function frame(now) {
     }
   }
   if (!overlay.hidden) requestAnimationFrame(frame);
-  else clearInterval(tipTimer);
 }
 requestAnimationFrame(frame);
 

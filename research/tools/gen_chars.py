@@ -178,16 +178,6 @@ preview(rows, 'link_adult')
 f, cs = pack('link_adult', rows)
 sheets.append((f, [], [sprite_block('link_adult', cs, 10)]))
 
-# --- Link (Zelda II) : profil seulement (jeu de plateforme) ---
-z2 = 'NES - Zelda 2_ The Adventure of Link - Playable Characters - Link.png'
-im = Image.open(os.path.join(SRC, z2)).convert('RGBA')
-bgs = [rgb('#008000'), rgb('#800080')]
-side = cells(im, [(1, 11, 17, 43), (29, 11, 45, 43), (46, 11, 62, 43), (63, 11, 79, 43)], bgs, 'right')
-rows = {'down': side, 'side': side, 'up': side, 'walk_down': side[1:], 'walk_side': side[1:], 'walk_up': side[1:]}
-preview(rows, 'link_zelda2')
-f, cs = pack('link_zelda2', rows)
-sheets.append((f, [], [sprite_block('link_zelda2', cs, 8)]))
-
 # --- Link (Link's Awakening DX) : planche derivee (images retournees pour la marche) ---
 la = "Custom - Link's Awakening DX Link (walk).png"
 im = Image.open(os.path.join(SRC, la)).convert('RGBA')
@@ -203,7 +193,7 @@ sheets.append((f, [], [sprite_block('link_awakening', cs, 6)]))
 
 out = ['// Version 0.5 (suite) : personnages de AdditionalChars et Shadow Link (MoreSprites). Genere par',
        '// research/tools/gen_chars.py. Credits : Four Swords Adventures (rip de Vaati), Deku Link (amh1010),',
-       '// Shy Guy (yesilovenachos), Link adulte facon Chrono Trigger (Oldskoolmario, Redfusion), Zelda II et',
+       '// Shy Guy (yesilovenachos), Link adulte facon Chrono Trigger (Oldskoolmario, Redfusion) et',
        "// Link's Awakening (Mister Mike).",
        '(', '    sheets: [']
 for fname, tr, blocks in sheets:

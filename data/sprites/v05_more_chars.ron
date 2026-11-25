@@ -1,6 +1,6 @@
 // Version 0.5 (suite) : personnages de AdditionalChars et Shadow Link (MoreSprites). Genere par
 // research/tools/gen_chars.py. Credits : Four Swords Adventures (rip de Vaati), Deku Link (amh1010),
-// Shy Guy (yesilovenachos), Link adulte facon Chrono Trigger (Oldskoolmario, Redfusion), Zelda II et
+// Shy Guy (yesilovenachos), Link adulte facon Chrono Trigger (Oldskoolmario, Redfusion) et
 // Link's Awakening (Mister Mike).
 (
     sheets: [
@@ -105,19 +105,6 @@
                     "walk_side": (frames: [(191, 1, 28, 30), (220, 1, 28, 30), (249, 1, 28, 30), (278, 1, 28, 30), (307, 1, 28, 30)], fps: 10, pivot: (0, -1), align: Bottom),
                     "idle_up": (frames: [(336, 0, 18, 31)], pivot: (0, -1), align: Bottom),
                     "walk_up": (frames: [(355, 0, 18, 31), (374, 0, 18, 31), (393, 0, 18, 31), (412, 0, 18, 31), (431, 0, 18, 31), (450, 0, 18, 31)], fps: 10, pivot: (0, -1), align: Bottom),
-                },
-            },
-        ),
-        (
-            source: "Derived - link_zelda2.png",
-            sprites: {
-                "link_zelda2": {
-                    "idle_down": (frames: [(0, 0, 16, 32)], pivot: (0, -1), align: Bottom),
-                    "walk_down": (frames: [(17, 0, 16, 32), (34, 0, 16, 32), (51, 0, 16, 32)], fps: 8, pivot: (0, -1), align: Bottom),
-                    "idle_side": (frames: [(0, 0, 16, 32)], pivot: (0, -1), align: Bottom),
-                    "walk_side": (frames: [(17, 0, 16, 32), (34, 0, 16, 32), (51, 0, 16, 32)], fps: 8, pivot: (0, -1), align: Bottom),
-                    "idle_up": (frames: [(0, 0, 16, 32)], pivot: (0, -1), align: Bottom),
-                    "walk_up": (frames: [(17, 0, 16, 32), (34, 0, 16, 32), (51, 0, 16, 32)], fps: 8, pivot: (0, -1), align: Bottom),
                 },
             },
         ),
