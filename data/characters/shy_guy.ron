@@ -1,0 +1,16 @@
+// Maskass (style A Link to the Past) : tres chanceux, baguette de glace ; apprend moins vite.
+// 15000 ennemis.
+(
+    name: "Maskass",
+    sprite: "shy_guy",
+    max_hp: 60.0,
+    speed: 84.0,
+    radius: 5.0,
+    magnet: 36.0,
+    dash: (speed: 330.0, duration: 0.15, cooldown: 1.8),
+    weapon: "ice_rod",
+    weapon_sprite: "sword1",
+    stats: [(Luck, 0.25), (Growth, -0.1), (Might, -0.05)],
+    order: 11,
+    unlock: Some(Kills(15000)),
+)

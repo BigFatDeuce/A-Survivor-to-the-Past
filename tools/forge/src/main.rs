@@ -78,7 +78,7 @@ fn sprites() {
     manifests.sort();
 
     let mut anim_info: BTreeMap<(String, String), (f32, assetkit::meta::AnimMode, usize)> = BTreeMap::new();
-    let mut font_info: BTreeMap<String, (u16, u16, i16)> = BTreeMap::new();
+    let mut font_info: BTreeMap<String, (u16, u16, i16, i16)> = BTreeMap::new();
 
     for mpath in &manifests {
         let text = std::fs::read_to_string(mpath).unwrap();
@@ -109,7 +109,7 @@ fn sprites() {
         }
         for f in &m.fonts {
             build_font(&mut src, f, &mut items);
-            font_info.insert(f.name.clone(), (f.line_h, f.space, f.spacing));
+            font_info.insert(f.name.clone(), (f.line_h, f.space, f.spacing, f.nudge));
         }
         for t in &m.tilesets {
             let img = src.get(&t.source, &[]).clone();
@@ -164,11 +164,12 @@ fn sprites() {
         let (fps, mode, _) = anim_info.get(&(s.clone(), a.clone())).copied().unwrap_or((8.0, Default::default(), 1));
         meta.sprites.entry(s).or_default().insert(a, Anim { frames: fr.into_iter().map(|f| f.1).collect(), fps, mode });
     }
-    for (name, (lh, space, spacing)) in font_info {
+    for (name, (lh, space, spacing, nudge)) in font_info {
         let f = meta.fonts.entry(name).or_insert_with(Font::default);
         f.line_height = lh;
         f.space = space;
         f.spacing = spacing;
+        f.nudge = nudge;
     }
     let out = root.join("assets/gen");
     std::fs::create_dir_all(&out).unwrap();

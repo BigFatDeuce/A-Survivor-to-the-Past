@@ -1,0 +1,17 @@
+// Sonic (style Zelda Game Boy) : tres rapide, dash frequent, attaques rapides mais courtes, fragile.
+// Debloque en gagnant le Desert du Mystere.
+(
+    name: "Sonic",
+    sprite: "sonic",
+    max_hp: 40.0,
+    speed: 108.0,
+    radius: 5.0,
+    magnet: 38.0,
+    dash: (speed: 420.0, duration: 0.15, cooldown: 0.9),
+    weapon: "sword",
+    weapon_sprite: "sword1",
+    // avantages : recharge -10 % ; defauts : zone -15 %, 4 coeurs
+    stats: [(Cooldown, -0.1), (Area, -0.15)],
+    order: 3,
+    unlock: Some(Win("desert")),
+)

@@ -10,6 +10,7 @@ use crate::menus::{self, Nav, NavIn, Opt, OptAction, OptValues};
 use crate::meta::Meta;
 use crate::profile::Profile;
 use crate::settings::Settings;
+use crate::reward::{self, Reward};
 use crate::{clipboard, controls, records, shop, storage};
 use crate::stages;
 use crate::title::{self, Links, TitleItem, TitleVis};
@@ -40,6 +41,8 @@ pub struct Options {
     pub seed: u64,
     pub map: String,
     pub character: String,
+    /// Essais : couleur du personnage (indice dans `skins`), sans toucher au profil.
+    pub skin: Option<usize>,
     /// Commencer la partie a cet instant (s) : essais de fin de partie, du boss.
     pub start_time: f32,
     /// Armes et objets donnes au depart (essais) : identifiants de `weapons.ron` / `passives.ron`.
@@ -69,6 +72,8 @@ enum State {
     Options { sel: usize, from_title: bool },
     LevelUp { offers: Vec<Offer>, sel: usize, t: f32 },
     Chest { reward: ChestReward, big: bool, t: f32 },
+    /// Champion errant vaincu : recompense au choix.
+    Reward { offers: Vec<Reward>, sel: usize, t: f32 },
     Dying(f32),
     Dead { t: f32, sel: usize },
     /// Choix du personnage, puis du stage (sur le decor du titre).
@@ -169,8 +174,10 @@ pub struct Game {
     /// Bilan de la derniere victoire : rubis mis en banque, stage debloque.
     last_banked: u64,
     last_unlocked: Option<String>,
-    /// Relique gagnee par la derniere victoire.
-    last_relic: Option<String>,
+    /// Reliques gagnees par la derniere victoire (stage et rencontres).
+    last_relics: Vec<String>,
+    /// Reliques de rencontre choisies pendant la partie (gardees si elle est gagnee).
+    run_relics: Vec<String>,
     /// Personnages debloques par la derniere partie.
     last_chars: Vec<String>,
     meta: Meta,
@@ -191,6 +198,8 @@ const PROP_BIT: u32 = 0x8000_0000;
 const DUST: [f32; 4] = [0.86, 0.8, 0.58, 1.0];
 const FIRE: [f32; 4] = [1.0, 0.6, 0.2, 1.0];
 const ICE: [f32; 4] = [0.7, 0.88, 1.0, 1.0];
+/// Couleur des champions errants (rencontres).
+const CHAMPION: [f32; 4] = [0.85, 0.5, 1.0, 1.0];
 
 impl Game {
     pub fn new(ctx: &mut Ctx, opts: Options) -> Game {
@@ -268,7 +277,8 @@ impl Game {
             run_chests: 0,
             last_banked: 0,
             last_unlocked: None,
-            last_relic: None,
+            last_relics: Vec::new(),
+            run_relics: Vec::new(),
             last_chars: Vec::new(),
             meta: Meta::load(&ctx.root),
             hub_toast: (String::new(), 0.0),
@@ -279,6 +289,14 @@ impl Game {
             g.settings.video = v;
         }
         // essais (demo, charge, depart avance) : directement en partie, sinon ecran titre
+        // couleurs choisies (profil, ou --skin pour les essais) : sprite du personnage
+        let mut skins = g.profile.clone();
+        if let Some(k) = g.opts.skin {
+            skins.skins.insert(g.opts.character.clone(), k);
+        }
+        chars::apply_skins(&mut g.content, &skins);
+        let map = g.opts.map.clone();
+        g.set_map(ctx, &map);
         let o = &g.opts;
         let direct = o.play || o.demo || o.bench.is_some() || o.start_time > 0.0 || !o.give.is_empty();
         g.state = match g.opts.menu.as_deref() {
@@ -360,8 +378,7 @@ impl Game {
             }
             rec.best_difficulty = rec.best_difficulty.max(p.difficulty as i32);
         }
-        let base = (w.player.rupees as u64 / 4) * if won { 3 } else { 2 } / 2;
-        let banked = (base as f32 * self.meta.bank_mult(p)).round() as u64;
+        let banked = bank_amount(w.player.rupees, won, self.meta.bank_mult(p));
         p.rupees += banked;
         let t = &mut p.totals;
         t.runs += 1;
@@ -392,15 +409,17 @@ impl Game {
         }
         self.last_banked = banked;
         self.last_unlocked = None;
-        self.last_relic = None;
+        self.last_relics.clear();
         if won {
-            if let Some(r) = self.meta.relic_of(&w.map_id) {
-                if p.relics.insert(r.id.clone()) {
-                    self.last_relic = Some(r.id.clone());
+            let mut ids: Vec<String> = self.meta.relic_of(&w.map_id).map(|r| r.id.clone()).into_iter().collect();
+            ids.extend(self.run_relics.iter().cloned());
+            for id in ids {
+                if p.relics.insert(id.clone()) {
                     // emplacement libre : equipee d'office
                     if p.equipped.len() < self.meta.max_relics {
-                        p.equipped.push(r.id.clone());
+                        p.equipped.push(id.clone());
                     }
+                    self.last_relics.push(id);
                 }
             }
         }
@@ -470,7 +489,7 @@ impl Game {
         }
         self.last_banked = 1234;
         self.last_unlocked = self.stage_ids.get(1).cloned();
-        self.last_relic = self.meta.relics.first().map(|r| r.id.clone());
+        self.last_relics = self.meta.relics.iter().take(2).map(|r| r.id.clone()).collect();
         // boutique : un peu de tout (niveaux, benediction, relique equipee, Sceau actif)
         self.profile.rupees = 98765;
         if let Some(it) = self.meta.shop.first() {
@@ -527,6 +546,16 @@ impl Game {
                 }
                 let ups: Vec<Offer> = offers.iter().copied().filter(|o| matches!(o, Offer::UpgradeWeapon(_))).take(3).collect();
                 screens.push(("coffre".into(), State::Chest { reward: ChestReward { evolution: None, upgrades: ups }, big: false, t: 2.0 }));
+                // recompenses de rencontre : toutes les reliques, benedictions et ameliorations
+                let mut rw: Vec<Reward> = (0..self.meta.relics.len()).filter(|&k| self.meta.relics[k].encounter).map(Reward::Relic).collect();
+                rw.extend(reward::BLESSINGS.iter().map(|&(s, v)| Reward::Blessing(s, v)));
+                for slot in 0..self.world.weapons.len() {
+                    let boost = sim::upgrades::WeaponBoost { amount: 1, cooldown: 0.15, ..Default::default() };
+                    rw.push(Reward::Boost { slot, boost });
+                }
+                for (k, chunk) in rw.chunks(3).enumerate() {
+                    screens.push((format!("recompense_{k}"), State::Reward { offers: chunk.to_vec(), sel: 0, t: 1.0 }));
+                }
                 // choix du stage (gagne, ouvert, verrouille, retour) et victoire
                 for (k, name) in [(0usize, "stages_gagne"), (1, "stages_ouvert"), (2, "stages_verrouille")] {
                     screens.push((name.into(), State::StageSelect { sel: k }));
@@ -622,6 +651,11 @@ impl Game {
                     let at = w.player.pos + Vec2::new(70.0, 20.0);
                     w.spawn_enemy(k, at);
                 }
+            } else if id == "encounter" {
+                // essais : un champion errant tout de suite
+                w.encounter_t = 0.0;
+            } else if id == "reward" {
+                w.pending_rewards += 1;
             } else if id == "drops" {
                 // essais : les objets rares du decor au sol
                 for (k, kind) in [PickupKind::Magnet, PickupKind::Fairy, PickupKind::Medallion].into_iter().enumerate() {
@@ -668,6 +702,7 @@ impl Game {
         let root = ctx.root.clone();
         self.commit_run(&root, false);
         self.run_open = true;
+        self.run_relics.clear();
         self.run_kills.iter_mut().for_each(|k| *k = 0);
         self.run_bosses = 0;
         self.run_elites = 0;
@@ -1107,6 +1142,26 @@ impl Game {
                     self.juice.anim_ex(self.vis.ice_shatter, pos - Vec2::new(0.0, 8.0), 0.18, 0.0, 1.0, ICE, true);
                     self.sfx(ctx, "frozen");
                 }
+                Event::EncounterSpawned { .. } => {
+                    self.sfx(ctx, "encounter");
+                    let s = self.lang.get("ui.encounter_spawned").to_string();
+                    self.hud.banner(&s, CHAMPION, 3.5);
+                }
+                Event::EncounterFled { pos } => {
+                    self.sfx(ctx, "encounter_fled");
+                    let s = self.lang.get("ui.encounter_fled").to_string();
+                    self.hud.banner(&s, rgb(190, 180, 210), 2.4);
+                    self.juice.ring(pos - Vec2::new(0.0, 10.0), 26.0, 2.0, 0.45, CHAMPION);
+                }
+                Event::EncounterWon { pos } => {
+                    self.sfx(ctx, "encounter_won");
+                    let s = self.lang.get("ui.encounter_won").to_string();
+                    self.hud.banner(&s, CHAMPION, 2.6);
+                    self.juice.ring(pos - Vec2::new(0.0, 10.0), 4.0, 70.0, 0.55, CHAMPION);
+                    self.juice.ring(pos - Vec2::new(0.0, 10.0), 2.0, 40.0, 0.4, WHITE);
+                    self.juice.flash([0.9, 0.7, 1.0, 0.25], 0.3);
+                    self.juice.add_trauma(0.35, 0.5);
+                }
                 Event::BombSpawned { .. } => {
                     self.sfx(ctx, "bomb_spawn");
                     let s = self.lang.get("ui.bomb_spawned").to_string();
@@ -1203,11 +1258,24 @@ impl Game {
             while let Some(big) = self.world.pending_chests.pop() {
                 self.world.open_chest(big);
             }
+            while self.world.pending_rewards > 0 {
+                self.world.pending_rewards -= 1;
+                let o = reward::roll(&self.world, &self.meta, &self.profile, &self.run_relics, &mut self.rng);
+                if let Some(id) = reward::apply(&mut self.world, &self.meta, o[0]) {
+                    self.run_relics.push(id);
+                }
+            }
             return false;
         }
         if self.world.pending_levels > 0 {
             let offers = self.world.roll_offers();
             self.state = State::LevelUp { offers, sel: 0, t: 0.0 };
+            ctx.audio.duck_music(0.45, 0.2);
+            return true;
+        }
+        if self.world.pending_rewards > 0 {
+            let offers = reward::roll(&self.world, &self.meta, &self.profile, &self.run_relics, &mut self.rng);
+            self.state = State::Reward { offers, sel: 0, t: 0.0 };
             ctx.audio.duck_music(0.45, 0.2);
             return true;
         }
@@ -1683,6 +1751,20 @@ impl Game {
                 if moved {
                     self.sfx(ctx, "cursor");
                 }
+                // gauche / droite : couleur du personnage (s'il en propose plusieurs)
+                if (nav.left || nav.right) && sel < n {
+                    let id = ids[sel].clone();
+                    let def = &self.content.characters[&id];
+                    let m = def.skins.len();
+                    if m > 1 && chars::unlocked(def, &self.profile) {
+                        let k = chars::skin(def, &self.profile, &id);
+                        let k = if nav.right { (k + 1) % m } else { (k + m - 1) % m };
+                        self.profile.skins.insert(id, k);
+                        self.profile.save(&ctx.root);
+                        chars::apply_skins(&mut self.content, &self.profile);
+                        self.sfx(ctx, "cursor");
+                    }
+                }
                 if nav.back {
                     self.sfx(ctx, "confirm");
                     State::Title { sel: 0 }
@@ -1898,6 +1980,29 @@ impl Game {
                         return;
                     }
                     None => State::LevelUp { offers, sel, t },
+                }
+            }
+            State::Reward { offers, mut sel, t } => {
+                let t = t + dt;
+                let (mut pick, moved) = menus::input_levelup(nav, view, offers.len(), &mut sel, t);
+                if moved {
+                    self.sfx(ctx, "cursor");
+                }
+                if self.opts.demo && t > 1.2 {
+                    pick = Some(0);
+                }
+                match pick {
+                    Some(k) => {
+                        if let Some(id) = reward::apply(&mut self.world, &self.meta, offers[k]) {
+                            self.run_relics.push(id);
+                        }
+                        self.world.pending_rewards = self.world.pending_rewards.saturating_sub(1);
+                        self.sfx(ctx, "reward");
+                        self.juice.flash([1.0, 0.85, 1.0, 0.3], 0.15);
+                        self.resume(ctx);
+                        return;
+                    }
+                    None => State::Reward { offers, sel, t },
                 }
             }
             State::Chest { reward, big, t } => {
@@ -2247,14 +2352,36 @@ impl Game {
                     }
                 }
             }
+            let champion = w.is_champion(i);
+            if champion {
+                // champion errant : anneau violet au sol et halo
+                let beat = 0.5 + 0.5 * (rt * 4.0).sin();
+                let r = 15.0 + 2.0 * beat;
+                for s in 0..20 {
+                    let a = s as f32 / 20.0 * TAU - rt * 1.5;
+                    let q = p + Vec2::new(a.cos() * r, a.sin() * r * 0.45);
+                    list.rect(&white, q.round(), Vec2::splat(2.0), with_alpha(CHAMPION, 0.45 + 0.4 * beat));
+                }
+                list.set(Space::World, Blend::Add);
+                let halo = Params { scale: prm.scale * 1.25, ..prm }.flash([0.75, 0.35, 1.0], 1.0).color([1.0, 1.0, 1.0, 0.18 + 0.2 * beat]);
+                list.frame(f, pos + Vec2::new(0.0, 2.0), &halo);
+                list.set(Space::World, Blend::Alpha);
+            }
             if h.elite[i] {
-                // contour dore : silhouette decalee d'un pixel dans les 4 directions
-                let gold = Params { flash: [1.0, 0.82, 0.25, 1.0], ..prm };
+                // contour dore (violet pour un champion) : silhouette decalee d'un pixel dans les 4 directions
+                let gold = Params { flash: if champion { [0.85, 0.5, 1.0, 1.0] } else { [1.0, 0.82, 0.25, 1.0] }, ..prm };
                 for d in [Vec2::X, -Vec2::X, Vec2::Y, -Vec2::Y] {
                     list.frame(f, pos + d * es, &gold);
                 }
             }
             list.frame(f, pos, &prm);
+            if champion {
+                // marque au-dessus de la tete : petit losange qui flotte
+                let top = pos - Vec2::new(0.0, f.h as f32 * es + 6.0 + 2.0 * (rt * 3.0).sin());
+                for (dy, wd) in [(-3.0, 1.0), (-2.0, 3.0), (-1.0, 5.0), (0.0, 3.0), (1.0, 1.0)] {
+                    list.rect(&white, (top + Vec2::new(-wd * 0.5, dy)).round(), Vec2::new(wd, 1.0), CHAMPION);
+                }
+            }
             if h.stun[i] > 0.0 {
                 // petites etoiles qui tournent au-dessus de la tete
                 let top = pos - Vec2::new(0.0, f.h as f32 * es + 2.0);
@@ -2464,12 +2591,51 @@ impl Game {
         }
     }
 
+    /// Fleche d'indication (sprite de la police d'A Link to the Past) a cote d'un repere au bord de l'ecran :
+    /// tournee d'un quart de tour vers la direction dominante (pixels nets), elle avance et recule un peu.
+    fn edge_arrow(&self, ctx: &Ctx, list: &mut DrawList, c: Vec2, d: Vec2, dist: f32) {
+        let card = if d.x.abs() >= d.y.abs() { Vec2::new(d.x.signum(), 0.0) } else { Vec2::new(0.0, d.y.signum()) };
+        let rot = card.y.atan2(card.x);
+        let push = (2.0 * (ctx.real_time as f32 * 5.0).sin().abs()).round();
+        let at = (c + card * (dist + push)).round();
+        list.frame(ctx.atlas.frame(self.vis.ui_arrow, 0.0), at, &Params { rot, ..Default::default() });
+    }
+
     /// Fleches au bord de l'ecran vers les coffres et la Bob-omb hors champ.
     fn draw_chest_markers(&self, ctx: &Ctx, list: &mut DrawList, cam: Vec2) {
         let view = ctx.view;
         let pk = &self.world.pickups;
         list.set(Space::Ui, Blend::Alpha);
         let h = &self.world.horde;
+        if let (Some(e), Some(cp)) = (self.world.encounter.as_ref(), self.world.champion_pos()) {
+            let ui = cp - cam + view * 0.5;
+            let m = 22.0;
+            let on_screen = ui.x >= 0.0 && ui.y >= 0.0 && ui.x <= view.x && ui.y <= view.y;
+            let blink = (ctx.real_time * 3.0).fract() < 0.65;
+            let font = ctx.atlas.font("main");
+            if !on_screen {
+                // a l'ecart du HUD : coeurs et armes en haut, mode d'attaque en bas
+                let c = Vec2::new(ui.x.clamp(m + 18.0, view.x - m - 18.0), ui.y.clamp(m + 74.0, view.y - 56.0));
+                if let Some(i) = h.uid.iter().position(|&u| u == e.uid) {
+                    let (anim, _) = self.vis.enemies[h.kind[i] as usize].pick(FACE_DOWN, 0.0, false);
+                    list.frame(ctx.atlas.frame(anim, ctx.real_time as f32), c + Vec2::new(0.0, 8.0), &Params::default().color([1.0, 1.0, 1.0, if blink { 1.0 } else { 0.7 }]));
+                }
+                let d = (ui - c).normalize_or_zero();
+                self.edge_arrow(ctx, list, c, d, 20.0);
+                // distance (en metres de jeu : 16 pixels) et temps restant
+                let dist = ((cp - self.world.player.pos).length() / 16.0).round() as i32;
+                let mut s = format!("{dist}m");
+                if !e.engaged {
+                    s = format!("{s} {}s", e.t.ceil() as i32);
+                }
+                // texte du cote oppose a la fleche
+                let ty = if d.y > 0.4 { -36.0 } else { 16.0 };
+                crate::hud::text(list, font, &s, c + Vec2::new(0.0, ty), 1.0, CHAMPION, engine::draw::Align::Center);
+            } else if !e.engaged {
+                let s = format!("{}s", e.t.ceil() as i32);
+                crate::hud::text(list, font, &s, ui + Vec2::new(0.0, 6.0), 1.0, with_alpha(CHAMPION, if blink { 1.0 } else { 0.7 }), engine::draw::Align::Center);
+            }
+        }
         if let Some(bk) = self.world.bomb_kind {
             for i in 0..h.len() {
                 if h.kind[i] != bk {
@@ -2485,11 +2651,7 @@ impl Game {
                 let blink = (ctx.real_time * 4.0).fract() < 0.6;
                 list.frame(ctx.atlas.frame(anim, ctx.real_time as f32), c + Vec2::new(0.0, 10.0), &Params::default().color([1.0, 1.0, 1.0, if blink { 1.0 } else { 0.6 }]));
                 let d = (ui - c).normalize_or_zero();
-                for s in 0..4 {
-                    let q = c + d * (13.0 + s as f32);
-                    let w = (4 - s) as f32;
-                    list.rect(&self.vis.white, (q - Vec2::splat(w * 0.5)).round(), Vec2::splat(w), [1.0, 0.45, 0.2, 0.95]);
-                }
+                self.edge_arrow(ctx, list, c, d, 18.0);
             }
         }
         for i in 0..pk.len() {
@@ -2505,13 +2667,9 @@ impl Game {
             let blink = (ctx.real_time * 3.0).fract() < 0.7;
             let anim = self.vis.chest[(pk.kind[i] == PickupKind::BigChest) as usize];
             list.frame(ctx.atlas.frame(anim, 0.0), c + Vec2::new(0.0, 6.0), &Params::default().color([1.0, 1.0, 1.0, if blink { 1.0 } else { 0.6 }]));
-            // petite fleche orientee vers le coffre
+            // fleche orientee vers le coffre
             let d = (ui - c).normalize_or_zero();
-            for s in 0..4 {
-                let q = c + d * (12.0 + s as f32);
-                let w = (4 - s) as f32;
-                list.rect(&self.vis.white, (q - Vec2::splat(w * 0.5)).round(), Vec2::splat(w), with_alpha(GOLD, 0.9));
-            }
+            self.edge_arrow(ctx, list, c, d, 16.0);
         }
     }
 
@@ -2544,6 +2702,10 @@ impl Game {
             }
             State::LevelUp { offers, sel, t } => menus::draw_levelup(list, ctx, &self.world, &self.vis, lang, offers, *sel, *t),
             State::Chest { reward, big, t } => menus::draw_chest(list, ctx, &self.world, &self.vis, lang, reward, *big, *t),
+            State::Reward { offers, sel, t } => {
+                let infos: Vec<_> = offers.iter().map(|&o| reward::info(&self.world, &self.vis, &ctx.atlas, lang, &self.meta, o)).collect();
+                menus::draw_cards(list, ctx, &self.vis, lang, (lang.get("ui.reward.title"), lang.get("ui.choose"), CHAMPION), &infos, *sel, *t);
+            }
             State::Dying(t) => {
                 let a = (t / 1.8).min(1.0) * 0.55;
                 list.rect(white, Vec2::ZERO, view, [0.25, 0.0, 0.0, a]);
@@ -2555,7 +2717,7 @@ impl Game {
                 if let Some(id) = &self.last_unlocked {
                     notes.push(lang.get("ui.new_stage").replace("{s}", &stages::stage_name(lang, id)));
                 }
-                if let Some(id) = &self.last_relic {
+                for id in &self.last_relics {
                     notes.push(lang.get("ui.relic_found").replace("{s}", lang.get(&format!("relic.{id}.name"))));
                 }
                 for id in &self.last_chars {
@@ -2745,6 +2907,7 @@ impl GameTrait for Game {
         self.draw_stage_fx(ctx, alpha, list, cam_shaken);
         self.juice.draw_numbers(list, &ctx.atlas);
         self.draw_chest_markers(ctx, list, cam_shaken);
+        self.hud.banked = bank_amount(self.world.player.rupees, false, self.meta.bank_mult(&self.profile));
         self.hud.draw(list, ctx, &self.world, &self.vis, &self.lang);
         self.draw_overlays(ctx, list);
         Frame { camera: cam_shaken, clear: [0.0, 0.0, 0.0] }
@@ -2788,4 +2951,11 @@ impl GameTrait for Game {
             );
         }
     }
+}
+
+/// Rubis rouges (monnaie de la boutique) mis en banque pour `rupees` ramasses : un quart, x1.5 en cas
+/// de victoire, puis les bonus (difficulte, sceaux, boutique).
+pub fn bank_amount(rupees: u32, won: bool, mult: f32) -> u64 {
+    let base = (rupees as u64 / 4) * if won { 3 } else { 2 } / 2;
+    (base as f32 * mult).round() as u64
 }

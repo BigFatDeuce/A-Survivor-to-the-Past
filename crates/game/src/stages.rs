@@ -61,25 +61,68 @@ pub fn stage_name(lang: &Lang, id: &str) -> String {
 // Choix du stage
 
 pub struct SelectLayout {
-    /// Stages puis « Retour ».
+    /// Lignes puis « Retour ». Les lignes hors de la fenetre de defilement sont rangees hors de l'ecran
+    /// (`visible` faux) : elles ne se dessinent pas et ne captent pas la souris.
     pub items: Vec<(Vec2, Vec2)>,
     pub panel: (Vec2, Vec2),
     pub title_y: f32,
+    /// D'autres lignes au-dessus / au-dessous de la fenetre.
+    pub more: (bool, bool),
 }
 
-pub fn select_layout(view: Vec2, n: usize) -> SelectLayout {
+impl SelectLayout {
+    pub fn visible(&self, k: usize) -> bool {
+        self.items.get(k).is_some_and(|(p, _)| p.y >= 0.0)
+    }
+}
+
+const ROW: f32 = 26.0;
+
+/// Liste a gauche (defilante quand elle est trop longue pour la vue), panneau de details a droite.
+pub fn select_layout(view: Vec2, n: usize, sel: usize) -> SelectLayout {
     let m = 14.0;
     let lw = (view.x * 0.34).clamp(150.0, 210.0).round();
     let y0 = 50.0;
-    let mut items: Vec<(Vec2, Vec2)> = (0..n).map(|k| (Vec2::new(m, y0 + k as f32 * 26.0), Vec2::new(lw, 22.0))).collect();
-    items.push((Vec2::new(m, y0 + n as f32 * 26.0 + 10.0), Vec2::new(lw, 22.0)));
+    // place pour le bouton Retour (decale de 10) et la marge du bas
+    let fit = (((view.y - y0 - 14.0 - 32.0) / ROW).floor() as usize).max(3);
+    let first = if n <= fit { 0 } else { sel.min(n - 1).saturating_sub(fit / 2).min(n - fit) };
+    let shown = n.min(fit);
+    let mut items: Vec<(Vec2, Vec2)> = (0..n)
+        .map(|k| {
+            let y = if k >= first && k < first + shown { y0 + (k - first) as f32 * ROW } else { -1000.0 };
+            (Vec2::new(m, y), Vec2::new(lw, 22.0))
+        })
+        .collect();
+    items.push((Vec2::new(m, y0 + shown as f32 * ROW + 10.0), Vec2::new(lw, 22.0)));
     let px = m + lw + 10.0;
     let panel = (Vec2::new(px, y0 - 4.0), Vec2::new(view.x - px - m, view.y - y0 - 14.0));
-    SelectLayout { items, panel, title_y: 14.0 }
+    SelectLayout { items, panel, title_y: 14.0, more: (first > 0, first + shown < n) }
+}
+
+/// Petits triangles au-dessus et au-dessous de la liste quand elle defile.
+pub fn draw_scroll_marks(list: &mut DrawList, white: &assetkit::meta::Frame, l: &SelectLayout, n: usize, t: f32) {
+    let Some(&(p0, s0)) = l.items.iter().take(n).find(|(p, _)| p.y >= 0.0) else { return };
+    let last = l.items.iter().take(n).filter(|(p, _)| p.y >= 0.0).last().copied().unwrap_or((p0, s0));
+    let bob = ((t * 4.0).sin() * 1.5).round();
+    let cx = (p0.x + s0.x * 0.5).round();
+    let c = with_alpha(GOLD, 0.9);
+    if l.more.0 {
+        for k in 0..4 {
+            let w = 1.0 + 2.0 * k as f32;
+            list.rect(white, Vec2::new(cx - (w - 1.0) * 0.5, p0.y - 7.0 + k as f32 - bob), Vec2::new(w, 1.0), c);
+        }
+    }
+    if l.more.1 {
+        let y = last.0.y + last.1.y + 2.0;
+        for k in 0..4 {
+            let w = 7.0 - 2.0 * k as f32;
+            list.rect(white, Vec2::new(cx - (w - 1.0) * 0.5, y + k as f32 + bob), Vec2::new(w, 1.0), c);
+        }
+    }
 }
 
 pub fn input_select(nav: &NavIn, view: Vec2, n: usize, sel: &mut usize) -> (Option<usize>, bool) {
-    input_rects(nav, &select_layout(view, n).items, sel)
+    input_rects(nav, &select_layout(view, n, *sel).items, sel)
 }
 
 /// Petit cadenas (pixel art) : stage verrouille.
@@ -158,10 +201,14 @@ pub fn draw_select(
     list.set(Space::Ui, Blend::Alpha);
     list.probe_layer();
     list.rect(white, Vec2::ZERO, view, [0.01, 0.01, 0.05, 0.55]);
-    let l = select_layout(view, ids.len());
+    let l = select_layout(view, ids.len(), sel);
     text(list, main, lang.get("ui.stages"), Vec2::new(view.x * 0.5, l.title_y), 2.0, WHITE, Align::Center);
+    draw_scroll_marks(list, white, &l, ids.len(), t);
     // liste
     for (k, &(p, s)) in l.items.iter().enumerate() {
+        if !l.visible(k) {
+            continue;
+        }
         let back = k == ids.len();
         let open = !back && unlocked(ids, profile, k);
         let won = !back && profile.won(&ids[k]);

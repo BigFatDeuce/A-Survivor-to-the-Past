@@ -1,7 +1,7 @@
 <p align="center"><img src="media/icon.png" width="128" height="128" alt="A Survivor to the Past"></p>
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i>Un survivors-like nel mondo di <b>A Link to the Past</b>: resisti alle orde di mostri di Hyrule.</i></p>
-<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.4.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.5.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
 <p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Scarica per Windows</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ Gioca nel browser</b></a></p>
 <p align="center"><a href="README.md">English</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a> · <b>Italiano</b> · <a href="README.pt.md">Português</a> · <a href="README.ja.md">日本語</a></p>
 
@@ -16,8 +16,9 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
 ## Contenuti
 
 - **6 stage** da sbloccare uno dopo l'altro — Piana di Hyrule, Boschi Perduti, Deserto del Mistero, Lago ghiacciato, Piramide del Potere e il Monte Morte come bonus — ognuno con il suo meteo, la sua musica, un boss intermedio e un boss finale, fino ad Agahnim e Ganon
-- **3 personaggi giocabili** da sbloccare — Link, Link Minish e Link senza berretto da *The Minish Cap* — ognuno con le sue statistiche e la sua arma iniziale
+- **13 personaggi giocabili** da sbloccare — Link, Link Minish, Link senza berretto, Sonic, la principessa Zelda, il Link del NES, il Link di *Four Swords* (4 colori), quelli di *Link's Awakening* e *Zelda II*, Link adulto, Link Deku, Tipo Timido e Shadow Link (sconfiggendo Ganon) — ognuno con punti di forza, debolezze e la sua arma iniziale
 - Una **Bob-omb** rara che spazza via tutti i nemici sullo schermo, e **scenari distruttibili** che nascondono rupie, cuori, fate o il medaglione dell'Etere
+- **Incontri** casuali: un campione errante aspetta da qualche parte, una freccia indica la strada — sconfiggilo per una benedizione, un potenziamento speciale o una reliquia che resta se vinci
 - **12 armi**, ognuna con un'**evoluzione**, e **12 oggetti passivi** — 6 slot per le armi e 6 per gli oggetti: ogni scelta conta
 - **17 tipi di nemici** di Hyrule, **7 boss** ed **élite** che lasciano forzieri
 - **Progressi tra le partite**: il negozio di Kakariko (potenziamenti permanenti), le benedizioni della Grande Fata, una **reliquia** per ogni stage, 4 **difficoltà** e i **sigilli** di Ganon per guadagnare più rupie
@@ -74,7 +75,7 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
 
 ## Giocare
 
-Il gioco è in **alfa** (versione 0.4.0). **Windows**: scarica l'ultima versione dalla [pagina delle release](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), estrai tutto lo zip e avvia `A Survivor to the Past.exe`. Windows potrebbe avvisare che il gioco non è firmato: fai clic su *Ulteriori informazioni* → *Esegui comunque*. Poi il gioco **si aggiorna da solo**: all'avvio controlla su GitHub se c'è una nuova versione, la scarica in background e la installa all'avvio successivo (Opzioni → Aggiornamenti: Automatici / Chiedi / No). Le tue impostazioni restano e viene contattato solo GitHub, senza alcun dato personale.
+Il gioco è in **alfa** (versione 0.5.0). **Windows**: scarica l'ultima versione dalla [pagina delle release](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), estrai tutto lo zip e avvia `A Survivor to the Past.exe`. Windows potrebbe avvisare che il gioco non è firmato: fai clic su *Ulteriori informazioni* → *Esegui comunque*. Poi il gioco **si aggiorna da solo**: all'avvio controlla su GitHub se c'è una nuova versione, la scarica in background e la installa all'avvio successivo (Opzioni → Aggiornamenti: Automatici / Chiedi / No). Le tue impostazioni restano e viene contattato solo GitHub, senza alcun dato personale.
 
 **Browser**: [gioca direttamente sul sito](https://a-survivor-to-the-past.holy-c.men/play/), senza installare nulla. Meglio su computer, con Chrome, Edge o Firefox; i progressi sono salvati nel browser. Le versioni per Linux, macOS e Android arriveranno più avanti. Nel frattempo puoi compilare il gioco dai sorgenti con [Rust](https://rustup.rs) (stable):
 
@@ -120,5 +121,7 @@ Sito: [a-survivor-to-the-past.holy-c.men](https://a-survivor-to-the-past.holy-c.
 *The Legend of Zelda*, *A Link to the Past*, *The Minish Cap*, i loro personaggi, la grafica, le musiche e gli effetti sonori sono marchi e opere protette di **Nintendo**. Tutte le risorse Nintendo usate qui appartengono a Nintendo. Questo progetto non è affiliato, sponsorizzato né approvato da Nintendo.
 
 La [licenza GPL-3.0](LICENSE) copre solo il codice sorgente scritto per questo progetto; non concede alcun diritto sulle risorse di Nintendo. Gli sprite sheet provengono dai rip condivisi dalla comunità di *The Spriters Resource* — grazie ai loro autori.
+
+Il nome di ogni autore di rip o di sprite (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny e molti altri) è elencato in **[CREDITS.md](CREDITS.md)**. Anche Tipo Timido appartiene a Nintendo; *Sonic the Hedgehog* è un marchio di **SEGA**.
 
 Titolari dei diritti: per far rimuovere un contenuto, aprite una issue o contattateci su [Discord](https://discord.gg/N8f62M2eaK).

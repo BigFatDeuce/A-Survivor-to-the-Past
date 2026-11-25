@@ -73,11 +73,13 @@ Unofficial, free and non-commercial fan game, made for fun. SELLING IT IS FORBID
 The Legend of Zelda, A Link to the Past, The Minish Cap, their characters, graphics, music and
 sounds belong to Nintendo. This project is not affiliated with, sponsored or endorsed by Nintendo.
 The GPL-3.0 license (LICENSE) only covers the source code of this project.
+Sprite rippers and artists are credited in CREDITS.txt. Sonic the Hedgehog belongs to SEGA.
 
 Fan game non officiel, gratuit et non commercial, fait pour le plaisir. SA REVENTE EST INTERDITE.
 The Legend of Zelda, A Link to the Past, The Minish Cap, leurs personnages, graphismes, musiques
 et sons appartiennent à Nintendo. Ce projet n'est ni affilié, ni sponsorisé, ni approuvé par Nintendo.
 La licence GPL-3.0 (LICENSE) ne couvre que le code source de ce projet.
+Les auteurs des sprites sont crédités dans CREDITS.txt. Sonic the Hedgehog appartient à SEGA.
 """
 
 
@@ -107,6 +109,7 @@ def main():
     for d in ("assets/gen", "assets/audio"):
         shutil.copytree(ROOT / d, stage / d)
     shutil.copy2(ROOT / "LICENSE", stage / "LICENSE.txt")
+    shutil.copy2(ROOT / "CREDITS.md", stage / "CREDITS.txt")
     (stage / "README.txt").write_text(README.replace("\n", "\r\n"), encoding="utf-8-sig", newline="")
     if a.marker:
         (stage / "data" / a.marker).write_text(VERSION, encoding="utf-8")

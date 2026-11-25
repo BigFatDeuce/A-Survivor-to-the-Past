@@ -47,7 +47,7 @@
     final_boss: Some((at: 540.0, enemy: "armos_knight")),
     props: [
         (sprite: "prop_tree", density: 0.07, radius: 13.0, solid: true),
-        (sprite: "prop_bush", density: 0.05, radius: 6.0, solid: false, breakable: true, break_fx: "fx_bush_break"),
+        (sprite: "prop_bush", density: 0.035, radius: 6.0, solid: false, breakable: true, break_fx: "fx_bush_break"),
         (sprite: "prop_stump", density: 0.02, radius: 9.0, solid: true),
     ],
 )

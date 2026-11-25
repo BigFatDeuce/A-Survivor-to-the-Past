@@ -19,6 +19,11 @@
                 "icon_pendant_wisdom": { "0": (frames: [(132, 193, 16, 15)], pivot: (0, 0), align: Center) },
                 "icon_crystal":        { "0": (frames: [(159, 193, 10, 14)], pivot: (0, 0), align: Center) },
                 "icon_big_key":        { "0": (frames: [(229, 192, 14, 16)], pivot: (0, 0), align: Center) },
+                // 0.5 : reliques des rencontres
+                "icon_golden_sword":   { "0": (frames: [(145, 8, 7, 16)], pivot: (0, 0), align: Center) },
+                "icon_fire_shield":    { "0": (frames: [(179, 12, 11, 12)], pivot: (0, 0), align: Center) },
+                "icon_shovel":         { "0": (frames: [(61, 120, 8, 16)], pivot: (0, 0), align: Center) },
+                "icon_small_key":      { "0": (frames: [(232, 169, 8, 15)], pivot: (0, 0), align: Center) },
             },
         ),
     ],

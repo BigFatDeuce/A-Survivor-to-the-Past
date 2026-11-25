@@ -50,6 +50,8 @@ pub struct Banner {
 pub struct Hud {
     /// Rubis affiches (comptent vers la vraie valeur).
     shown_rupees: f32,
+    /// Rubis rouges deja gagnes pour la boutique si la partie s'arretait maintenant (fourni par le jeu).
+    pub banked: u64,
     pub rupee_pop: f32,
     pub heart_shake: f32,
     pub mode_banner: f32,
@@ -67,6 +69,7 @@ impl Hud {
     pub fn new() -> Hud {
         Hud {
             shown_rupees: 0.0,
+            banked: 0,
             rupee_pop: 0.0,
             heart_shake: 0.0,
             mode_banner: 0.0,
@@ -213,7 +216,11 @@ impl Hud {
         let pop = if self.rupee_pop > 0.5 { 2.0 } else { 1.0 };
         list.frame(rup, Vec2::new(13.0, y + 15.0) - Vec2::new(0.0, (pop - 1.0) * 7.0), &Params::default().scale(Vec2::splat(pop)));
         let txt = format!("{:03}", self.shown_rupees as u32);
-        text(list, hudf, &txt, Vec2::new(24.0, y + 1.0), 2.0, WHITE, Align::Left);
+        let tw = text(list, hudf, &txt, Vec2::new(24.0, y + 1.0), 2.0, WHITE, Align::Left);
+        // rubis rouges gagnes pour la boutique (au moins ce montant, plus en cas de victoire)
+        let rx = (24.0 + tw + 14.0).max(84.0);
+        list.frame(atlas.frame(vis.icon_rupees, 0.0), Vec2::new(rx + 4.0, y + 8.0), &Params::default());
+        text(list, hudf, &format!("{:03}", self.banked), Vec2::new(rx + 12.0, y + 1.0), 2.0, rgb(255, 150, 150), Align::Left);
         y += 22.0;
 
         // armes puis objets : cases vides visibles (la place est comptee)
@@ -297,13 +304,23 @@ impl Hud {
         let mode = if p.auto_attack { lang.get("ui.auto") } else { lang.get("ui.manual") };
         let a = if self.mode_banner > 0.0 { 1.0 } else { 0.7 };
         let sc = if self.mode_banner > 1.2 { 2.0 } else { 1.0 };
-        text(list, main, mode, Vec2::new(8.0, view.y - 8.0 - 14.0 * sc), sc, with_alpha(if p.auto_attack { GOLD } else { WHITE }, a), Align::Left);
+        let my = view.y - 8.0 - 14.0 * sc;
+        let mw = text(list, main, mode, Vec2::new(8.0, my), sc, with_alpha(if p.auto_attack { GOLD } else { WHITE }, a), Align::Left);
+        // le mode ne concerne que l'epee : son icone a cote (grisee si le personnage n'en a pas)
+        let sword = world.weapons.iter().find(|w| world.content.weapons[w.id as usize].kind == sim::defs::WeaponKind::Swing).map(|w| (w.id, true));
+        let sword = sword.or_else(|| world.content.weapon_index("sword").map(|i| (i, false)));
+        if let Some((id, owned)) = sword {
+            let c = if owned { [1.0, 1.0, 1.0, a] } else { [0.6, 0.6, 0.6, 0.45 * a] };
+            let at = Vec2::new((8.0 + mw + 6.0 + 6.0 * sc).round(), (my + 6.0 * sc).round());
+            list.frame(atlas.frame(vis.weapons[id as usize].icon, 0.0), at, &Params::default().scale(Vec2::splat(sc)).color(c));
+            list.probe_block(at - Vec2::splat(8.0 * sc), Vec2::splat(16.0 * sc), "icone du mode d'attaque");
+        }
 
         // annonce
         if let Some(b) = &self.banner {
             let pop = if b.t < 0.12 { 3.0 } else { 2.0 };
             let a = if b.t > b.life - 0.4 { ((b.life - b.t) / 0.4).max(0.0) } else { 1.0 };
-            text(list, main, &b.text, Vec2::new(view.x * 0.5, (view.y * 0.26).round()), pop, with_alpha(b.color, a), Align::Center);
+            text(list, main, &b.text, Vec2::new(view.x * 0.5, (view.y * 0.26).round() + 6.0), pop, with_alpha(b.color, a), Align::Center);
         }
     }
 }

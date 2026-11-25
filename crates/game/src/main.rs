@@ -35,6 +35,7 @@ mod menus;
 mod meta;
 mod profile;
 mod records;
+mod reward;
 mod settings;
 mod shop;
 mod stages;
@@ -58,6 +59,7 @@ fn default_options() -> game::Options {
         seed: 0x5eed,
         map: "hyrule_field".into(),
         character: "link".into(),
+        skin: None,
         start_time: 0.0,
         give: Vec::new(),
         menu: None,
@@ -187,6 +189,10 @@ fn main() {
             }
             "--char" => {
                 opts.character = args.get(i + 1).cloned().unwrap_or(opts.character);
+                i += 1;
+            }
+            "--skin" => {
+                opts.skin = args.get(i + 1).and_then(|s| s.parse().ok());
                 i += 1;
             }
             "--seed" => {

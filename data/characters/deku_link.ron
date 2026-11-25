@@ -1,0 +1,17 @@
+// Link Mojo (Majora's Mask, style A Link to the Past) : leger, effets plus longs, abeilles ; fragile.
+// Niveau 30.
+(
+    name: "Link Mojo",
+    sprite: "deku_link",
+    side_faces_left: true,
+    max_hp: 40.0,
+    speed: 90.0,
+    radius: 5.0,
+    magnet: 40.0,
+    dash: (speed: 340.0, duration: 0.15, cooldown: 1.5),
+    weapon: "bees",
+    weapon_sprite: "sword1",
+    stats: [(Duration, 0.15), (Magnet, 0.2), (Might, -0.1)],
+    order: 10,
+    unlock: Some(Level(30)),
+)

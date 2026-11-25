@@ -1,4 +1,4 @@
-// Link : epee, dash facon Bottes de Pegase.
+// Link : le heros equilibre, epee et dash facon Bottes de Pegase ; robuste mais peu chanceux.
 (
     name: "Link",
     sprite: "link",
@@ -10,5 +10,7 @@
     dash: (speed: 330.0, duration: 0.15, cooldown: 1.8),
     weapon: "sword",
     weapon_sprite: "sword1",
+    // avantages : degats +10 %, armure +1 ; defaut : chance -10 %
+    stats: [(Might, 0.1), (Armor, 1.0), (Luck, -0.1)],
     order: 0,
 )

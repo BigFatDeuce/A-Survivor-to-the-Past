@@ -34,8 +34,9 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
         feat_h="Features",
         feats=[
             '**6 stages** unlocked one after the other — Hyrule Field, Lost Woods, Desert of Mystery, Frozen Lake, Pyramid of Power and the bonus Death Mountain — each with its own weather, music, mid-boss and final boss, up to Agahnim and Ganon',
-            '**3 playable characters** to unlock — Link, Minish Link and Capless Link from *The Minish Cap* — each with their own stats and starting weapon',
+            '**13 playable characters** to unlock — Link, Minish Link, Capless Link, Sonic, Princess Zelda, NES Link, Four Swords Link (4 colors), the Links of *Link\'s Awakening* and *Zelda II*, Adult Link, Deku Link, Shy Guy and Shadow Link (defeat Ganon) — each with strengths, weaknesses and a starting weapon',
             'A rare **Bob-omb** that blows away every enemy on screen, and **breakable scenery** hiding rupees, hearts, fairies or the Ether medallion',
+            'Random **encounters**: a wandering champion waits somewhere, an arrow shows the way — beat it for a blessing, a special weapon upgrade or a relic you keep if you win',
             '**12 weapons**, each with an **evolution**, and **12 passive items** — 6 weapon slots and 6 item slots, so every choice matters',
             '**17 enemy types** from Hyrule, **7 bosses** and **elites** that drop chests',
             "**Progression between runs**: the Kakariko shop (permanent upgrades), the Great Fairy's blessings, a **relic** won on each stage, 4 **difficulties** and Ganon's **seals** to earn more rupees",
@@ -86,6 +87,8 @@ Website: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
 
 The [GPL-3.0 license](LICENSE) only covers the source code written for this project; it grants no rights over Nintendo's assets. Sprite sheets come from the rips shared by the community of *The Spriters Resource* — thanks to their authors.
 
+The name of every sprite ripper and artist (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny and many more) is listed in **[CREDITS.md](CREDITS.md)**. Shy Guy also belongs to Nintendo; *Sonic the Hedgehog* is a trademark of **SEGA**.
+
 Rights holders: to have content removed, open an issue or contact us on [Discord]({DISCORD}).""",
     ),
     "fr": dict(
@@ -98,8 +101,9 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
         feat_h="Contenu",
         feats=[
             "**6 stages** à débloquer l'un après l'autre — Plaine d'Hyrule, Bois Perdus, Désert du Mystère, Lac gelé, Pyramide de la Puissance et la Montagne de la Mort en bonus — chacun avec sa météo, sa musique, son boss intermédiaire et son boss final, jusqu'à Agahnim et Ganon",
-            '**3 personnages jouables** à débloquer — Link, Link Minish et Link sans bonnet de *The Minish Cap* — chacun avec ses statistiques et son arme de départ',
+            '**13 personnages jouables** à débloquer — Link, Link Minish, Link sans bonnet, Sonic, la princesse Zelda, le Link de la NES, le Link de *Four Swords* (4 couleurs), ceux de *Link\'s Awakening* et de *Zelda II*, Link adulte, Link Mojo, Maskass et Shadow Link (en battant Ganon) — chacun avec ses forces, ses faiblesses et son arme de départ',
             "Une **Bob-omb** rare qui souffle tous les ennemis à l'écran, et un **décor cassable** qui cache rubis, cœurs, fées ou médaillon d'Éther",
+            "Des **rencontres** aléatoires : un champion errant attend quelque part, une flèche indique où aller — battez-le pour une bénédiction, une amélioration spéciale d'arme ou une relique gardée si vous gagnez",
             "**12 armes**, chacune avec une **évolution**, et **12 objets passifs** — 6 emplacements d'armes et 6 d'objets : chaque choix compte",
             "**17 types d'ennemis** d'Hyrule, **7 boss** et des **élites** qui lâchent des coffres",
             '**Progression entre les parties** : la boutique de Cocorico (améliorations permanentes), les bénédictions de la Grande Fée, une **relique** gagnée sur chaque stage, 4 **difficultés** et les **sceaux** de Ganon pour gagner plus de rubis',
@@ -150,6 +154,8 @@ Site : [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
 
 La [licence GPL-3.0](LICENSE) ne couvre que le code source écrit pour ce projet ; elle ne donne aucun droit sur les assets de Nintendo. Les planches de sprites proviennent des extractions partagées par la communauté de *The Spriters Resource* — merci à leurs auteurs.
 
+Le nom de chaque auteur d'extraction ou de sprite (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny et bien d'autres) figure dans **[CREDITS.md](CREDITS.md)**. Maskass appartient lui aussi à Nintendo ; *Sonic the Hedgehog* est une marque de **SEGA**.
+
 Ayants droit : pour faire retirer un contenu, ouvrez une issue ou contactez-nous sur le [Discord]({DISCORD}).""",
     ),
     "de": dict(
@@ -162,8 +168,9 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
         feat_h="Inhalt",
         feats=[
             '**6 Stages**, die nacheinander freigeschaltet werden — Hyrule-Ebene, Verlorene Wälder, Wüste der Mysterien, Gefrorener See, Pyramide der Macht und der Bonus-Stage Todesberg — jede mit eigenem Wetter, eigener Musik, Zwischenboss und Endboss, bis zu Agahnim und Ganon',
-            '**3 spielbare Figuren** zum Freischalten — Link, Minish-Link und Link ohne Mütze aus *The Minish Cap* — jede mit eigenen Werten und eigener Startwaffe',
+            '**13 spielbare Figuren** zum Freischalten — Link, Minish-Link, Link ohne Mütze, Sonic, Prinzessin Zelda, NES-Link, Four-Swords-Link (4 Farben), die Links aus *Link\'s Awakening* und *Zelda II*, Erwachsener Link, Deku-Link, Shy Guy und Shadow Link (Ganon besiegen) — jede mit Stärken, Schwächen und eigener Startwaffe',
             'Ein seltener **Bob-omb**, der alle Gegner auf dem Bildschirm wegsprengt, und **zerstörbare Umgebung** mit Rubinen, Herzen, Feen oder dem Äther-Medaillon',
+            'Zufällige **Begegnungen**: Ein wandernder Champion wartet irgendwo, ein Pfeil zeigt den Weg — besiege ihn für einen Segen, eine Spezialverbesserung oder ein Relikt, das bleibt, wenn du gewinnst',
             '**12 Waffen**, jede mit einer **Entwicklung**, und **12 passive Gegenstände** — 6 Waffen- und 6 Gegenstandsplätze, jede Wahl zählt',
             '**17 Gegnertypen** aus Hyrule, **7 Bosse** und **Elite-Gegner**, die Truhen fallen lassen',
             '**Fortschritt zwischen den Runden**: der Laden von Kakariko (dauerhafte Verbesserungen), die Segen der Großen Fee, eine **Reliquie** pro Stage, 4 **Schwierigkeitsgrade** und Ganons **Siegel** für mehr Rubine',
@@ -214,6 +221,8 @@ Webseite: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
 
 Die [GPL-3.0-Lizenz](LICENSE) gilt nur für den für dieses Projekt geschriebenen Quellcode; sie gewährt keinerlei Rechte an Nintendos Assets. Die Sprite-Sheets stammen aus den Rips der Community von *The Spriters Resource* — danke an ihre Autoren.
 
+Die Namen aller Sprite-Ripper und Künstler (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny und viele mehr) stehen in **[CREDITS.md](CREDITS.md)**. Shy Guy gehört ebenfalls Nintendo; *Sonic the Hedgehog* ist eine Marke von **SEGA**.
+
 Rechteinhaber: Um Inhalte entfernen zu lassen, eröffne ein Issue oder kontaktiere uns auf [Discord]({DISCORD}).""",
     ),
     "es": dict(
@@ -226,8 +235,9 @@ Guía a Link entre hordas cada vez más grandes, recoge rupias para subir de niv
         feat_h="Contenido",
         feats=[
             '**6 fases** que se desbloquean una tras otra — Llanura de Hyrule, Bosque Perdido, Desierto del Misterio, Lago helado, Pirámide del Poder y la Montaña de la Muerte como extra — cada una con su clima, su música, su jefe intermedio y su jefe final, hasta Agahnim y Ganon',
-            '**3 personajes jugables** por desbloquear — Link, Link Minish y Link sin gorro de *The Minish Cap* — cada uno con sus estadísticas y su arma inicial',
+            '**13 personajes jugables** por desbloquear — Link, Link Minish, Link sin gorro, Sonic, la princesa Zelda, el Link de NES, el Link de *Four Swords* (4 colores), los de *Link\'s Awakening* y *Zelda II*, Link adulto, Link Deku, Shy Guy y Shadow Link (derrotando a Ganon) — cada uno con sus puntos fuertes, sus debilidades y su arma inicial',
             'Una **Bob-omb** rara que barre a todos los enemigos de la pantalla, y **decorado destructible** que esconde rupias, corazones, hadas o el medallón de Éter',
+            '**Encuentros** aleatorios: un campeón errante espera en algún lugar y una flecha indica el camino — derrótalo para obtener una bendición, una mejora especial de arma o una reliquia que conservas si ganas',
             '**12 armas**, cada una con una **evolución**, y **12 objetos pasivos** — 6 huecos de armas y 6 de objetos: cada elección cuenta',
             '**17 tipos de enemigos** de Hyrule, **7 jefes** y **élites** que sueltan cofres',
             '**Progresión entre partidas**: la tienda de Kakariko (mejoras permanentes), las bendiciones de la Gran Hada, una **reliquia** por fase, 4 **dificultades** y los **sellos** de Ganon para ganar más rupias',
@@ -278,6 +288,8 @@ Web: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
 
 La [licencia GPL-3.0](LICENSE) solo cubre el código fuente escrito para este proyecto; no otorga ningún derecho sobre los recursos de Nintendo. Las hojas de sprites proceden de las extracciones compartidas por la comunidad de *The Spriters Resource* — gracias a sus autores.
 
+El nombre de cada autor de extracciones o sprites (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny y muchos más) aparece en **[CREDITS.md](CREDITS.md)**. Shy Guy también pertenece a Nintendo; *Sonic the Hedgehog* es una marca de **SEGA**.
+
 Titulares de derechos: para retirar un contenido, abrid una issue o contactad con nosotros en [Discord]({DISCORD}).""",
     ),
     "it": dict(
@@ -290,8 +302,9 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
         feat_h="Contenuti",
         feats=[
             "**6 stage** da sbloccare uno dopo l'altro — Piana di Hyrule, Boschi Perduti, Deserto del Mistero, Lago ghiacciato, Piramide del Potere e il Monte Morte come bonus — ognuno con il suo meteo, la sua musica, un boss intermedio e un boss finale, fino ad Agahnim e Ganon",
-            '**3 personaggi giocabili** da sbloccare — Link, Link Minish e Link senza berretto da *The Minish Cap* — ognuno con le sue statistiche e la sua arma iniziale',
+            '**13 personaggi giocabili** da sbloccare — Link, Link Minish, Link senza berretto, Sonic, la principessa Zelda, il Link del NES, il Link di *Four Swords* (4 colori), quelli di *Link\'s Awakening* e *Zelda II*, Link adulto, Link Deku, Tipo Timido e Shadow Link (sconfiggendo Ganon) — ognuno con punti di forza, debolezze e la sua arma iniziale',
             "Una **Bob-omb** rara che spazza via tutti i nemici sullo schermo, e **scenari distruttibili** che nascondono rupie, cuori, fate o il medaglione dell'Etere",
+            '**Incontri** casuali: un campione errante aspetta da qualche parte, una freccia indica la strada — sconfiggilo per una benedizione, un potenziamento speciale o una reliquia che resta se vinci',
             "**12 armi**, ognuna con un'**evoluzione**, e **12 oggetti passivi** — 6 slot per le armi e 6 per gli oggetti: ogni scelta conta",
             '**17 tipi di nemici** di Hyrule, **7 boss** ed **élite** che lasciano forzieri',
             '**Progressi tra le partite**: il negozio di Kakariko (potenziamenti permanenti), le benedizioni della Grande Fata, una **reliquia** per ogni stage, 4 **difficoltà** e i **sigilli** di Ganon per guadagnare più rupie',
@@ -342,6 +355,8 @@ Sito: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
 
 La [licenza GPL-3.0](LICENSE) copre solo il codice sorgente scritto per questo progetto; non concede alcun diritto sulle risorse di Nintendo. Gli sprite sheet provengono dai rip condivisi dalla comunità di *The Spriters Resource* — grazie ai loro autori.
 
+Il nome di ogni autore di rip o di sprite (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny e molti altri) è elencato in **[CREDITS.md](CREDITS.md)**. Anche Tipo Timido appartiene a Nintendo; *Sonic the Hedgehog* è un marchio di **SEGA**.
+
 Titolari dei diritti: per far rimuovere un contenuto, aprite una issue o contattateci su [Discord]({DISCORD}).""",
     ),
     "pt": dict(
@@ -354,8 +369,9 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
         feat_h="Conteúdo",
         feats=[
             '**6 fases** desbloqueadas uma após a outra — Campo de Hyrule, Bosque Perdido, Deserto do Mistério, Lago congelado, Pirâmide do Poder e a Montanha da Morte como bônus — cada uma com seu clima, sua música, um chefe intermediário e um chefe final, até Agahnim e Ganon',
-            '**3 personagens jogáveis** para desbloquear — Link, Link Minish e Link sem gorro de *The Minish Cap* — cada um com seus atributos e sua arma inicial',
+            '**13 personagens jogáveis** para desbloquear — Link, Link Minish, Link sem gorro, Sonic, a princesa Zelda, o Link do NES, o Link de *Four Swords* (4 cores), os de *Link\'s Awakening* e *Zelda II*, Link adulto, Link Deku, Shy Guy e Shadow Link (derrotando Ganon) — cada um com pontos fortes, fraquezas e sua arma inicial',
             'Uma **Bob-omb** rara que varre todos os inimigos da tela, e **cenário destrutível** que esconde rupias, corações, fadas ou o medalhão do Éter',
+            '**Encontros** aleatórios: um campeão errante espera em algum lugar e uma seta mostra o caminho — derrote-o para ganhar uma bênção, uma melhoria especial de arma ou uma relíquia mantida se você vencer',
             '**12 armas**, cada uma com uma **evolução**, e **12 itens passivos** — 6 espaços de armas e 6 de itens: cada escolha conta',
             '**17 tipos de inimigos** de Hyrule, **7 chefes** e **elites** que deixam baús',
             '**Progressão entre partidas**: a loja de Kakariko (melhorias permanentes), as bênçãos da Grande Fada, uma **relíquia** por fase, 4 **dificuldades** e os **selos** de Ganon para ganhar mais rupias',
@@ -406,6 +422,8 @@ Site: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
 
 A [licença GPL-3.0](LICENSE) cobre apenas o código-fonte escrito para este projeto; ela não concede nenhum direito sobre os recursos da Nintendo. As folhas de sprites vêm das extrações compartilhadas pela comunidade do *The Spriters Resource* — obrigado aos seus autores.
 
+O nome de cada autor de extrações ou sprites (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny e muitos outros) está em **[CREDITS.md](CREDITS.md)**. Shy Guy também pertence à Nintendo; *Sonic the Hedgehog* é uma marca da **SEGA**.
+
 Detentores de direitos: para remover um conteúdo, abram uma issue ou falem conosco no [Discord]({DISCORD}).""",
     ),
     "ja": dict(
@@ -418,8 +436,9 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
         feat_h="特徴",
         feats=[
             '順番に解放される**6つのステージ** — ハイラル平原、迷いの森、幻の砂漠、凍った湖、力のピラミッド、ボーナスのデスマウンテン。それぞれ天候、音楽、中ボス、ラスボスが異なり、最後はアグニムとガノンが待ち受けます',
-            '解放できる**3人のキャラクター** — リンク、『ふしぎのぼうし』のミニッシュリンクと帽子なしのリンク。能力と最初の武器がそれぞれ異なります',
+            '解放できる**13人のキャラクター** — リンク、ミニッシュリンク、帽子なしのリンク、ソニック、ゼルダ姫、ファミコン版リンク、『4つの剣』のリンク（4色）、『夢をみる島』と『リンクの冒険』のリンク、大人のリンク、デクリンク、ヘイホー、シャドウリンク（ガノンを倒すと解放）。それぞれ長所と短所、最初の武器が異なります',
             '画面の敵をすべて吹き飛ばすレアな**ボム兵**と、ルピー・ハート・妖精・エーテルのメダルが隠れた**壊せる背景**',
+            'ランダムな**遭遇戦**：どこかで待つ放浪のチャンピオンを矢印が示します。倒すと祝福、武器の特別強化、勝利すれば持ち帰れるレリックが手に入ります',
             '**12種類の武器**（それぞれ**進化**あり）と**12種類のパッシブアイテム** — 武器枠6つ、アイテム枠6つで、選択が重要です',
             'ハイラルの**17種類の敵**、**7体のボス**、宝箱を落とす**エリート**',
             '**プレイをまたぐ成長**：カカリコのショップ（永続強化）、大妖精の祝福、ステージごとの**レリック**、4段階の**難易度**、ルピーが増えるガノンの**封印**',
@@ -469,6 +488,8 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
 *ゼルダの伝説*、*神々のトライフォース*、*ふしぎのぼうし*、およびそのキャラクター・グラフィック・音楽・効果音は**任天堂**の商標および著作物です。本作で使用している任天堂の素材はすべて任天堂に帰属します。本プロジェクトは任天堂とは一切関係がなく、任天堂の後援・承認を受けたものではありません。
 
 [GPL-3.0 ライセンス](LICENSE)は本プロジェクトのために書かれたソースコードのみに適用され、任天堂の素材に関する権利を与えるものではありません。スプライトシートは *The Spriters Resource* のコミュニティが共有したものです。作者の皆さんに感謝します。
+
+スプライトを抽出・制作した方々（Barack Obama、Mister Man、Nemau、Aztec Warrior、Deathbringer、Barubary、Vaati、Mister Mike、Ragnarockerbunny ほか）の名前は **[CREDITS.md](CREDITS.md)** に掲載しています。ヘイホーも任天堂のキャラクターです。*Sonic the Hedgehog* は **SEGA** の商標です。
 
 権利者の方へ：コンテンツの削除をご希望の場合は、Issue を作成するか [Discord]({DISCORD}) でご連絡ください。""",
     ),

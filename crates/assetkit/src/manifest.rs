@@ -76,6 +76,10 @@ pub struct FontSpec {
     /// Espacement entre deux glyphes (negatif : contours partages).
     #[serde(default)]
     pub spacing: i16,
+    /// Decalage vertical du texte a l'affichage (negatif : remonte), pour centrer les lettres dans les
+    /// cadres quand la case garde de la place au-dessus pour les accents.
+    #[serde(default)]
+    pub nudge: i16,
     /// Rangees de la case reservees aux accents des minuscules (au-dessus du corps).
     #[serde(default)]
     pub accent_rows: u32,

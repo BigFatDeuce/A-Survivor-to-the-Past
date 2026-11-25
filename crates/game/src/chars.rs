@@ -8,7 +8,7 @@ use engine::app::Ctx;
 use engine::draw::{rgb, with_alpha, Align, Color, Params, WHITE};
 use engine::gfx::{Blend, DrawList, Space};
 use engine::Vec2;
-use sim::defs::{CharacterDef, Content, UnlockDef};
+use sim::defs::{CharacterDef, Content, Stat, UnlockDef};
 
 const SOFT: Color = rgb(210, 210, 236);
 const DIMMED: Color = rgb(120, 116, 140);
@@ -28,7 +28,23 @@ pub fn progress(def: &CharacterDef, p: &Profile) -> Option<(u64, u64)> {
         UnlockDef::Kills(n) => (t.kills.min(*n), *n),
         UnlockDef::Bosses(n) => (t.bosses.min(*n) as u64, *n as u64),
         UnlockDef::Level(n) => (t.best_level.min(*n) as u64, *n as u64),
+        UnlockDef::Slain(e) => (p.bestiary.get(e).copied().unwrap_or(0).min(1), 1),
     })
+}
+
+/// Couleur choisie (indice dans `skins`).
+pub fn skin(def: &CharacterDef, p: &Profile, id: &str) -> usize {
+    p.skins.get(id).copied().unwrap_or(0).min(def.skins.len().saturating_sub(1))
+}
+
+/// Remplace le sprite des personnages a couleurs par la couleur choisie dans le profil.
+pub fn apply_skins(content: &mut Content, p: &Profile) {
+    for (id, def) in content.characters.iter_mut() {
+        if !def.skins.is_empty() {
+            let k = skin(def, p, id);
+            def.sprite = def.skins[k].0.clone();
+        }
+    }
 }
 
 pub fn unlocked(def: &CharacterDef, p: &Profile) -> bool {
@@ -47,6 +63,7 @@ pub fn hint(lang: &Lang, def: &CharacterDef) -> String {
         Some(UnlockDef::Kills(n)) => lang.get("ui.unlock_kills").replace("{n}", &n.to_string()),
         Some(UnlockDef::Bosses(n)) => lang.get("ui.unlock_bosses").replace("{n}", &n.to_string()),
         Some(UnlockDef::Level(n)) => lang.get("ui.unlock_level").replace("{n}", &n.to_string()),
+        Some(UnlockDef::Slain(e)) => lang.get("ui.unlock_slain").replace("{s}", lang.get(&format!("enemy.{e}"))),
     }
 }
 
@@ -62,7 +79,7 @@ pub fn newly_unlocked(content: &Content, before: &Profile, after: &Profile) -> V
 }
 
 pub fn input_select(nav: &NavIn, view: Vec2, n: usize, sel: &mut usize) -> (Option<usize>, bool) {
-    menus::input_rects(nav, &select_layout(view, n).items, sel)
+    menus::input_rects(nav, &select_layout(view, n, *sel).items, sel)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -74,9 +91,13 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
     list.set(Space::Ui, Blend::Alpha);
     list.probe_layer();
     list.rect(white, Vec2::ZERO, view, [0.01, 0.01, 0.05, 0.55]);
-    let l = select_layout(view, ids.len());
+    let l = select_layout(view, ids.len(), sel);
     text(list, main, lang.get("ui.characters"), Vec2::new(view.x * 0.5, l.title_y), 2.0, WHITE, Align::Center);
+    crate::stages::draw_scroll_marks(list, white, &l, ids.len(), t);
     for (k, &(p, s)) in l.items.iter().enumerate() {
+        if !l.visible(k) {
+            continue;
+        }
         let back = k == ids.len();
         list.rect(white, p, s, with_alpha(BACK, if k == sel { 0.95 } else { 0.8 }));
         if k == sel {
@@ -176,22 +197,40 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
         (lang.get("ui.char_health").to_string(), format!("{}", (def.max_hp / 10.0).round() as u32)),
         (lang.get("ui.char_speed").to_string(), format!("{}", def.speed.round() as u32)),
     ];
+    if !def.skins.is_empty() {
+        let k = skin(def, profile, id);
+        let c = lang.get(&format!("skin.{}", def.skins[k].1));
+        rows.push((lang.get("ui.char_color").to_string(), format!("◀ {c} ▶")));
+    }
     let weapon = lang.get(&format!("weapon.{}.name", def.weapon)).to_string();
     rows.push((lang.get("ui.char_weapon").to_string(), weapon));
-    for (label, value) in rows {
+    let n = rows.len();
+    for (r, (label, value)) in rows.into_iter().enumerate() {
         if y + 12.0 > bottom {
             return;
         }
         text(list, main, &label, Vec2::new(x, y), 1.0, DIMMED, Align::Left);
-        text(list, main, &value, Vec2::new(x + w, y), 1.0, WHITE, Align::Right);
-        y += 14.0;
+        let vw = text(list, main, &value, Vec2::new(x + w, y), 1.0, WHITE, Align::Right);
+        // arme de depart : son icone devant le nom
+        if r + 1 == n {
+            let icon = content.weapon_index(&def.weapon).and_then(|i| atlas.find(&content.weapons[i as usize].icon, "0"));
+            if let Some(a) = icon {
+                let at = Vec2::new((x + w - vw - 12.0).round(), y + 6.0);
+                list.frame(atlas.frame(a, 0.0), at, &Params::default());
+                list.probe_block(at - Vec2::splat(8.0), Vec2::splat(16.0), "icone de l'arme");
+            }
+        }
+        y += 16.0;
     }
     for &(s, v) in &def.stats {
         if y + 12.0 > bottom {
             return;
         }
         let line = menus::stat_text(lang, s, v);
-        text(list, main, &line, Vec2::new(x, y), 1.0, rgb(150, 230, 150), Align::Left);
+        // une recharge plus courte est un avantage : vert pour les avantages, rouge pour les defauts
+        let good = if matches!(s, Stat::Cooldown | Stat::DashCooldown) { v < 0.0 } else { v > 0.0 };
+        let c = if good { rgb(150, 230, 150) } else { rgb(240, 130, 120) };
+        text(list, main, &line, Vec2::new(x, y), 1.0, c, Align::Left);
         y += 13.0;
     }
 }
@@ -221,6 +260,15 @@ mod tests {
         p.totals.kills = 5000;
         let new = super::newly_unlocked(&c, &before, &p);
         assert!(new.contains(&"link_minish".to_string()) && new.contains(&"link_capless".to_string()), "{new:?}");
+        // Shadow Link : il faut avoir vaincu Ganon
+        assert!(!super::unlocked(&c.characters["shadow_link"], &p));
+        p.bestiary.insert("ganon".into(), 1);
+        assert!(super::unlocked(&c.characters["shadow_link"], &p));
+        // couleurs : le choix du profil remplace le sprite
+        let mut c2 = c.clone();
+        p.skins.insert("link_fsa".into(), 2);
+        super::apply_skins(&mut c2, &p);
+        assert_eq!(c2.characters["link_fsa"].sprite, "link_fsa_blue");
         // chaque personnage demarre une partie (sprites, arme de depart, bonus)
         for id in &ids {
             let w = World::new(c.clone(), id, "hyrule_field", 1);
@@ -253,6 +301,54 @@ mod tests {
         assert_eq!(cleared, Some(20));
         assert!(w.horde.hp[b] > 0.0, "le boss survit");
         assert!(w.horde.hp[far] > 0.0, "hors de l'ecran : epargne");
+    }
+
+    #[test]
+    fn encounter_champion_waits_then_gives_a_reward() {
+        use crate::reward::{self, Reward};
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let c = content();
+        let meta = crate::meta::Meta::load(&root);
+        let mut w = World::new(c, "link", "hyrule_field", 7);
+        w.player.god = true;
+        w.encounter_t = 0.0;
+        let input = sim::PlayerInput::default();
+        w.tick(&input);
+        assert!(w.events.iter().any(|e| matches!(e, Event::EncounterSpawned { .. })));
+        let anchor = w.encounter.expect("rencontre").anchor;
+        // loin du joueur : le champion attend sur place
+        for _ in 0..60 {
+            w.tick(&input);
+        }
+        let at = w.champion_pos().expect("champion");
+        assert!((at - anchor).length() < 0.01, "il attend : {at} {anchor}");
+        let i = w.horde.uid.iter().position(|&u| u == w.encounter.unwrap().uid).unwrap();
+        assert!(w.horde.elite[i]);
+        w.damage_enemy(i, 1e6, false, engine::Vec2::X, 0.0, 0);
+        assert!(w.events.iter().any(|e| matches!(e, Event::EncounterWon { .. })));
+        assert_eq!(w.pending_rewards, 1);
+        assert!(w.encounter.is_none());
+        // recompenses : une amelioration d'arme, une relique de rencontre, une benediction
+        let mut rng = sim::rng::Rng::new(3);
+        let p = Profile::new();
+        let offers = reward::roll(&w, &meta, &p, &[], &mut rng);
+        assert_eq!(offers.len(), 3);
+        assert!(matches!(offers[0], Reward::Boost { .. }));
+        let Reward::Relic(k) = offers[1] else { panic!("{offers:?}") };
+        assert!(meta.relics[k].encounter);
+        let before = w.weapons[0].stats.damage;
+        reward::apply(&mut w, &meta, Reward::Boost { slot: 0, boost: sim::upgrades::WeaponBoost { damage: 0.3, ..Default::default() } });
+        assert!((w.weapons[0].stats.damage - before * 1.3).abs() < 1e-3);
+        let hp = w.player.max_hp;
+        assert_eq!(reward::apply(&mut w, &meta, Reward::Blessing(sim::defs::Stat::MaxHp, 20.0)), None);
+        assert!(w.player.max_hp > hp);
+        assert_eq!(reward::apply(&mut w, &meta, Reward::Relic(k)), Some(meta.relics[k].id.clone()));
+        // deja choisie pendant la partie : plus proposee
+        let taken = vec![meta.relics[k].id.clone()];
+        for _ in 0..30 {
+            let o = reward::roll(&w, &meta, &p, &taken, &mut rng);
+            assert!(!o.contains(&Reward::Relic(k)));
+        }
     }
 
     #[test]

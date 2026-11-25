@@ -43,6 +43,10 @@ pub struct CharacterDef {
     /// Condition de deblocage (aucune : disponible des le depart).
     #[serde(default)]
     pub unlock: Option<UnlockDef>,
+    /// Couleurs au choix (meme personnage, planches identiques) : (sprite, couleur) ; la cle de texte
+    /// est `skin.<couleur>`. Le choix est garde dans le profil et remplace `sprite`.
+    #[serde(default)]
+    pub skins: Vec<(String, String)>,
 }
 
 /// Condition de deblocage d'un personnage (verifiee par le jeu, d'apres le profil).
@@ -56,6 +60,8 @@ pub enum UnlockDef {
     Bosses(u32),
     /// Atteindre ce niveau dans une partie.
     Level(u32),
+    /// Vaincre cet ennemi (identifiant de `enemies.ron`) au moins une fois.
+    Slain(String),
 }
 
 fn default_player_radius() -> f32 {
@@ -591,6 +597,45 @@ pub struct RulesDef {
     /// Chance : points de critique ajoutes par +1 de chance (0.3 : +10 % de chance = +3 points).
     #[serde(default = "luck_crit_default")]
     pub luck_crit: f32,
+    /// Rencontres : champion errant (elite renforcee) a aller chercher ; vaincu, il donne une recompense.
+    #[serde(default)]
+    pub encounter: EncounterRules,
+}
+
+/// Reglages des rencontres (champions errants).
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
+pub struct EncounterRules {
+    /// Premiere rencontre (s de partie).
+    pub first: f32,
+    /// Delai entre deux rencontres (s, minimum et maximum), compte apres la fin de la precedente.
+    pub every: (f32, f32),
+    /// Temps pour l'atteindre avant qu'il ne reparte (s).
+    pub life: f32,
+    /// Distance d'apparition au-dela du bord de l'ecran (pixels, minimum et maximum) : toujours hors champ.
+    pub dist: (f32, f32),
+    /// Le champion attend sur place tant que le joueur est plus loin que cette distance.
+    pub engage: f32,
+    /// Vie (multiplie la vie d'elite) et degats de contact (multiplicateur d'elite).
+    pub hp: f32,
+    pub damage: f32,
+    /// Pas de rencontre dans les dernieres secondes du stage.
+    pub quiet_end: f32,
+}
+
+impl Default for EncounterRules {
+    fn default() -> Self {
+        EncounterRules {
+            first: 75.0,
+            every: (100.0, 150.0),
+            life: 70.0,
+            dist: (60.0, 180.0),
+            engage: 170.0,
+            hp: 3.0,
+            damage: 1.3,
+            quiet_end: 40.0,
+        }
+    }
 }
 
 fn bomb_every_default() -> (f32, f32) {

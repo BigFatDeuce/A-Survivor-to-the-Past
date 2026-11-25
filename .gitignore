@@ -23,6 +23,7 @@ node_modules/
 
 # Planches deposees pour plus tard (non utilisees par le jeu)
 /AdditionalChars/
+/MoreSprites/
 
 # Systeme
 .DS_Store

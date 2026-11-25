@@ -434,6 +434,14 @@ import lang_v04  # noqa: E402  (personnages, Bob-omb, decor cassable, armes et o
 KEYS += lang_v04.KEYS
 for _code, _t in lang_v04.EXTRA.items():
     L[_code].update(_t)
+import lang_v05  # noqa: E402  (personnages 0.5, rencontres, recompenses, reliques)
+KEYS += lang_v05.KEYS
+for _code, _t in lang_v05.EXTRA.items():
+    L[_code].update(_t)
+import lang_v05b  # noqa: E402  (personnages 0.5 suite, couleurs)
+KEYS += lang_v05b.KEYS
+for _code, _t in lang_v05b.EXTRA.items():
+    L[_code].update(_t)
 
 
 def esc(s):

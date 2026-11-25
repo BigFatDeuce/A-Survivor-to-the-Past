@@ -81,6 +81,9 @@ pub struct Font {
     pub space: u16,
     /// Espacement entre deux glyphes (peut etre negatif : contours partages).
     pub spacing: i16,
+    /// Decalage vertical a l'affichage (negatif : remonte le texte).
+    #[serde(default)]
+    pub nudge: i16,
 }
 
 impl Font {

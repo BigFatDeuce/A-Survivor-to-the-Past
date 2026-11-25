@@ -196,5 +196,10 @@
         "medallion":     ["thunder"],
         "char_unlock":   ["item_get_4"],
         "powder":        ["magic_powder_2"],
+        // 0.5
+        "encounter":     ["secret"],
+        "encounter_won": ["item_get_3"],
+        "encounter_fled": ["menu_close"],
+        "reward":        ["item_get_4"],
     },
 )

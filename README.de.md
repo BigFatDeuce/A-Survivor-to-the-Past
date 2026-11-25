@@ -1,7 +1,7 @@
 <p align="center"><img src="media/icon.png" width="128" height="128" alt="A Survivor to the Past"></p>
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i>Ein Survivors-like in der Welt von <b>A Link to the Past</b>: Halte den Monsterhorden Hyrules stand.</i></p>
-<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.4.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.5.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
 <p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Für Windows herunterladen</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ Im Browser spielen</b></a></p>
 <p align="center"><a href="README.md">English</a> · <a href="README.fr.md">Français</a> · <b>Deutsch</b> · <a href="README.es.md">Español</a> · <a href="README.it.md">Italiano</a> · <a href="README.pt.md">Português</a> · <a href="README.ja.md">日本語</a></p>
 
@@ -16,8 +16,9 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
 ## Inhalt
 
 - **6 Stages**, die nacheinander freigeschaltet werden — Hyrule-Ebene, Verlorene Wälder, Wüste der Mysterien, Gefrorener See, Pyramide der Macht und der Bonus-Stage Todesberg — jede mit eigenem Wetter, eigener Musik, Zwischenboss und Endboss, bis zu Agahnim und Ganon
-- **3 spielbare Figuren** zum Freischalten — Link, Minish-Link und Link ohne Mütze aus *The Minish Cap* — jede mit eigenen Werten und eigener Startwaffe
+- **13 spielbare Figuren** zum Freischalten — Link, Minish-Link, Link ohne Mütze, Sonic, Prinzessin Zelda, NES-Link, Four-Swords-Link (4 Farben), die Links aus *Link's Awakening* und *Zelda II*, Erwachsener Link, Deku-Link, Shy Guy und Shadow Link (Ganon besiegen) — jede mit Stärken, Schwächen und eigener Startwaffe
 - Ein seltener **Bob-omb**, der alle Gegner auf dem Bildschirm wegsprengt, und **zerstörbare Umgebung** mit Rubinen, Herzen, Feen oder dem Äther-Medaillon
+- Zufällige **Begegnungen**: Ein wandernder Champion wartet irgendwo, ein Pfeil zeigt den Weg — besiege ihn für einen Segen, eine Spezialverbesserung oder ein Relikt, das bleibt, wenn du gewinnst
 - **12 Waffen**, jede mit einer **Entwicklung**, und **12 passive Gegenstände** — 6 Waffen- und 6 Gegenstandsplätze, jede Wahl zählt
 - **17 Gegnertypen** aus Hyrule, **7 Bosse** und **Elite-Gegner**, die Truhen fallen lassen
 - **Fortschritt zwischen den Runden**: der Laden von Kakariko (dauerhafte Verbesserungen), die Segen der Großen Fee, eine **Reliquie** pro Stage, 4 **Schwierigkeitsgrade** und Ganons **Siegel** für mehr Rubine
@@ -74,7 +75,7 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
 
 ## Spielen
 
-Das Spiel ist in der **Alpha-Phase** (Version 0.4.0). **Windows**: Lade die neueste Version von der [Release-Seite](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest) herunter, entpacke das ganze Zip und starte `A Survivor to the Past.exe`. Windows warnt eventuell, dass das Spiel nicht signiert ist: Klicke auf *Weitere Informationen* → *Trotzdem ausführen*. Danach **aktualisiert sich das Spiel selbst**: Beim Start prüft es auf GitHub, ob es eine neue Version gibt, lädt sie im Hintergrund herunter und installiert sie beim nächsten Start (Optionen → Updates: Automatisch / Nachfragen / Aus). Deine Einstellungen bleiben erhalten, und es wird nur GitHub kontaktiert, ohne persönliche Daten.
+Das Spiel ist in der **Alpha-Phase** (Version 0.5.0). **Windows**: Lade die neueste Version von der [Release-Seite](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest) herunter, entpacke das ganze Zip und starte `A Survivor to the Past.exe`. Windows warnt eventuell, dass das Spiel nicht signiert ist: Klicke auf *Weitere Informationen* → *Trotzdem ausführen*. Danach **aktualisiert sich das Spiel selbst**: Beim Start prüft es auf GitHub, ob es eine neue Version gibt, lädt sie im Hintergrund herunter und installiert sie beim nächsten Start (Optionen → Updates: Automatisch / Nachfragen / Aus). Deine Einstellungen bleiben erhalten, und es wird nur GitHub kontaktiert, ohne persönliche Daten.
 
 **Browser**: [direkt auf der Website spielen](https://a-survivor-to-the-past.holy-c.men/play/), ohne Installation. Am besten am Computer, in Chrome, Edge oder Firefox; dein Fortschritt wird im Browser gespeichert. Versionen für Linux, macOS und Android folgen später. Bis dahin kannst du das Spiel mit [Rust](https://rustup.rs) (stable) aus dem Quellcode bauen:
 
@@ -120,5 +121,7 @@ Webseite: [a-survivor-to-the-past.holy-c.men](https://a-survivor-to-the-past.hol
 *The Legend of Zelda*, *A Link to the Past*, *The Minish Cap*, ihre Figuren, Grafiken, Musik und Soundeffekte sind Marken und urheberrechtlich geschützte Werke von **Nintendo**. Alle hier verwendeten Nintendo-Assets gehören Nintendo. Dieses Projekt steht in keiner Verbindung zu Nintendo und wird von Nintendo weder gesponsert noch unterstützt.
 
 Die [GPL-3.0-Lizenz](LICENSE) gilt nur für den für dieses Projekt geschriebenen Quellcode; sie gewährt keinerlei Rechte an Nintendos Assets. Die Sprite-Sheets stammen aus den Rips der Community von *The Spriters Resource* — danke an ihre Autoren.
+
+Die Namen aller Sprite-Ripper und Künstler (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny und viele mehr) stehen in **[CREDITS.md](CREDITS.md)**. Shy Guy gehört ebenfalls Nintendo; *Sonic the Hedgehog* ist eine Marke von **SEGA**.
 
 Rechteinhaber: Um Inhalte entfernen zu lassen, eröffne ein Issue oder kontaktiere uns auf [Discord](https://discord.gg/N8f62M2eaK).

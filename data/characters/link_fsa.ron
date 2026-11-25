@@ -1,0 +1,18 @@
+// Link de Four Swords Adventures : un coup d'epee de plus, mais chaque coup frappe moins fort.
+// Quatre couleurs au choix (gauche / droite dans l'ecran des personnages). Debloque aux Bois Perdus.
+(
+    name: "Link (Four Swords)",
+    sprite: "link_fsa_green",
+    side_faces_left: true,
+    max_hp: 60.0,
+    speed: 86.0,
+    radius: 5.0,
+    magnet: 34.0,
+    dash: (speed: 330.0, duration: 0.15, cooldown: 1.8),
+    weapon: "sword",
+    weapon_sprite: "sword1",
+    stats: [(Amount, 1.0), (Might, -0.15)],
+    order: 6,
+    unlock: Some(Win("lost_woods")),
+    skins: [("link_fsa_green", "green"), ("link_fsa_red", "red"), ("link_fsa_blue", "blue"), ("link_fsa_purple", "purple")],
+)

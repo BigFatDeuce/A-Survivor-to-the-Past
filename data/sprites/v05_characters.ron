@@ -1,0 +1,57 @@
+// Version 0.5 : personnages supplementaires (planches deposees dans AdditionalChars/, copiees dans assets/source/).
+// Sonic (style Zelda Game Boy, custom de Ragnarockerbunny, cycle de Blueblur64), Link facon Zelda 1 (edite par
+// Mister Mike), Princesse Zelda (Four Swords GBA, extraite par Deathbringer). Credits repris dans le README.
+(
+    sheets: [
+        (
+            // grille de 16 px : rangee 0 dos, 1 profil tourne vers la droite, 2 vers la gauche, 3 face
+            source: "Custom - Sonic (Zelda Game Boy-Style).png",
+            sprites: {
+                "sonic": {
+                    "idle_down": (frames: [(0, 48, 16, 16)], pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(0, 16, 16, 16)], pivot: (0, -1), align: Bottom),
+                    "idle_up":   (frames: [(0, 0, 16, 16)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(0, 48, 16, 16), (16, 48, 16, 16), (32, 48, 16, 16), (48, 48, 16, 16)], fps: 12, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(0, 16, 16, 16), (16, 16, 16, 16), (32, 16, 16, 16), (48, 16, 16, 16)], fps: 12, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(0, 0, 16, 16), (16, 0, 16, 16), (32, 0, 16, 16), (48, 0, 16, 16)], fps: 12, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        (
+            // tenue bleue (rangee y 37) ; chaque case a un fond gris fonce
+            source: "Custom - Link (Zelda 1-Style).png",
+            transparent: ["#008000", "#303030"],
+            sprites: {
+                "link_nes": {
+                    "idle_down": (frames: [(1, 37, 16, 16)], pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(69, 37, 16, 16)], pivot: (0, -1), align: Bottom),
+                    "idle_up":   (frames: [(35, 37, 16, 16)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(1, 37, 16, 16), (18, 37, 16, 16)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(69, 37, 16, 16), (86, 37, 16, 16)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(35, 37, 16, 16), (52, 37, 16, 16)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        (
+            // cadres de hauteur fixe par rangee : les pieds restent en place ; le profil regarde a gauche
+            source: "Game Boy Advance - Four Swords - Princess Zelda.png",
+            sprites: {
+                "zelda": {
+                    "idle_down": (frames: [(157, 7, 17, 27), (181, 7, 17, 27)], fps: 2, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(208, 7, 18, 27), (240, 7, 18, 27)], fps: 2, pivot: (0, -1), align: Bottom),
+                    "idle_up":   (frames: [(286, 45, 16, 29)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(9, 45, 17, 29), (33, 45, 17, 29), (57, 45, 17, 29), (81, 45, 17, 29), (105, 45, 17, 29)], fps: 10, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(132, 45, 18, 29), (163, 45, 21, 29), (196, 45, 19, 29), (227, 45, 21, 29), (260, 45, 19, 29)], fps: 10, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(286, 45, 16, 29), (310, 45, 16, 29), (334, 45, 16, 29), (358, 45, 16, 29)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        (
+            // fleche d'indication de la police d'A Link to the Past (pointe a droite) : reperes hors de l'ecran
+            source: "Miscellaneous - Fonts.png",
+            sprites: {
+                "ui_arrow": { "0": (frames: [(165, 114, 13, 14)], pivot: (0, 0), align: Center) },
+            },
+        ),
+    ],
+)

@@ -11,8 +11,8 @@
     dash: (speed: 340.0, duration: 0.15, cooldown: 1.5),
     weapon: "boomerang",
     weapon_sprite: "sword1",
-    // +20 % de chance, +5 % de vitesse
-    stats: [(Luck, 0.2), (MoveSpeed, 0.05)],
+    // avantages : chance +20 %, vitesse +5 % ; defauts : degats -10 %, 5 coeurs
+    stats: [(Luck, 0.2), (MoveSpeed, 0.05), (Might, -0.1)],
     order: 1,
     unlock: Some(Win("hyrule_field")),
 )

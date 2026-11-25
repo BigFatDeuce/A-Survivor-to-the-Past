@@ -3,6 +3,7 @@
 
 pub mod arsenal;
 pub mod defs;
+pub mod encounter;
 pub mod enemies;
 pub mod grid;
 pub mod horde;

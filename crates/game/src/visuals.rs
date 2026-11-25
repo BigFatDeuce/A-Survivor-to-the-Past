@@ -129,6 +129,8 @@ pub struct Vis {
     /// Animation de casse de chaque element du decor (meme ordre que `MapDef::props`).
     pub prop_break: Vec<Option<AnimId>>,
     pub bomb_red: Option<AnimId>,
+    /// Fleche d'indication (police d'A Link to the Past, pointe a droite).
+    pub ui_arrow: AnimId,
     pub icon_heart: AnimId,
     pub icon_rupees: AnimId,
     pub hud_heart: [AnimId; 3],
@@ -210,6 +212,7 @@ impl Vis {
             specials: [atlas.get("pickup_net", "0"), atlas.get("fairy", "0"), atlas.get("pickup_medallion", "0")],
             prop_break: map.props.iter().map(|p| (!p.break_fx.is_empty()).then(|| atlas.get(&p.break_fx, "0"))).collect(),
             bomb_red: atlas.find("bobomb", "red"),
+            ui_arrow: atlas.get("ui_arrow", "0"),
             icon_heart: atlas.get("icon_heart", "0"),
             icon_rupees: atlas.get("icon_rupees", "0"),
             hud_heart: [atlas.get("hud_heart", "full"), atlas.get("hud_heart", "half"), atlas.get("hud_heart", "empty")],

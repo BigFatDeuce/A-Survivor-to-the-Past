@@ -11,8 +11,8 @@
     dash: (speed: 320.0, duration: 0.15, cooldown: 2.0),
     weapon: "bombs",
     weapon_sprite: "sword1",
-    // +10 % de degats et de zone, +1 d'armure
-    stats: [(Might, 0.1), (Area, 0.1), (Armor, 1.0)],
+    // avantages : degats +10 %, zone +10 %, armure +1, 7 coeurs ; defauts : lent, recharge +10 %
+    stats: [(Might, 0.1), (Area, 0.1), (Armor, 1.0), (Cooldown, 0.1)],
     order: 2,
     unlock: Some(Kills(3000)),
 )

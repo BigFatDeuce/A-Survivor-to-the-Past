@@ -70,6 +70,12 @@ pub enum Event {
     Frozen { pos: Vec2 },
     /// Une Bob-omb arrive (annonce).
     BombSpawned { pos: Vec2 },
+    /// Rencontre : un champion errant attend quelque part (annonce et fleche).
+    EncounterSpawned { pos: Vec2, kind: u16 },
+    /// Le champion est reparti sans etre vaincu.
+    EncounterFled { pos: Vec2 },
+    /// Champion vaincu : une recompense est a choisir.
+    EncounterWon { pos: Vec2 },
     /// Bob-omb vaincue : les ennemis a l'ecran sont souffles.
     ScreenClear { pos: Vec2, count: u32 },
     /// Element de decor casse (indice dans `MapDef::props`).
@@ -254,6 +260,11 @@ pub struct World {
     /// Bob-omb : type d'ennemi et temps avant la prochaine.
     pub bomb_kind: Option<u16>,
     bomb_t: f32,
+    /// Rencontre en cours (champion errant) et temps avant la prochaine.
+    pub encounter: Option<crate::encounter::Encounter>,
+    pub encounter_t: f32,
+    /// Champions vaincus dont la recompense reste a choisir.
+    pub pending_rewards: u32,
     /// Premier evenement du pas en cours.
     ev0: usize,
     wave_acc: Vec<f32>,
@@ -323,6 +334,9 @@ impl World {
             char_stats: c.stats.clone(),
             bomb_kind: None,
             bomb_t: 0.0,
+            encounter: None,
+            encounter_t: 0.0,
+            pending_rewards: 0,
             ev0: 0,
             accel: Vec::new(),
             content,
@@ -337,6 +351,7 @@ impl World {
         }
         let (a, b) = w.content.rules.bomb_every;
         w.bomb_t = w.rng.range(a, b) * 0.6;
+        w.encounter_t = w.content.rules.encounter.first;
         w.recompute_stats();
         w.player.hp = w.player.max_hp;
         match w.content.weapon_index(&c.weapon) {
@@ -454,6 +469,7 @@ impl World {
         self.update_pickups();
         if self.spawning && self.player.alive {
             self.update_spawner();
+            self.update_encounter();
         }
         self.update_portal();
         self.recycle_far();
@@ -640,6 +656,16 @@ impl World {
                     let v = self.rng.dir() * self.rng.range(40.0, 110.0);
                     self.pickups.spawn(PickupKind::RupeeRed, 20, pos, v, self.rng.range(80.0, 140.0));
                 }
+            } else if self.is_champion(i) {
+                self.encounter = None;
+                let (a, b) = self.content.rules.encounter.every;
+                self.encounter_t = self.rng.range(a, b);
+                self.pending_rewards += 1;
+                self.events.push(Event::EncounterWon { pos });
+                for _ in 0..6 {
+                    let v = self.rng.dir() * self.rng.range(40.0, 100.0);
+                    self.pickups.spawn(PickupKind::RupeeBlue, 5, pos, v, self.rng.range(80.0, 130.0));
+                }
             } else if elite {
                 self.pickups.spawn(PickupKind::Chest, 0, pos, dir * 20.0, 110.0);
                 self.events.push(Event::ChestDropped { pos, big: false });
@@ -664,7 +690,7 @@ impl World {
                 continue;
             }
             let k = self.horde.kind[j];
-            if self.content.enemies[k as usize].boss || Some(k) == self.bomb_kind {
+            if self.content.enemies[k as usize].boss || Some(k) == self.bomb_kind || self.is_champion(j) {
                 continue;
             }
             let d = (self.horde.pos[j] - pp).abs();
@@ -1081,7 +1107,7 @@ impl World {
         for i in 0..self.horde.len() {
             let d = (self.horde.pos[i] - pp).abs();
             if d.x > lim.x || d.y > lim.y {
-                if self.content.enemies[self.horde.kind[i] as usize].boss {
+                if self.content.enemies[self.horde.kind[i] as usize].boss || self.is_champion(i) {
                     continue;
                 }
                 let bias = Some(self.player.vel);

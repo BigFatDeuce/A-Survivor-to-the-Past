@@ -112,6 +112,7 @@ impl DrawList {
         align: Align,
         shadow: Option<Color>,
     ) -> f32 {
+        let pos = Vec2::new(pos.x, pos.y + font.nudge as f32 * scale);
         let w = font.measure(s) as f32 * scale;
         let x0 = match align {
             Align::Left => pos.x,

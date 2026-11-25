@@ -51,8 +51,12 @@ pub struct Blessing {
 pub struct Relic {
     pub id: String,
     pub icon: String,
-    /// Stage dont la premiere victoire donne la relique.
+    /// Stage dont la premiere victoire donne la relique (vide pour une relique de rencontre).
+    #[serde(default)]
     pub stage: String,
+    /// Proposee par les champions errants ; gardee si la partie est gagnee.
+    #[serde(default)]
+    pub encounter: bool,
     pub stats: Vec<(Stat, f32)>,
 }
 
@@ -170,7 +174,7 @@ impl Meta {
 
     /// Relique gagnee par la premiere victoire de ce stage.
     pub fn relic_of(&self, stage: &str) -> Option<&Relic> {
-        self.relics.iter().find(|r| r.stage == stage)
+        self.relics.iter().find(|r| !r.encounter && r.stage == stage)
     }
 }
 
@@ -181,6 +185,7 @@ pub fn stat_text(lang: &crate::lang::Lang, s: Stat, v: f32) -> String {
         Stat::Armor => ("stat.armor", format!("+{v}")),
         Stat::Amount => ("stat.amount", format!("+{v}")),
         Stat::Regen => ("stat.regen", format!("+{v:.1}")),
+        Stat::Luck | Stat::Growth => (if s == Stat::Luck { "stat.luck" } else { "stat.growth" }, format!("{:+} %", (v * 100.0).round() as i32)),
         _ => {
             let k = match s {
                 Stat::Area => "stat.area",
@@ -221,7 +226,7 @@ mod tests {
         assert!(meta.bank_mult(&p) > 2.0);
         assert_eq!(meta.shop_cost(&meta.shop[0], 0), Some(150));
         assert_eq!(meta.shop_cost(&meta.shop[0], 5), None);
-        for r in &meta.relics {
+        for r in meta.relics.iter().filter(|r| !r.encounter) {
             assert!(root.join(format!("data/maps/{}.ron", r.stage)).exists(), "relique {} : stage inconnu", r.id);
         }
     }

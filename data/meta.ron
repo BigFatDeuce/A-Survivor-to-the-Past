@@ -31,14 +31,25 @@
         (id: "wisdom",  icon: "icon_blue_potion",  cost: 1200, effect: Xp(0.15)),
         (id: "healing", icon: "icon_heart",        cost: 900,  effect: Heal(0.5)),
     ],
-    // Reliques : la premiere victoire d'un stage donne la sienne ; `max_relics` equipees a la fois
-    max_relics: 2,
+    // Reliques : la premiere victoire d'un stage donne la sienne ; `max_relics` equipees a la fois.
+    // `encounter: true` : relique proposee par les champions errants (rencontres), gardee si la partie est gagnee.
+    max_relics: 3,
     relics: [
         (id: "pendant_courage", icon: "icon_pendant_courage", stage: "hyrule_field", stats: [(Might, 0.1)]),
         (id: "pendant_power",   icon: "icon_pendant_power",   stage: "lost_woods",   stats: [(MaxHp, 20.0)]),
         (id: "pendant_wisdom",  icon: "icon_pendant_wisdom",  stage: "desert",       stats: [(Cooldown, -0.08)]),
         (id: "moon_pearl",      icon: "icon_pearl",           stage: "ice_lake",     stats: [(MoveSpeed, 0.08), (Armor, 1.0)]),
         (id: "crystal",         icon: "icon_crystal",         stage: "pyramid",      stats: [(Amount, 1.0)]),
+        (id: "magic_mirror",    icon: "icon_magic_mirror",    stage: "death_mountain", stats: [(Area, 0.08), (Duration, 0.1)]),
+        // reliques des rencontres
+        (id: "big_key",      icon: "icon_big_key",      encounter: true, stats: [(Luck, 0.15)]),
+        (id: "titan_mitt",   icon: "icon_titan_mitt",   encounter: true, stats: [(Might, 0.06), (Armor, 1.0)]),
+        (id: "red_mail",     icon: "icon_red_mail",     encounter: true, stats: [(Armor, 2.0), (MoveSpeed, -0.04)]),
+        (id: "bottle",       icon: "icon_bottle",       encounter: true, stats: [(Regen, 0.2)]),
+        (id: "shovel",       icon: "icon_shovel",       encounter: true, stats: [(Magnet, 0.3), (Growth, 0.06)]),
+        (id: "small_key",    icon: "icon_small_key",    encounter: true, stats: [(DashCooldown, -0.15), (MoveSpeed, 0.04)]),
+        (id: "golden_sword", icon: "icon_golden_sword", encounter: true, stats: [(Might, 0.12), (Cooldown, 0.05)]),
+        (id: "fire_shield",  icon: "icon_fire_shield",  encounter: true, stats: [(MaxHp, 20.0), (Speed, 0.1)]),
     ],
     // Sceaux de Ganon : defis optionnels, chacun augmente les rubis mis en banque
     seals: [

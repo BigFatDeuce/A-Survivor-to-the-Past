@@ -1,0 +1,18 @@
+// Princesse Zelda (Four Swords) : la magie, la sagesse ; lente et peu robuste.
+// Debloquee en battant 5 boss au total.
+(
+    name: "Zelda",
+    sprite: "zelda",
+    side_faces_left: true,
+    max_hp: 50.0,
+    speed: 80.0,
+    radius: 5.0,
+    magnet: 42.0,
+    dash: (speed: 300.0, duration: 0.15, cooldown: 2.0),
+    weapon: "cane_of_somaria",
+    weapon_sprite: "sword1",
+    // avantages : duree +15 %, croissance +10 %, recharge -8 % ; defauts : degats -10 %, lente, 5 coeurs
+    stats: [(Duration, 0.15), (Growth, 0.1), (Cooldown, -0.08), (Might, -0.1)],
+    order: 4,
+    unlock: Some(Bosses(5)),
+)

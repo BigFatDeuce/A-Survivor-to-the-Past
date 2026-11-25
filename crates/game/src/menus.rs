@@ -116,6 +116,8 @@ pub struct OfferInfo {
     pub max: u32,
     /// Partenaire d'evolution : (icone, nom, deja possede).
     pub evo: Vec<(AnimId, String, bool)>,
+    /// Texte devant `evo` (vide : « Evolue avec »).
+    pub evo_label: String,
 }
 
 fn signed(v: f32) -> String {
@@ -204,6 +206,7 @@ pub fn offer_info(world: &World, vis: &Vis, lang: &Lang, o: Offer) -> OfferInfo 
                 level,
                 max: def.max_level(),
                 evo,
+                evo_label: String::new(),
             }
         }
         Offer::NewPassive(id) | Offer::UpgradePassive(id) => {
@@ -242,6 +245,7 @@ pub fn offer_info(world: &World, vis: &Vis, lang: &Lang, o: Offer) -> OfferInfo 
                 level,
                 max: def.max_level(),
                 evo,
+                evo_label: String::new(),
             }
         }
         Offer::Heal => OfferInfo {
@@ -253,6 +257,7 @@ pub fn offer_info(world: &World, vis: &Vis, lang: &Lang, o: Offer) -> OfferInfo 
             level: 0,
             max: 0,
             evo: Vec::new(),
+            evo_label: String::new(),
         },
         Offer::Rupees => OfferInfo {
             icon: vis.icon_rupees,
@@ -263,6 +268,7 @@ pub fn offer_info(world: &World, vis: &Vis, lang: &Lang, o: Offer) -> OfferInfo 
             level: 0,
             max: 0,
             evo: Vec::new(),
+            evo_label: String::new(),
         },
     }
 }
@@ -285,25 +291,31 @@ pub const LEVELUP_LOCK: f32 = 0.35;
 
 #[allow(clippy::too_many_arguments)]
 pub fn draw_levelup(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang: &Lang, offers: &[Offer], sel: usize, t: f32) {
+    let infos: Vec<OfferInfo> = offers.iter().map(|&o| offer_info(world, vis, lang, o)).collect();
+    draw_cards(list, ctx, vis, lang, (lang.get("ui.levelup"), lang.get("ui.choose"), GOLD), &infos, sel, t);
+}
+
+/// Cartes de choix (montee de niveau, recompense de rencontre) : titre, sous-titre et couleur du titre.
+#[allow(clippy::too_many_arguments)]
+pub fn draw_cards(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: (&str, &str, Color), infos: &[OfferInfo], sel: usize, t: f32) {
     let view = ctx.view;
     let atlas = &ctx.atlas;
     let main = atlas.font("main");
     let white = &vis.white;
     dim(list, vis, view, with_alpha(DIM, (t / 0.15).min(1.0)));
-    let rects = card_rects(view, offers.len());
+    let rects = card_rects(view, infos.len());
     let y0 = rects.first().map_or(94.0, |r| r.0.y);
     let pop = if t < 0.1 { 3.0 } else { 2.0 };
-    text(list, main, lang.get("ui.levelup"), Vec2::new(view.x * 0.5, y0 - 54.0 - (pop - 2.0) * 7.0), pop, GOLD, Align::Center);
-    text(list, main, lang.get("ui.choose"), Vec2::new(view.x * 0.5, y0 - 19.0), 1.0, SOFT, Align::Center);
+    text(list, main, head.0, Vec2::new(view.x * 0.5, y0 - 54.0 - (pop - 2.0) * 7.0), pop, head.2, Align::Center);
+    text(list, main, head.1, Vec2::new(view.x * 0.5, y0 - 19.0), 1.0, SOFT, Align::Center);
     let locked = t < LEVELUP_LOCK;
-    for (k, ((pos, size), &o)) in rects.into_iter().zip(offers).enumerate() {
+    for (k, ((pos, size), info)) in rects.into_iter().zip(infos).enumerate() {
         // entree echelonnee par la droite
         let u = ((t - k as f32 * 0.05) / 0.18).clamp(0.0, 1.0);
         let e = 1.0 - (1.0 - u) * (1.0 - u);
         let selected = k == sel;
         let pos = pos + Vec2::new(((1.0 - e) * 60.0).round() + if selected { 4.0 } else { 0.0 }, 0.0);
         let a = e;
-        let info = offer_info(world, vis, lang, o);
         list.rect(white, pos, size, with_alpha(CARD_BG, a));
         let pulse = 0.75 + 0.25 * (ctx.real_time as f32 * 6.0).sin();
         let border = if selected { with_alpha(GOLD, a * if locked { 0.6 } else { pulse }) } else { [1.0, 1.0, 1.0, 0.3 * a] };
@@ -348,13 +360,13 @@ pub fn draw_levelup(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, la
         let lines = wrap(main, &info.desc, width, 1.0);
         let evo_room = if info.evo.is_empty() { 0 } else { 1 };
         for (li, l) in lines.iter().take(2 + (1 - evo_room)).enumerate() {
-            let y = pos.y + 23.0 + li as f32 * 12.0;
+            let y = pos.y + 21.0 + li as f32 * 12.0;
             text(list, main, l, Vec2::new(tx, y), 1.0, with_alpha(rgb(230, 230, 240), a), Align::Left);
         }
         // partenaire d'evolution : c'est la que les choix prennent du sens
         if !info.evo.is_empty() {
-            let y = pos.y + size.y - 14.0;
-            let lbl = lang.get("ui.evolves");
+            let y = pos.y + size.y - 17.0;
+            let lbl = if info.evo_label.is_empty() { lang.get("ui.evolves") } else { info.evo_label.as_str() };
             let mut x = tx + text(list, main, lbl, Vec2::new(tx, y), 1.0, with_alpha(rgb(190, 170, 110), a), Align::Left) + 10.0;
             for (icon, name, owned) in &info.evo {
                 let c = if *owned { GOLD } else { [1.0, 1.0, 1.0, 0.55] };

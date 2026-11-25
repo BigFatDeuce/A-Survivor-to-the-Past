@@ -99,6 +99,9 @@ pub struct Profile {
     /// Dernier personnage choisi.
     #[serde(default)]
     pub character: String,
+    /// Couleur choisie pour les personnages qui en proposent plusieurs (indice dans `skins`).
+    #[serde(default)]
+    pub skins: BTreeMap<String, usize>,
 }
 
 fn d_difficulty() -> usize {

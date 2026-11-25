@@ -64,10 +64,41 @@ impl Stats {
     }
 }
 
+/// Amelioration speciale d'une arme (recompense de rencontre) : suit l'arme quand elle evolue.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct WeaponBoost {
+    /// Degats en plus (+0.25 = +25 %).
+    pub damage: f32,
+    /// Projectiles / coups en plus.
+    pub amount: u32,
+    /// Zone en plus (+0.2 = +20 %).
+    pub area: f32,
+    /// Recharge en moins (0.15 = -15 %).
+    pub cooldown: f32,
+}
+
+impl WeaponBoost {
+    pub fn apply(&self, w: &mut WeaponStats) {
+        w.damage *= 1.0 + self.damage;
+        w.amount += self.amount;
+        w.area *= 1.0 + self.area;
+        w.cooldown *= (1.0 - self.cooldown).max(0.3);
+    }
+
+    pub fn add(&mut self, o: WeaponBoost) {
+        self.damage += o.damage;
+        self.amount += o.amount;
+        self.area += o.area;
+        self.cooldown += o.cooldown;
+    }
+}
+
 /// Arme possedee.
 #[derive(Clone, Copy, Debug)]
 pub struct WeaponSlot {
     pub id: u16,
+    /// Ameliorations speciales cumulees (rencontres).
+    pub boost: WeaponBoost,
     pub level: u32,
     /// Recharge restante (s).
     pub cd: f32,
@@ -139,7 +170,7 @@ impl World {
     pub fn add_weapon(&mut self, id: u16) {
         let def = &self.content.weapons[id as usize];
         let stats = resolve(def, 1, &self.player.stats);
-        self.weapons.push(WeaponSlot { id, level: 1, cd: 0.4, stats, active: 0.0, phase: 0.0 });
+        self.weapons.push(WeaponSlot { id, boost: WeaponBoost::default(), level: 1, cd: 0.4, stats, active: 0.0, phase: 0.0 });
     }
 
     fn add_passive(&mut self, id: u16) {
@@ -176,7 +207,22 @@ impl World {
         pl.magnet = pl.base_magnet * st.magnet;
         for w in &mut self.weapons {
             w.stats = resolve(&self.content.weapons[w.id as usize], w.level, &st);
+            w.boost.apply(&mut w.stats);
         }
+    }
+
+    /// Bonus de statistiques gagnes pendant la partie (benedictions, reliques de rencontre).
+    pub fn add_run_stats(&mut self, stats: &[(Stat, f32)]) {
+        self.mods.stats.extend_from_slice(stats);
+        self.recompute_stats();
+    }
+
+    /// Amelioration speciale d'une arme possedee.
+    pub fn boost_weapon(&mut self, slot: usize, b: WeaponBoost) {
+        if let Some(w) = self.weapons.get_mut(slot) {
+            w.boost.add(b);
+        }
+        self.recompute_stats();
     }
 
     pub fn weapon_level(&self, id: u16) -> Option<u32> {
@@ -316,15 +362,11 @@ impl World {
         let mut r = ChestReward::default();
         if let Some((slot, into)) = self.evolution_ready() {
             let from = self.weapons[slot].id;
+            let boost = self.weapons[slot].boost;
             let def = &self.content.weapons[into as usize];
-            self.weapons[slot] = WeaponSlot {
-                id: into,
-                level: 1,
-                cd: 0.2,
-                stats: resolve(def, 1, &self.player.stats),
-                active: 0.0,
-                phase: 0.0,
-            };
+            let mut stats = resolve(def, 1, &self.player.stats);
+            boost.apply(&mut stats);
+            self.weapons[slot] = WeaponSlot { id: into, boost, level: 1, cd: 0.2, stats, active: 0.0, phase: 0.0 };
             r.evolution = Some((from, into));
         }
         let (lo, hi) = self.content.rules.chest_upgrades;

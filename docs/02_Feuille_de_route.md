@@ -146,6 +146,36 @@ Chaque jalon se termine par un point avec toi (démo + questions éventuelles).
   chaîne du grappin, éclats du décor. Traductions des 7 langues ; vérification de l'interface : 0 problème
   sur 2142 écrans.
 
+### Version 0.5.0 : publiée le 25/11/2026
+- **Décor cohérent** : la tuile de sol « buisson peint » (identique au buisson cassable) est remplacée par des fleurs
+  (Plaine, Bois Perdus) ; moins de buissons, mais tous se coupent. Bob-omb encore plus rare (170 à 240 s).
+- **HUD** : compteur de rubis rouges (rubis mis en banque si la partie s'arrêtait maintenant, plus en cas de
+  victoire) ; icône de l'épée à côté d'Auto/Manuel (le mode ne concerne que l'épée), icône d'épée lame vers le haut ;
+  textes remontés dans les cadres (`nudge` de police) et dans les cartes de choix.
+- **Personnages** : Sonic (vainqueur du Désert : très rapide, dash quasi sans attente, épée, mais fragile et zone
+  réduite), Zelda (5 boss : canne de Somaria, durée, expérience, recharge, mais lente et moins puissante), Link NES
+  (niveau 25 : arc, une flèche de plus, mais moins de dégâts et de zone). Chaque personnage a maintenant des défauts
+  (Link : peu de chance ; Minish : moins de dégâts ; sans bonnet : recharge plus lente). Icône de l'arme de départ
+  dans l'écran de choix. **Écart** : Sonic © SEGA, sprites personnalisés crédités dans le README.
+- **Rencontres** (`crates/sim/src/encounter.rs`, `crates/game/src/reward.rs`, `rules.ron` `encounter`) : vers 1:15
+  puis toutes les 100 à 150 s, un champion errant (élite violette, vie x3) attend hors de l'écran ; annonce, flèche
+  au bord de l'écran avec distance et temps restant (70 s). Vaincu : choix entre amélioration spéciale d'une arme
+  (gardée à l'évolution), relique de rencontre (effet immédiat, gardée si la partie est gagnée) et bénédiction.
+- **Reliques** : 15 au total (Miroir magique pour la Montagne de la Mort, 8 reliques de rencontre) ;
+  **écart** : 3 emplacements au lieu de 2.
+- **Sept personnages de plus (13 au total)**, planches de `AdditionalChars` / `MoreSprites` découpées par
+  `research/tools/gen_chars.py` (planches « Derived » réalignées) : Link de *Four Swords* (un seul personnage,
+  4 couleurs au choix avec gauche / droite, gardées dans le profil), Link de *Link's Awakening*, Link de *Zelda II*,
+  Link adulte (style Chrono Trigger, ombre retirée), Link Mojo, Maskass, et **Shadow Link débloqué en battant
+  Ganon** (`UnlockDef::Slain`). Liste des personnages qui défile. **Écarts** : Link enfant non repris (planche
+  sans cycle de marche) ; Link de *Zelda II* n'a que le profil (servi aussi de face et de dos) ; Shadow Link est
+  un personnage à part (même planche que *Four Swords*), pas une couleur.
+- **Flèches d'indication** (champion, Bob-omb, coffres hors écran) : sprite de flèche de la police d'*A Link to the
+  Past*, tourné par quarts de tour, au lieu d'une flèche dessinée.
+- **Crédits** : `CREDITS.md` liste l'auteur de chaque planche (nom inscrit sur la planche), lien dans les README.
+- Traductions des 7 langues (`lang_v05.py`, `lang_v05b.py`) ; tests 10/10 ; vérification de l'interface :
+  0 problème sur 2940 écrans.
+
 ## Idées du 24/11/2026 : propositions (à valider)
 | Idée | Proposition | Jalon proposé |
 |---|---|---|

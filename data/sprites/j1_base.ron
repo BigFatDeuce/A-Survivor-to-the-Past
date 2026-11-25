@@ -114,6 +114,8 @@
             name: "main",
             top: 2,
             line_h: 14,
+            // les lettres commencent bas dans la case (place des accents) : remonte de 2 px
+            nudge: -2,
             space: 5,
             spacing: -1,
             accent_rows: 4,
@@ -193,8 +195,8 @@
             name: "grass",
             source: "Overworld - Light World.png",
             size: 16,
-            // 0 herbe nue, 1-3 touffes, 4-5 fleurs, 6 buisson
-            tiles: [(2408, 3708), (2408, 3724), (2408, 3772), (2312, 3836), (2424, 3740), (2408, 3756), (2472, 3932)],
+            // 0 herbe nue, 1-3 touffes, 4-6 fleurs (pas de buisson peint au sol : les buissons sont des decors cassables)
+            tiles: [(2408, 3708), (2408, 3724), (2408, 3772), (2312, 3836), (2424, 3740), (2408, 3756), (2408, 3756)],
         ),
     ],
 )

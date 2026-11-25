@@ -1,0 +1,16 @@
+// Link adulte (Ocarina of Time, style Chrono Trigger) : marteau, degats et zone en plus, dash plus lent.
+// Debloque a la Pyramide.
+(
+    name: "Link adulte",
+    sprite: "link_adult",
+    max_hp: 70.0,
+    speed: 84.0,
+    radius: 5.0,
+    magnet: 32.0,
+    dash: (speed: 320.0, duration: 0.15, cooldown: 1.8),
+    weapon: "hammer",
+    weapon_sprite: "sword1",
+    stats: [(Might, 0.15), (Area, 0.1), (DashCooldown, 0.2), (MoveSpeed, -0.05)],
+    order: 9,
+    unlock: Some(Win("pyramid")),
+)

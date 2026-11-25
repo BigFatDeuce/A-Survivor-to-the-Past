@@ -7,7 +7,7 @@
             source: "Miscellaneous - Items (Overworld).png",
             transparent: ["#800080"],
             sprites: {
-                "icon_sword":           { "0": (frames: [(65, 10, 6, 12)], pivot: (0, 0), align: Center) },
+                "icon_sword":           { "0": (frames: [(81, 10, 6, 13)], pivot: (0, 0), align: Center) },
                 "icon_master_sword":    { "0": (frames: [(97, 8, 7, 16)], pivot: (0, 0), align: Center) },
                 "icon_bow":             { "0": (frames: [(69, 32, 7, 16)], pivot: (0, 0), align: Center) },
                 "icon_silver_bow":      { "0": (frames: [(196, 33, 15, 15)], pivot: (0, 0), align: Center) },

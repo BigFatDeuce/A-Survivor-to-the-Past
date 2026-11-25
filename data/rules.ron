@@ -28,7 +28,7 @@
     fallback_rupees: 25,
     // Bob-omb : une toutes les 60 a 100 s (pas deux a la fois) ; vaincue, elle vide l'ecran
     bomb_enemy: "bobomb",
-    bomb_every: (60.0, 100.0),
+    bomb_every: (170.0, 240.0),
     // decor cassable : butin (objet, poids) ; la Chance rend le « rien » plus rare
     prop_drops: [
         (Nothing, 58.0),

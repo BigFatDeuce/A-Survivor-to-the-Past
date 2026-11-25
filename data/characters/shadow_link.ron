@@ -1,0 +1,17 @@
+// Shadow Link (Four Swords Adventures) : l'ombre de Link, tres puissant et rapide, mais malchanceux
+// et il apprend moins vite. Debloque en vainquant Ganon.
+(
+    name: "Shadow Link",
+    sprite: "shadow_link",
+    side_faces_left: true,
+    max_hp: 50.0,
+    speed: 92.0,
+    radius: 5.0,
+    magnet: 30.0,
+    dash: (speed: 360.0, duration: 0.15, cooldown: 1.4),
+    weapon: "sword",
+    weapon_sprite: "sword1",
+    stats: [(Might, 0.25), (Cooldown, -0.1), (Luck, -0.2), (Growth, -0.15)],
+    order: 12,
+    unlock: Some(Slain("ganon")),
+)

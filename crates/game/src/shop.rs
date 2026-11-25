@@ -95,7 +95,11 @@ pub fn rows(meta: &Meta, p: &Profile, lang: &Lang, atlas: &Atlas, tab: usize) ->
                 details.push(if found {
                     format!("{} {}", fx.join(", "), slots)
                 } else {
-                    lang.get("ui.relic_hint").replace("{s}", &crate::stages::stage_name(lang, &r.stage))
+                    if r.encounter {
+                        lang.get("ui.relic_hint_encounter").to_string()
+                    } else {
+                        lang.get("ui.relic_hint").replace("{s}", &crate::stages::stage_name(lang, &r.stage))
+                    }
                 });
             }
         }

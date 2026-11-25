@@ -1,0 +1,16 @@
+// Link de Zelda II : solide et puissant (sort de feu), mais lent et ses armes rechargent moins vite.
+// Planche de profil seulement (jeu de plateforme) : le profil sert aussi de face et de dos. 10 boss.
+(
+    name: "Link (Zelda II)",
+    sprite: "link_zelda2",
+    max_hp: 70.0,
+    speed: 80.0,
+    radius: 5.0,
+    magnet: 32.0,
+    dash: (speed: 310.0, duration: 0.15, cooldown: 2.0),
+    weapon: "fire_rod",
+    weapon_sprite: "sword1",
+    stats: [(Might, 0.15), (Armor, 1.0), (MoveSpeed, -0.05), (Cooldown, 0.1)],
+    order: 8,
+    unlock: Some(Bosses(10)),
+)
