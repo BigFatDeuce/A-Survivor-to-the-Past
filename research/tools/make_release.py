@@ -1,7 +1,8 @@
 """Paquet Windows publie : dist/A-Survivor-to-the-Past-v<version>-windows-x64.zip
 
 Contenu (dossier « A Survivor to the Past/ ») : l'executable, data/, assets/gen/, assets/audio/,
-LICENSE et LISEZ-MOI / README. Les fichiers du joueur (settings.ron...) n'y sont jamais.
+LICENSE, LISEZ-MOI / README et le livret d'instructions (PDF, regenere avant par make_manual.py).
+Les fichiers du joueur (settings.ron...) n'y sont jamais.
 Usage : python research/tools/make_release.py [--no-build] [--out dist]
 """
 import argparse
@@ -16,6 +17,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 VERSION = re.search(r'version\s*=\s*"([^"]+)"', (ROOT / "Cargo.toml").read_text(encoding="utf-8")).group(1)
 TOP = "A Survivor to the Past"
+# a la racine du paquet : la mise a jour automatique remplace les fichiers de la racine
+MANUALS = ("A-Survivor-to-the-Past-Manual-en.pdf", "A-Survivor-to-the-Past-Manuel-fr.pdf")
 EXE = "A Survivor to the Past.exe"
 REPO = "https://github.com/BigFatDeuce/A-Survivor-to-the-Past"
 DISCORD = "https://discord.gg/N8f62M2eaK"
@@ -33,6 +36,7 @@ HOW TO PLAY
    Windows may say "Windows protected your PC" because the game is not signed:
    click "More info", then "Run anyway".
 Keyboard, mouse or gamepad. Controls and options are in the menus.
+The instruction booklet is A-Survivor-to-the-Past-Manual-en.pdf.
 
 UPDATES
 At launch the game asks GitHub whether a new version exists. In "Automatic" mode (default) it
@@ -52,6 +56,7 @@ COMMENT JOUER
    Windows peut afficher « Windows a protégé votre ordinateur » car le jeu n'est pas signé :
    cliquez sur « Informations complémentaires » puis « Exécuter quand même ».
 Clavier, souris ou manette. Les commandes et options sont dans les menus.
+Le livret d'instructions est A-Survivor-to-the-Past-Manuel-fr.pdf.
 
 MISES À JOUR
 Au lancement, le jeu demande à GitHub s'il existe une nouvelle version. En mode « Automatiques »
@@ -110,6 +115,11 @@ def main():
         shutil.copytree(ROOT / d, stage / d)
     shutil.copy2(ROOT / "LICENSE", stage / "LICENSE.txt")
     shutil.copy2(ROOT / "CREDITS.md", stage / "CREDITS.txt")
+    for m in MANUALS:
+        src = ROOT / "dist" / "manual" / m
+        if not src.is_file():
+            sys.exit(f"livret absent : {src} (lancer research/tools/make_manual.py)")
+        shutil.copy2(src, stage / m)
     (stage / "README.txt").write_text(README.replace("\n", "\r\n"), encoding="utf-8-sig", newline="")
     if a.marker:
         (stage / "data" / a.marker).write_text(VERSION, encoding="utf-8")

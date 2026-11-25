@@ -23,18 +23,21 @@ pub fn text(list: &mut DrawList, font: &Font, s: &str, pos: Vec2, scale: f32, co
 /// Decoupe un texte en lignes d'au plus `width` pixels (coupure aux espaces).
 pub fn wrap(font: &Font, s: &str, width: f32, scale: f32) -> Vec<String> {
     let mut lines = Vec::new();
-    let mut cur = String::new();
-    for word in s.split(' ') {
-        let cand = if cur.is_empty() { word.to_string() } else { format!("{cur} {word}") };
-        if !cur.is_empty() && font.measure(&cand) as f32 * scale > width {
-            lines.push(std::mem::take(&mut cur));
-            cur = word.to_string();
-        } else {
-            cur = cand;
+    // un saut de ligne force une nouvelle ligne
+    for para in s.split('\n') {
+        let mut cur = String::new();
+        for word in para.split(' ') {
+            let cand = if cur.is_empty() { word.to_string() } else { format!("{cur} {word}") };
+            if !cur.is_empty() && font.measure(&cand) as f32 * scale > width {
+                lines.push(std::mem::take(&mut cur));
+                cur = word.to_string();
+            } else {
+                cur = cand;
+            }
         }
-    }
-    if !cur.is_empty() {
-        lines.push(cur);
+        if !cur.is_empty() {
+            lines.push(cur);
+        }
     }
     lines
 }

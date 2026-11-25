@@ -19,6 +19,18 @@ pub fn write(root: &Path, name: &str, text: &str) -> Result<(), String> {
     })
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub fn remove(root: &Path, name: &str) {
+    let _ = std::fs::remove_file(root.join(name));
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn remove(_root: &Path, name: &str) {
+    if let Some(s) = store() {
+        let _ = s.remove_item(&key(name));
+    }
+}
+
 #[cfg(target_arch = "wasm32")]
 fn store() -> Option<web_sys::Storage> {
     web_sys::window()?.local_storage().ok()?

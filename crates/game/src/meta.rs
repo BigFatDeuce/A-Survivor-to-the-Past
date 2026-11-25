@@ -172,6 +172,13 @@ impl Meta {
         d * (1.0 + seals) * (1.0 + greed)
     }
 
+    /// Multiplicateur de score : difficulte et Sceaux de Ganon (sans l'Avarice, achetee en boutique).
+    pub fn score_mult(&self, profile: &Profile) -> f32 {
+        let d = self.difficulty(profile).map(|d| d.rupees).unwrap_or(1.0);
+        let seals: f32 = self.seals.iter().filter(|s| profile.seals.contains(&s.id)).map(|s| s.bonus).sum();
+        d * (1.0 + seals)
+    }
+
     /// Relique gagnee par la premiere victoire de ce stage.
     pub fn relic_of(&self, stage: &str) -> Option<&Relic> {
         self.relics.iter().find(|r| !r.encounter && r.stage == stage)

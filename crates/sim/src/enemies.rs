@@ -98,6 +98,27 @@ impl World {
                                 h.vel[i] * *speed
                             }
                         }
+                        Behavior::Flee { rest, jump, speed, range } => {
+                            h.timer[i] += DT;
+                            let cycle = rest + jump;
+                            if h.timer[i] >= cycle {
+                                h.timer[i] -= cycle;
+                            }
+                            if h.timer[i] < *rest {
+                                h.z[i] = 0.0;
+                                // direction du prochain bond : loin du joueur, avec un ecart qui change
+                                let side = Vec2::from_angle((t * 0.9 + ph * 5.0).sin() * 0.9);
+                                let away = -dirp;
+                                let rot = Vec2::new(away.x * side.x - away.y * side.y, away.x * side.y + away.y * side.x);
+                                h.vel[i] = if dist < *range { rot } else { Vec2::from_angle(ph * 6.0 + t * 0.4) };
+                                Vec2::ZERO
+                            } else {
+                                let u = (h.timer[i] - rest) / jump;
+                                h.z[i] = 4.0 * u * (1.0 - u) * 12.0;
+                                let sp = if dist < *range { *speed } else { *speed * 0.35 };
+                                h.vel[i] * sp
+                            }
+                        }
                         Behavior::Wander { turn } => {
                             let a = ph * 6.0 + (t * 0.55 + ph).sin() * turn + (t * 1.3 + ph * 3.0).sin() * turn * 0.5;
                             let drift = Vec2::from_angle(a);
@@ -396,13 +417,20 @@ impl World {
         let base = (r.at - Vec2::new(0.0, 6.0) - from).normalize_or(Vec2::Y);
         let n = shot.count.max(1);
         let spread = if shot.ring { std::f32::consts::TAU / n as f32 } else { shot.spread.to_radians() };
+        // tirs un peu plus lents que les valeurs de enemies.ron (lisibilite), zone de contact
+        // un peu plus petite que le sprite (regle shot_hitbox)
+        let speed = shot.speed * self.content.rules.shot_speed;
+        let hit = match self.shot_hit.get(sprite as usize).copied().filter(|&v| v > 0.0) {
+            Some(v) => v * self.content.rules.shot_hitbox,
+            None => shot.radius * self.content.rules.shot_hitbox,
+        };
         for k in 0..n {
             let off = if shot.ring { k as f32 * spread } else { (k as f32 - (n - 1) as f32 * 0.5) * spread };
             let dir = Vec2::from_angle(base.y.atan2(base.x) + off);
             if shot.lob {
                 // bombes : visent la position du joueur (+ dispersion)
                 let target = r.at + dir.perp() * off * 40.0 + self.rng.dir() * self.rng.range(0.0, 14.0);
-                let flight = ((target - r.from).length() / shot.speed).clamp(0.5, 1.4);
+                let flight = ((target - r.from).length() / speed).clamp(0.5, 1.4);
                 self.shots.push(EnemyShot {
                     pos: from,
                     prev: from,
@@ -423,9 +451,9 @@ impl World {
                 self.shots.push(EnemyShot {
                     pos: from,
                     prev: from,
-                    vel: dir * shot.speed,
+                    vel: dir * speed,
                     damage: shot.damage * r.power,
-                    radius: shot.radius,
+                    radius: hit,
                     life: 4.0,
                     age: 0.0,
                     sprite,

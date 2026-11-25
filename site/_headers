@@ -10,6 +10,11 @@
 /img/*
   Cache-Control: public, max-age=604800
 
+# Livret d'instructions : la visionneuse PDF du navigateur ne supporte pas default-src 'none'
+/manual/*
+  ! Content-Security-Policy
+  Cache-Control: public, max-age=3600
+
 # Version jouable : WebAssembly (wasm-unsafe-eval), paquet du jeu et musiques (meme origine)
 /play/*
   ! Content-Security-Policy

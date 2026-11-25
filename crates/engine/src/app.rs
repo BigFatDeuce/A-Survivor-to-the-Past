@@ -328,6 +328,11 @@ impl<G: Game> ApplicationHandler for Runner<G> {
                     if let (true, winit::keyboard::Key::Character(c)) = (down, &event.logical_key) {
                         s.ctx.input.learn_label(code, c);
                     }
+                    if down {
+                        if let Some(t) = &event.text {
+                            s.ctx.input.type_text(t);
+                        }
+                    }
                     s.ctx.input.key_event(code, down, event.repeat);
                 }
             }

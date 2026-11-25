@@ -39,6 +39,8 @@ pub struct Input {
     pub focused: bool,
     /// Caractere produit par chaque touche physique deja pressee (disposition du clavier).
     key_labels: HashMap<KeyCode, String>,
+    /// Caracteres tapes depuis la derniere image (saisie d'un nom).
+    pub typed: Vec<char>,
 }
 
 impl Default for Input {
@@ -71,6 +73,7 @@ impl Input {
             last_device: Device::Keyboard,
             focused: true,
             key_labels: HashMap::new(),
+            typed: Vec::new(),
         }
     }
 
@@ -169,6 +172,11 @@ impl Input {
         self.keys_pressed[0].clear();
         self.mouse_pressed[0].clear();
         self.pad_pressed[0].clear();
+        self.typed.clear();
+    }
+
+    pub(crate) fn type_text(&mut self, text: &str) {
+        self.typed.extend(text.chars().filter(|c| !c.is_control()));
     }
 
     pub fn key(&self, k: KeyCode) -> bool {

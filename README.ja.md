@@ -1,7 +1,7 @@
 <p align="center"><img src="media/icon.png" width="128" height="128" alt="A Survivor to the Past"></p>
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i><b>神々のトライフォース</b>の世界で生き残れ。ハイラルの魔物の大群に立ち向かうサバイバーライク。</i></p>
-<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.5.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.6.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
 <p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Windows 版をダウンロード</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ ブラウザでプレイ</b></a></p>
 <p align="center"><a href="README.md">English</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a> · <a href="README.it.md">Italiano</a> · <a href="README.pt.md">Português</a> · <b>日本語</b></p>
 
@@ -19,10 +19,13 @@
 - 解放できる**12人のキャラクター** — リンク、ミニッシュリンク、帽子なしのリンク、ソニック、ゼルダ姫、ファミコン版リンク、『4つの剣』のリンク（4色）、『夢をみる島』のリンク、大人のリンク、デクリンク、ヘイホー、シャドウリンク（ガノンを倒すと解放）。それぞれ長所と短所、最初の武器が異なります
 - 画面の敵をすべて吹き飛ばすレアな**ボム兵**と、ルピー・ハート・妖精・エーテルのメダルが隠れた**壊せる背景**
 - ランダムな**遭遇戦**：どこかで待つ放浪のチャンピオンを矢印が示します。倒すと祝福、武器の特別強化、勝利すれば持ち帰れるレリックが手に入ります
+- 地面に残ったルピーを食べてしまう**泥棒ピキット** — 捕まえればすべて取り戻せます
 - **12種類の武器**（それぞれ**進化**あり）と**12種類のパッシブアイテム** — 武器枠6つ、アイテム枠6つで、選択が重要です
-- ハイラルの**17種類の敵**、**7体のボス**、宝箱を落とす**エリート**
+- ハイラルの**18種類の敵**、**7体のボス**、宝箱を落とす**エリート**
 - **プレイをまたぐ成長**：カカリコのショップ（永続強化）、大妖精の祝福、ステージごとの**レリック**、4段階の**難易度**、ルピーが増えるガノンの**封印**
 - **プロフィール**：モンスター図鑑、武器図鑑、統計、テキストコードによるセーブのエクスポート / インポート
+- 同じパソコンで**5人のプレイヤー**（名前・アバター・進行状況）。毎回の**スコア**と**ランキング**：ステージごとの自己ベスト、家族のプレイヤー同士、バージョンごとの**世界トップ100**
+- オリジナルの説明書を模した**取扱説明書**（PDF、英語とフランス語）
 - 自動攻撃、またはいつでも**手動照準** — キーボード、マウス、コントローラーに対応し、**すべてのキーを変更可能**
 - SNES 版『神々のトライフォース』のオリジナル**グラフィック・音楽・効果音**
 - **レトロ映像フィルター**：SNES、CRT、スキャンライン、ゲームボーイアドバンス、ゲームボーイ、**4:3** モード — 対応する**音声フィルター**付き
@@ -35,16 +38,16 @@
 |---|---|---|
 | ファイターのけん | ハートのうつわ | **マスターソード** |
 | ゆみ | やづつ | **ぎんのや** |
-| ブーメラン | ペガサスのくつ | **マジカルブーメラン** |
+| ブーメラン | ゾーラの フィン | **マジカルブーメラン** |
 | ファイアロッド | カンテラ | **ボンバーのメダル** |
 | アイスロッド | ハーフマジック | **エーテルのメダル** |
 | マジカルハンマー | パワーグローブ | **クエイクのメダル** |
 | バクダン | ミラーシールド | **スーパーバクダン** |
-| バイラのつえ | むしとりあみ | **ようせいの わ** |
-| フックショット | ゾーラの フィン | **ロングフック** |
+| バイラのつえ | まほうの マント | **ようせいの わ** |
+| フックショット | ペガサスのくつ | **ロングフック** |
 | まほうの こな | キノコ | **まじょの こな** |
 | ソマリアの つえ | ムドラの しょ | **グレート ソマリア** |
-| ハチ | まほうの マント | **ゴールドの ハチ** |
+| ハチ | むしとりあみ | **ゴールドの ハチ** |
 
 ## スクリーンショット
 
@@ -75,7 +78,7 @@
 
 ## 遊ぶ
 
-このゲームは**アルファ版**（バージョン 0.5.0）です。**Windows**：[リリースページ](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest)から最新版をダウンロードし、zip をすべて展開して `A Survivor to the Past.exe` を起動してください。署名がないため Windows に警告された場合は、*詳細情報* → *実行* をクリックします。その後は**自動でアップデート**されます。起動時に GitHub で新しいバージョンを確認し、バックグラウンドでダウンロードして次回起動時にインストールします（オプション → アップデート：じどう / かくにん する / オフ）。設定はそのまま残り、通信先は GitHub だけで、個人情報は送信されません。
+このゲームは**アルファ版**（バージョン 0.6.0）です。**Windows**：[リリースページ](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest)から最新版をダウンロードし、zip をすべて展開して `A Survivor to the Past.exe` を起動してください。署名がないため Windows に警告された場合は、*詳細情報* → *実行* をクリックします。その後は**自動でアップデート**されます。起動時に GitHub で新しいバージョンを確認し、バックグラウンドでダウンロードして次回起動時にインストールします（オプション → アップデート：じどう / かくにん する / オフ）。設定はそのまま残り、個人情報は送信されません。アップデートの通信先は GitHub だけで、世界ランキングは開いたときやスコアを公開したときだけゲームのサイトに接続します（ニックネームとスコア）。
 
 **ブラウザ**：[サイト上で直接プレイ](https://a-survivor-to-the-past.holy-c.men/play/)でき、インストールは不要です。パソコンの Chrome、Edge、Firefox がおすすめで、進行状況はブラウザに保存されます。Linux・macOS・Android 版は今後予定しています。それまでは [Rust](https://rustup.rs)（stable）でソースからビルドできます：
 
@@ -101,7 +104,6 @@ Linux では ALSA と udev の開発パッケージ（`libasound2-dev`、`libude
 ## 今後の予定
 
 - 手作りの本格的なマップと新しいプレイアブルキャラクター
-- ステージごとのオンラインランキング（好きなニックネームで）
 - 独自の攻撃とアニメーションを持つボスの追加
 - スマートフォン・タブレット向けのタッチ操作
 - Linux・macOS・Android 版

@@ -19,27 +19,28 @@ OUT = ROOT / "site"
 UI = {
     "en": dict(download="Download for Windows", web="Play in your browser", soon=f"Alpha {rd.VERSION} for Windows and the browser — Linux, macOS and Android later",
                discord="Join the Discord", github="Source code", lang="Language", nav_what="The game",
-               nav_shots="Screenshots", nav_evo="Evolutions", nav_road="Roadmap", horde="A horde at 3:30"),
+               nav_shots="Screenshots", nav_evo="Evolutions", nav_road="Roadmap", horde="A horde at 3:30", manual="Instruction booklet (PDF)"),
     "fr": dict(download="Télécharger pour Windows", web="Jouer dans le navigateur", soon=f"Alpha {rd.VERSION} pour Windows et le navigateur — Linux, macOS et Android plus tard",
                discord="Rejoindre le Discord", github="Code source", lang="Langue", nav_what="Le jeu",
-               nav_shots="Captures", nav_evo="Évolutions", nav_road="Feuille de route", horde="Une horde à 3:30"),
+               nav_shots="Captures", nav_evo="Évolutions", nav_road="Feuille de route", horde="Une horde à 3:30", manual="Livret d'instructions (PDF)"),
     "de": dict(download="Für Windows herunterladen", web="Im Browser spielen", soon=f"Alpha {rd.VERSION} für Windows und den Browser — Linux, macOS und Android folgen",
                discord="Zum Discord", github="Quellcode", lang="Sprache", nav_what="Das Spiel",
-               nav_shots="Bilder", nav_evo="Entwicklungen", nav_road="Fahrplan", horde="Eine Horde bei 3:30"),
+               nav_shots="Bilder", nav_evo="Entwicklungen", nav_road="Fahrplan", horde="Eine Horde bei 3:30", manual="Spielanleitung (PDF)"),
     "es": dict(download="Descargar para Windows", web="Jugar en el navegador", soon=f"Alfa {rd.VERSION} para Windows y el navegador — Linux, macOS y Android más adelante",
                discord="Únete al Discord", github="Código fuente", lang="Idioma", nav_what="El juego",
-               nav_shots="Capturas", nav_evo="Evoluciones", nav_road="Hoja de ruta", horde="Una horda a los 3:30"),
+               nav_shots="Capturas", nav_evo="Evoluciones", nav_road="Hoja de ruta", horde="Una horda a los 3:30", manual="Manual de instrucciones (PDF)"),
     "it": dict(download="Scarica per Windows", web="Gioca nel browser", soon=f"Alfa {rd.VERSION} per Windows e il browser — Linux, macOS e Android più avanti",
                discord="Entra nel Discord", github="Codice sorgente", lang="Lingua", nav_what="Il gioco",
-               nav_shots="Immagini", nav_evo="Evoluzioni", nav_road="Tabella di marcia", horde="Un'orda a 3:30"),
+               nav_shots="Immagini", nav_evo="Evoluzioni", nav_road="Tabella di marcia", horde="Un'orda a 3:30", manual="Libretto di istruzioni (PDF)"),
     "pt": dict(download="Baixar para Windows", web="Jogar no navegador", soon=f"Alfa {rd.VERSION} para Windows e o navegador — Linux, macOS e Android depois",
                discord="Entrar no Discord", github="Código-fonte", lang="Idioma", nav_what="O jogo",
-               nav_shots="Imagens", nav_evo="Evoluções", nav_road="Próximos passos", horde="Uma horda aos 3:30"),
+               nav_shots="Imagens", nav_evo="Evoluções", nav_road="Próximos passos", horde="Uma horda aos 3:30", manual="Manual de instruções (PDF)"),
     "ja": dict(download="Windows 版をダウンロード", web="ブラウザでプレイ", soon=f"Windows 版・ブラウザ版アルファ {rd.VERSION} — Linux・macOS・Android 版は今後",
                discord="Discord に参加", github="ソースコード", lang="言語", nav_what="ゲーム",
-               nav_shots="スクリーンショット", nav_evo="進化", nav_road="今後の予定", horde="3:30 の大群"),
+               nav_shots="スクリーンショット", nav_evo="進化", nav_road="今後の予定", horde="3:30 の大群", manual="取扱説明書（PDF）"),
 }
 
+MANUALS = ("A-Survivor-to-the-Past-Manual-en.pdf", "A-Survivor-to-the-Past-Manuel-fr.pdf")
 SHOTS = ["title", "stages", "chars", "mountain", "levelup", "evolution", "boss", "shop", "options", "about"]
 
 
@@ -138,6 +139,7 @@ PAGE = """<!doctype html>
     <a class="btn" href="{repo}" rel="noopener" data-i="ui_github">{ui_github}</a>
   </div>
   <p class="soon" data-i="ui_soon">{ui_soon}</p>
+  <p class="soon"><span data-i="ui_manual">{ui_manual}</span> : <a href="manual/{manual_en}">English</a> · <a href="manual/{manual_fr}">Français</a></p>
 </section>
 
 <section id="game" class="panel">
@@ -310,6 +312,11 @@ HEADERS = """/*
 /img/*
   Cache-Control: public, max-age=604800
 
+# Livret d'instructions : la visionneuse PDF du navigateur ne supporte pas default-src 'none'
+/manual/*
+  ! Content-Security-Policy
+  Cache-Control: public, max-age=3600
+
 # Version jouable : WebAssembly (wasm-unsafe-eval), paquet du jeu et musiques (meme origine)
 /play/*
   ! Content-Security-Policy
@@ -317,7 +324,23 @@ HEADERS = """/*
 """
 
 
+def sync_worker():
+    """Classement en ligne : version du jeu (LATEST) et stages (STAGES) dans wrangler.jsonc."""
+    maps = []
+    for f in sorted((ROOT / "data/maps").glob("*.ron")):
+        m = re.search(r"\border:\s*(\d+)", f.read_text(encoding="utf-8"))
+        if m and int(m.group(1)) > 0:
+            maps.append((int(m.group(1)), f.stem))
+    stages = ",".join(s for _, s in sorted(maps))
+    cfg = ROOT / "wrangler.jsonc"
+    t = cfg.read_text(encoding="utf-8")
+    t = re.sub(r'"LATEST":\s*"[^"]*"', f'"LATEST": "{rd.VERSION}"', t)
+    t = re.sub(r'"STAGES":\s*"[^"]*"', f'"STAGES": "{stages}"', t)
+    cfg.write_text(t, encoding="utf-8", newline="\n")
+
+
 def main():
+    sync_worker()
     if OUT.exists():
         shutil.rmtree(OUT)
     (OUT / "img").mkdir(parents=True)
@@ -335,7 +358,8 @@ def main():
     opts = "".join(f'<option value="{c}">{n}</option>' for c, n in rd.LANGS)
     desc = re.sub(r"<[^>]+>", "", rd.T["en"]["tagline"])
     page = PAGE.format(desc=html.escape(desc), site=rd.SITE, releases=f"{rd.REPO}/releases", discord=rd.DISCORD,
-                       repo=rd.REPO, version=rd.VERSION, lang_options=opts, gallery=gallery, **en)
+                       repo=rd.REPO, version=rd.VERSION, lang_options=opts, gallery=gallery,
+                       manual_en=MANUALS[0], manual_fr=MANUALS[1], **en)
     (OUT / "index.html").write_text(page, encoding="utf-8", newline="\n")
     (OUT / "style.css").write_text(CSS, encoding="utf-8", newline="\n")
     (OUT / "app.js").write_text(APP, encoding="utf-8", newline="\n")
@@ -346,6 +370,12 @@ def main():
     if not (web / "game_bg.wasm").exists():
         sys.exit("version web absente : lancer d'abord python research/tools/make_web.py")
     shutil.copytree(web, OUT / "play")
+    (OUT / "manual").mkdir()
+    for m in MANUALS:
+        src = ROOT / "dist" / "manual" / m
+        if not src.is_file():
+            sys.exit(f"livret absent : {src} (lancer research/tools/make_manual.py)")
+        shutil.copy(src, OUT / "manual" / m)
     (OUT / "robots.txt").write_text("User-agent: *\nAllow: /\n", encoding="utf-8", newline="\n")
     print("ok :", OUT)
 

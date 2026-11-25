@@ -442,6 +442,10 @@ import lang_v05b  # noqa: E402  (personnages 0.5 suite, couleurs)
 KEYS += lang_v05b.KEYS
 for _code, _t in lang_v05b.EXTRA.items():
     L[_code].update(_t)
+import lang_v06  # noqa: E402  (joueurs, classements, score, Pikit voleur, fusions)
+KEYS += lang_v06.KEYS
+for _code, _t in lang_v06.EXTRA.items():
+    L[_code].update(_t)
 
 
 def esc(s):

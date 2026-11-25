@@ -82,6 +82,44 @@ pub fn input_select(nav: &NavIn, view: Vec2, n: usize, sel: &mut usize) -> (Opti
     menus::input_rects(nav, &select_layout(view, n, *sel).items, sel)
 }
 
+/// Teinte d'une couleur de personnage (bouton des couleurs).
+fn skin_rgb(key: &str) -> Color {
+    match key {
+        "green" => rgb(72, 184, 72),
+        "red" => rgb(224, 64, 56),
+        "blue" => rgb(72, 120, 240),
+        "purple" => rgb(176, 88, 224),
+        _ => rgb(220, 220, 220),
+    }
+}
+
+/// Portrait du panneau : position, taille, et ordonnee juste dessous.
+fn portrait_box(ctx: &Ctx, lang: &Lang, l: &crate::stages::SelectLayout, id: &str, open: bool) -> (Vec2, Vec2, f32) {
+    let main = ctx.atlas.font("main");
+    let (pp, ps) = l.panel;
+    let x = pp.x + 12.0;
+    let w = ps.x - 24.0;
+    let title = if open { name(lang, id) } else { lang.get("ui.locked").to_string() };
+    let big = main.measure(&title) as f32 * 2.0 <= w;
+    let y = pp.y + 10.0 + if big { 30.0 } else { 16.0 };
+    let sc: f32 = if ps.y > 300.0 { 3.0 } else { 2.0 };
+    let bh = (30.0 * sc + 8.0).round();
+    let bw = w.min(bh * 2.0).round();
+    (Vec2::new((x + (w - bw) * 0.5).round(), y), Vec2::new(bw, bh), y + bh + 8.0)
+}
+
+/// Bouton des couleurs (personnages qui en proposent plusieurs), juste sous le portrait.
+pub fn skin_button(ctx: &Ctx, lang: &Lang, content: &Content, profile: &Profile, ids: &[String], sel: usize) -> Option<(Vec2, Vec2)> {
+    let id = ids.get(sel)?;
+    let def = &content.characters[id];
+    if def.skins.len() < 2 || !unlocked(def, profile) {
+        return None;
+    }
+    let l = select_layout(ctx.view, ids.len(), sel);
+    let (bp, bs, _) = portrait_box(ctx, lang, &l, id, true);
+    Some((Vec2::new(bp.x, bp.y + bs.y + 4.0), Vec2::new(bs.x, 16.0)))
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Content, profile: &Profile, ids: &[String], sel: usize, t: f32) {
     let view = ctx.view;
@@ -137,16 +175,14 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
     let open = unlocked(def, profile);
     let x = pp.x + 12.0;
     let w = ps.x - 24.0;
-    let mut y = pp.y + 10.0;
+    let y = pp.y + 10.0;
     let title = if open { name(lang, id) } else { lang.get("ui.locked").to_string() };
     let big = main.measure(&title) as f32 * 2.0 <= w;
     text(list, main, &title, Vec2::new(x, y), if big { 2.0 } else { 1.0 }, if open { GOLD } else { DIMMED }, Align::Left);
-    y += if big { 30.0 } else { 16.0 };
     // portrait : le personnage marche et tourne sur lui-meme
     let sc: f32 = if ps.y > 300.0 { 3.0 } else { 2.0 };
-    let bh = (30.0 * sc + 8.0).round();
-    let bw = w.min(bh * 2.0).round();
-    let bp = Vec2::new((x + (w - bw) * 0.5).round(), y);
+    let (bp, bsize, below) = portrait_box(ctx, lang, &l, id, open);
+    let (bw, bh) = (bsize.x, bsize.y);
     list.rect(white, bp, Vec2::new(bw, bh), [0.0, 0.0, 0.0, 0.35]);
     frame_rect(list, white, bp, Vec2::new(bw, bh), with_alpha(GOLD, 0.35));
     list.probe_block(bp, Vec2::new(bw, bh), "portrait");
@@ -172,7 +208,37 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
         list.set(Space::Ui, Blend::Alpha);
         list.frame(f, Vec2::new(bp.x + bw * 0.5, bp.y + bh - 4.0).round(), &prm);
     }
-    y += bh + 8.0;
+    let mut y = below;
+    // bouton des couleurs : sa teinte passe d'une couleur a l'autre en respirant
+    if let Some((cp, cs)) = skin_button(ctx, lang, content, profile, ids, k) {
+        let n = def.skins.len();
+        let cur = skin(def, profile, id);
+        let rt = ctx.real_time as f32;
+        let phase = rt / 1.6;
+        let a = (phase as usize) % n;
+        let b = (a + 1) % n;
+        // fondu doux (respiration) entre deux couleurs, puis pause
+        let u = ((phase.fract() - 0.5) * 2.0).clamp(0.0, 1.0);
+        let u = u * u * (3.0 - 2.0 * u);
+        let ca = skin_rgb(&def.skins[a].1);
+        let cb = skin_rgb(&def.skins[b].1);
+        let breath = 0.75 + 0.25 * (rt * 2.4).sin();
+        let fill = [
+            (ca[0] + (cb[0] - ca[0]) * u) * breath,
+            (ca[1] + (cb[1] - ca[1]) * u) * breath,
+            (ca[2] + (cb[2] - ca[2]) * u) * breath,
+            0.9,
+        ];
+        list.rect(white, cp, cs, fill);
+        list.set(Space::Ui, Blend::Add);
+        list.rect(white, cp, Vec2::new(cs.x, 2.0), [1.0, 1.0, 1.0, 0.25 * breath]);
+        list.set(Space::Ui, Blend::Alpha);
+        frame_rect(list, white, cp, cs, with_alpha(WHITE, 0.6 + 0.3 * breath));
+        let c = lang.get(&format!("skin.{}", def.skins[cur].1));
+        let label = format!("◀ {c} ▶");
+        text(list, main, &label, Vec2::new(cp.x + cs.x * 0.5, cp.y + 2.0), 1.0, WHITE, Align::Center);
+        y = cp.y + cs.y + 6.0;
+    }
     let bottom = pp.y + ps.y - 10.0;
     if !open {
         for line in wrap(main, &hint(lang, def), w, 1.0) {
@@ -197,11 +263,6 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
         (lang.get("ui.char_health").to_string(), format!("{}", (def.max_hp / 10.0).round() as u32)),
         (lang.get("ui.char_speed").to_string(), format!("{}", def.speed.round() as u32)),
     ];
-    if !def.skins.is_empty() {
-        let k = skin(def, profile, id);
-        let c = lang.get(&format!("skin.{}", def.skins[k].1));
-        rows.push((lang.get("ui.char_color").to_string(), format!("◀ {c} ▶")));
-    }
     let weapon = lang.get(&format!("weapon.{}.name", def.weapon)).to_string();
     rows.push((lang.get("ui.char_weapon").to_string(), weapon));
     let n = rows.len();

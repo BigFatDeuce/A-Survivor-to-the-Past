@@ -84,6 +84,10 @@ pub enum Event {
     Burst { pos: Vec2, weapon: u16 },
     /// Medaillon ramasse : ennemis a l'ecran geles.
     Medallion { pos: Vec2 },
+    /// Pikit voleur : arrive (annonce et fleche), repart sans etre vaincu, ou vaincu (rubis rendus).
+    ThiefSpawned { pos: Vec2 },
+    ThiefFled { pos: Vec2 },
+    ThiefLooted { pos: Vec2, count: u32 },
 }
 
 /// Coup d'epee en cours.
@@ -232,6 +236,9 @@ pub struct World {
     pub shots: Vec<EnemyShot>,
     /// Sprites des projectiles ennemis (index de `EnemyShot::sprite`).
     pub shot_sprites: Vec<String>,
+    /// Demi-taille visible de chaque sprite de tir (pixels, 0 = inconnue : rayon de enemies.ron),
+    /// fournie par le jeu d'apres l'atlas ; la zone de contact en est une part (`shot_hitbox`).
+    pub shot_hit: Vec<f32>,
     /// Niveaux gagnes en attente de choix.
     pub pending_levels: u32,
     /// Progression du joueur appliquee a la partie (voir `set_mods`).
@@ -265,6 +272,10 @@ pub struct World {
     pub encounter_t: f32,
     /// Champions vaincus dont la recompense reste a choisir.
     pub pending_rewards: u32,
+    /// Pikit voleur de rubis : type d'ennemi, Pikit en cours et temps avant le prochain.
+    pub thief_kind: Option<u16>,
+    pub thief: Option<crate::thief::Thief>,
+    pub thief_t: f32,
     /// Premier evenement du pas en cours.
     ev0: usize,
     wave_acc: Vec<f32>,
@@ -318,6 +329,7 @@ impl World {
             zones: Vec::new(),
             shots: Vec::new(),
             shot_sprites,
+            shot_hit: Vec::new(),
             pending_levels: 0,
             mods: crate::mods::RunMods::default(),
             pending_chests: Vec::new(),
@@ -337,6 +349,9 @@ impl World {
             encounter: None,
             encounter_t: 0.0,
             pending_rewards: 0,
+            thief_kind: None,
+            thief: None,
+            thief_t: 0.0,
             ev0: 0,
             accel: Vec::new(),
             content,
@@ -352,6 +367,14 @@ impl World {
         let (a, b) = w.content.rules.bomb_every;
         w.bomb_t = w.rng.range(a, b) * 0.6;
         w.encounter_t = w.content.rules.encounter.first;
+        let thief = w.content.rules.thief.enemy.clone();
+        if !thief.is_empty() {
+            w.thief_kind = w.content.enemy_index(&thief);
+            if w.thief_kind.is_none() {
+                eprintln!("pikit : ennemi inconnu {thief}");
+            }
+        }
+        w.thief_t = w.content.rules.thief.first;
         w.recompute_stats();
         w.player.hp = w.player.max_hp;
         match w.content.weapon_index(&c.weapon) {
@@ -470,6 +493,7 @@ impl World {
         if self.spawning && self.player.alive {
             self.update_spawner();
             self.update_encounter();
+            self.update_thief();
         }
         self.update_portal();
         self.recycle_far();
@@ -674,6 +698,9 @@ impl World {
             } else if Some(k) == self.bomb_kind {
                 self.drop_loot(k, pos, dir);
                 self.screen_clear(pos);
+            } else if Some(k) == self.thief_kind {
+                self.drop_loot(k, pos, dir);
+                self.thief_defeated(pos);
             } else {
                 self.drop_loot(k, pos, dir);
             }
@@ -1107,7 +1134,7 @@ impl World {
         for i in 0..self.horde.len() {
             let d = (self.horde.pos[i] - pp).abs();
             if d.x > lim.x || d.y > lim.y {
-                if self.content.enemies[self.horde.kind[i] as usize].boss || self.is_champion(i) {
+                if self.content.enemies[self.horde.kind[i] as usize].boss || self.is_champion(i) || Some(self.horde.kind[i]) == self.thief_kind {
                     continue;
                 }
                 let bias = Some(self.player.vel);

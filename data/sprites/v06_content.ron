@@ -1,0 +1,17 @@
+// Version 0.6 : Pikit voleur de rubis (rencontre rare).
+// Coordonnees (x, y, largeur, hauteur) dans les planches de assets/source/.
+(
+    sheets: [
+        (
+            source: "Enemies - Pikit, Buzz Blob, Cukeman & Golden Bee.png",
+            transparent: ["#ff00ff"],
+            sprites: {
+                // langue rentree (repos) puis saut en boucle
+                "pikit": {
+                    "idle": (frames: [(8, 400, 16, 16), (29, 399, 16, 17)], fps: 4, pivot: (0, -1), align: Bottom),
+                    "jump": (frames: [(104, 401, 16, 15), (126, 400, 16, 16)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+    ],
+)

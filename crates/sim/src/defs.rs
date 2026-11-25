@@ -358,6 +358,8 @@ pub enum Behavior {
     Flutter { amp: f32, freq: f32 },
     /// Bonds periodiques vers le joueur (Tektite).
     Hop { rest: f32, jump: f32, speed: f32 },
+    /// Bonds periodiques pour fuir le joueur quand il est a moins de `range`, sinon flane (Pikit).
+    Flee { rest: f32, jump: f32, speed: f32, range: f32 },
     /// Avance en flanant (Popo, Buzz Blob) : direction qui derive.
     Wander { turn: f32 },
     /// S'approche, s'arrete (annonce), puis charge en ligne droite.
@@ -600,6 +602,42 @@ pub struct RulesDef {
     /// Rencontres : champion errant (elite renforcee) a aller chercher ; vaincu, il donne une recompense.
     #[serde(default)]
     pub encounter: EncounterRules,
+    /// Tirs ennemis : vitesse (multiplicateur des vitesses de enemies.ron) et zone de contact
+    /// (part de la taille visible du projectile : 0.9 = 10 % plus petite que ce qu'on voit).
+    #[serde(default = "one_f")]
+    pub shot_speed: f32,
+    #[serde(default = "one_f")]
+    pub shot_hitbox: f32,
+    /// Pikit voleur : ennemi rare qui fuit ; vaincu, il rapporte au joueur tous les rubis au sol.
+    #[serde(default)]
+    pub thief: ThiefRules,
+}
+
+fn one_f() -> f32 {
+    1.0
+}
+
+/// Reglages du Pikit voleur de rubis.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
+pub struct ThiefRules {
+    /// Ennemi utilise (vide : pas de Pikit).
+    pub enemy: String,
+    /// Premiere apparition (s de partie), puis delai entre deux (s, minimum et maximum).
+    pub first: f32,
+    pub every: (f32, f32),
+    /// Temps avant qu'il ne reparte s'il n'est pas vaincu (s).
+    pub life: f32,
+    /// Vie : multiplie la vie de enemies.ron (qui grandit deja avec le temps).
+    pub hp: f32,
+    /// Il s'enfuit quand le joueur est plus pres que cette distance (pixels).
+    pub flee: f32,
+}
+
+impl Default for ThiefRules {
+    fn default() -> Self {
+        ThiefRules { enemy: String::new(), first: 120.0, every: (150.0, 200.0), life: 45.0, hp: 1.0, flee: 110.0 }
+    }
 }
 
 /// Reglages des rencontres (champions errants).

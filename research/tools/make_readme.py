@@ -12,13 +12,20 @@ SITE = "https://a-survivor-to-the-past.holy-c.men/"
 DISCORD = "https://discord.gg/N8f62M2eaK"
 VERSION = re.search(r'version\s*=\s*"([^"]+)"', (ROOT / "Cargo.toml").read_text(encoding="utf-8")).group(1)
 
-# arme -> (objet requis, evolution), dans l'ordre de data/weapons.ron
-EVOS = [("sword", "heart_container", "master_sword"), ("bow", "quiver", "silver_bow"),
-        ("boomerang", "pegasus_boots", "magic_boomerang"), ("fire_rod", "lamp", "bombos"),
-        ("ice_rod", "half_magic", "ether"), ("hammer", "power_glove", "quake"),
-        ("bombs", "mirror_shield", "super_bomb"), ("byrna", "bug_net", "fairy_ring"),
-        ("hookshot", "flippers", "longshot"), ("magic_powder", "mushroom", "witch_powder"),
-        ("cane_of_somaria", "book_of_mudora", "great_somaria"), ("bees", "magic_cape", "golden_bees")]
+# arme -> (objet requis, evolution), lu dans data/weapons.ron (ordre du fichier)
+def read_evos():
+    text = (ROOT / "data" / "weapons.ron").read_text(encoding="utf-8")
+    out = []
+    ids = list(re.finditer(r'^    "(\w+)": \(', text, re.M))
+    for k, m in enumerate(ids):
+        block = text[m.end(): ids[k + 1].start() if k + 1 < len(ids) else len(text)]
+        e = re.search(r'evolution: Some\(\(passive: "(\w+)", into: "(\w+)"\)\)', block)
+        if e:
+            out.append((m.group(1), e.group(1), e.group(2)))
+    return out
+
+
+EVOS = read_evos()
 
 LANGS = [("en", "English"), ("fr", "Français"), ("de", "Deutsch"), ("es", "Español"),
          ("it", "Italiano"), ("pt", "Português"), ("ja", "日本語")]
@@ -37,10 +44,13 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
             '**12 playable characters** to unlock — Link, Minish Link, Capless Link, Sonic, Princess Zelda, NES Link, Four Swords Link (4 colors), *Link\'s Awakening* Link, Adult Link, Deku Link, Shy Guy and Shadow Link (defeat Ganon) — each with strengths, weaknesses and a starting weapon',
             'A rare **Bob-omb** that blows away every enemy on screen, and **breakable scenery** hiding rupees, hearts, fairies or the Ether medallion',
             'Random **encounters**: a wandering champion waits somewhere, an arrow shows the way — beat it for a blessing, a special weapon upgrade or a relic you keep if you win',
+            "A **thief Pikit** that gobbles the rupees left on the ground — catch it to get them all back",
             '**12 weapons**, each with an **evolution**, and **12 passive items** — 6 weapon slots and 6 item slots, so every choice matters',
-            '**17 enemy types** from Hyrule, **7 bosses** and **elites** that drop chests',
+            '**18 enemy types** from Hyrule, **7 bosses** and **elites** that drop chests',
             "**Progression between runs**: the Kakariko shop (permanent upgrades), the Great Fairy's blessings, a **relic** won on each stage, 4 **difficulties** and Ganon's **seals** to earn more rupees",
             '**Profile**: bestiary, armory, statistics, and save export / import as a text code',
+            "**5 players** on the same computer, each with a name, an avatar and their own progress; a **score** for every run and **leaderboards**: best scores per stage, between the players at home and a **world top 100** per game version",
+            "An **instruction booklet** in the style of the original one (PDF, English and French)",
             'Automatic attacks, or **manual aiming** at any time — keyboard, mouse or gamepad, and **every key can be remapped**',
             'Original SNES **graphics, music and sounds** of A Link to the Past',
             '**Retro video filters**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, plus a **4:3** mode — and matching **audio filters**',
@@ -56,7 +66,7 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
                   boss="Boss: Hinox", options="Options (language, filters, volumes)", about="About"),
         filters_cap="Video filters: none · CRT / Game Boy Advance · Game Boy / Scanlines · CRT in 4:3",
         play_h="Play",
-        play=f"""The game is in **early alpha** (version {VERSION}). **Windows**: download the latest version from the [Releases page]({REPO}/releases/latest), extract the whole zip and launch `A Survivor to the Past.exe`. Windows may warn that the game is not signed: click *More info* → *Run anyway*. The game then **updates itself**: at launch it checks GitHub for a new version, downloads it in the background and installs it at the next launch (Options → Updates: Automatic / Ask me / Off). Your settings are kept, and only GitHub is contacted, without any personal data.
+        play=f"""The game is in **early alpha** (version {VERSION}). **Windows**: download the latest version from the [Releases page]({REPO}/releases/latest), extract the whole zip and launch `A Survivor to the Past.exe`. Windows may warn that the game is not signed: click *More info* → *Run anyway*. The game then **updates itself**: at launch it checks GitHub for a new version, downloads it in the background and installs it at the next launch (Options → Updates: Automatic / Ask me / Off). Your settings are kept and no personal data is sent: updates only contact GitHub, and the world leaderboard only contacts the game's website when you open it or publish a score (nickname and score).
 
 **Browser**: [play directly on the website]({SITE}play/), nothing to install. It works best on a computer, in Chrome, Edge or Firefox, and your progress is saved in the browser. Linux, macOS and Android versions will come later. Meanwhile you can build the game from source with [Rust](https://rustup.rs) (stable):""",
         linux="On Linux, also install the ALSA and udev development packages (`libasound2-dev`, `libudev-dev`).",
@@ -71,7 +81,6 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
         road_h="Roadmap",
         road=[
             'Real hand-made maps and more playable characters',
-            'Online leaderboard for each stage, with a nickname of your choice',
             'More bosses with their own attacks and animations',
             'Touch controls for phones and tablets',
             'Builds for Linux, macOS and Android',
@@ -104,10 +113,13 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
             '**12 personnages jouables** à débloquer — Link, Link Minish, Link sans bonnet, Sonic, la princesse Zelda, le Link de la NES, le Link de *Four Swords* (4 couleurs), celui de *Link\'s Awakening*, Link adulte, Link Mojo, Maskass et Shadow Link (en battant Ganon) — chacun avec ses forces, ses faiblesses et son arme de départ',
             "Une **Bob-omb** rare qui souffle tous les ennemis à l'écran, et un **décor cassable** qui cache rubis, cœurs, fées ou médaillon d'Éther",
             "Des **rencontres** aléatoires : un champion errant attend quelque part, une flèche indique où aller — battez-le pour une bénédiction, une amélioration spéciale d'arme ou une relique gardée si vous gagnez",
+            "Un **Pikit voleur** qui dévore les rubis restés au sol — rattrapez-le pour tout récupérer",
             "**12 armes**, chacune avec une **évolution**, et **12 objets passifs** — 6 emplacements d'armes et 6 d'objets : chaque choix compte",
-            "**17 types d'ennemis** d'Hyrule, **7 boss** et des **élites** qui lâchent des coffres",
+            "**18 types d'ennemis** d'Hyrule, **7 boss** et des **élites** qui lâchent des coffres",
             '**Progression entre les parties** : la boutique de Cocorico (améliorations permanentes), les bénédictions de la Grande Fée, une **relique** gagnée sur chaque stage, 4 **difficultés** et les **sceaux** de Ganon pour gagner plus de rubis',
             '**Profil** : bestiaire, armurerie, statistiques, et export / import de la sauvegarde sous forme de code texte',
+            "**5 joueurs** sur le même ordinateur, chacun avec son nom, son avatar et sa progression ; un **score** à chaque partie et des **classements** : meilleurs scores par stage, entre les joueurs de la maison et **top 100 mondial** par version du jeu",
+            "Un **livret d'instructions** à la manière de celui d'origine (PDF, français et anglais)",
             'Attaques automatiques, ou **visée manuelle** à tout moment — clavier, souris ou manette, et **toutes les touches sont reconfigurables**',
             '**Graphismes, musiques et sons** originaux de A Link to the Past sur SNES',
             '**Filtres vidéo rétro** : SNES, CRT, Scanlines, Game Boy Advance, Game Boy, plus un mode **4:3** — et des **filtres audio** assortis',
@@ -123,7 +135,7 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
                   boss="Boss : Hinox", options="Options (langue, filtres, volumes)", about="À propos"),
         filters_cap="Filtres vidéo : aucun · CRT / Game Boy Advance · Game Boy / Scanlines · CRT en 4:3",
         play_h="Jouer",
-        play=f"""Le jeu est en **alpha** (version {VERSION}). **Windows** : téléchargez la dernière version sur la [page des versions]({REPO}/releases/latest), extrayez tout le zip et lancez `A Survivor to the Past.exe`. Windows peut prévenir que le jeu n'est pas signé : cliquez sur *Informations complémentaires* → *Exécuter quand même*. Ensuite, le jeu **se met à jour tout seul** : au lancement, il vérifie sur GitHub s'il existe une nouvelle version, la télécharge en arrière-plan et l'installe au lancement suivant (Options → Mises à jour : Automatiques / Me demander / Non). Vos réglages sont conservés, et seul GitHub est contacté, sans aucune donnée personnelle.
+        play=f"""Le jeu est en **alpha** (version {VERSION}). **Windows** : téléchargez la dernière version sur la [page des versions]({REPO}/releases/latest), extrayez tout le zip et lancez `A Survivor to the Past.exe`. Windows peut prévenir que le jeu n'est pas signé : cliquez sur *Informations complémentaires* → *Exécuter quand même*. Ensuite, le jeu **se met à jour tout seul** : au lancement, il vérifie sur GitHub s'il existe une nouvelle version, la télécharge en arrière-plan et l'installe au lancement suivant (Options → Mises à jour : Automatiques / Me demander / Non). Vos réglages sont conservés et aucune donnée personnelle n'est envoyée : les mises à jour ne contactent que GitHub, et le classement mondial ne contacte le site du jeu que lorsque vous l'ouvrez ou publiez un score (pseudo et score).
 
 **Navigateur** : [jouez directement sur le site]({SITE}play/), sans rien installer. Idéal sur ordinateur, dans Chrome, Edge ou Firefox ; votre progression est enregistrée dans le navigateur. Les versions Linux, macOS et Android viendront plus tard. En attendant, vous pouvez compiler le jeu depuis les sources avec [Rust](https://rustup.rs) (stable) :""",
         linux="Sous Linux, installez aussi les paquets de développement ALSA et udev (`libasound2-dev`, `libudev-dev`).",
@@ -138,7 +150,6 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
         road_h="Feuille de route",
         road=[
             "De vraies cartes dessinées à la main et d'autres personnages jouables",
-            'Classement en ligne pour chaque stage, avec un pseudo de votre choix',
             "D'autres boss avec leurs propres attaques et animations",
             'Commandes tactiles pour téléphones et tablettes',
             'Versions Linux, macOS et Android',
@@ -171,10 +182,13 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
             '**12 spielbare Figuren** zum Freischalten — Link, Minish-Link, Link ohne Mütze, Sonic, Prinzessin Zelda, NES-Link, Four-Swords-Link (4 Farben), der Link aus *Link\'s Awakening*, Erwachsener Link, Deku-Link, Shy Guy und Shadow Link (Ganon besiegen) — jede mit Stärken, Schwächen und eigener Startwaffe',
             'Ein seltener **Bob-omb**, der alle Gegner auf dem Bildschirm wegsprengt, und **zerstörbare Umgebung** mit Rubinen, Herzen, Feen oder dem Äther-Medaillon',
             'Zufällige **Begegnungen**: Ein wandernder Champion wartet irgendwo, ein Pfeil zeigt den Weg — besiege ihn für einen Segen, eine Spezialverbesserung oder ein Relikt, das bleibt, wenn du gewinnst',
+            "Ein **diebischer Pikit**, der die Rubine am Boden frisst — fang ihn, um alle zurückzubekommen",
             '**12 Waffen**, jede mit einer **Entwicklung**, und **12 passive Gegenstände** — 6 Waffen- und 6 Gegenstandsplätze, jede Wahl zählt',
-            '**17 Gegnertypen** aus Hyrule, **7 Bosse** und **Elite-Gegner**, die Truhen fallen lassen',
+            '**18 Gegnertypen** aus Hyrule, **7 Bosse** und **Elite-Gegner**, die Truhen fallen lassen',
             '**Fortschritt zwischen den Runden**: der Laden von Kakariko (dauerhafte Verbesserungen), die Segen der Großen Fee, eine **Reliquie** pro Stage, 4 **Schwierigkeitsgrade** und Ganons **Siegel** für mehr Rubine',
             '**Profil**: Bestiarium, Waffenkammer, Statistiken sowie Export / Import des Spielstands als Textcode',
+            "**5 Spieler** auf demselben Computer, jeder mit Namen, Avatar und eigenem Fortschritt; eine **Punktzahl** für jede Runde und **Ranglisten**: Bestwerte pro Stage, unter den Spielern zu Hause und eine **Welt-Top-100** pro Spielversion",
+            "Eine **Spielanleitung** im Stil des Originalhefts (PDF, Englisch und Französisch)",
             'Automatische Angriffe oder jederzeit **manuelles Zielen** — Tastatur, Maus oder Controller, und **alle Tasten sind frei belegbar**',
             'Originale SNES-**Grafiken, Musik und Sounds** aus A Link to the Past',
             '**Retro-Videofilter**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, dazu ein **4:3**-Modus — und passende **Audiofilter**',
@@ -190,7 +204,7 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
                   boss="Boss: Hinox", options="Optionen (Sprache, Filter, Lautstärke)", about="Über das Spiel"),
         filters_cap="Videofilter: keiner · CRT / Game Boy Advance · Game Boy / Scanlines · CRT in 4:3",
         play_h="Spielen",
-        play=f"""Das Spiel ist in der **Alpha-Phase** (Version {VERSION}). **Windows**: Lade die neueste Version von der [Release-Seite]({REPO}/releases/latest) herunter, entpacke das ganze Zip und starte `A Survivor to the Past.exe`. Windows warnt eventuell, dass das Spiel nicht signiert ist: Klicke auf *Weitere Informationen* → *Trotzdem ausführen*. Danach **aktualisiert sich das Spiel selbst**: Beim Start prüft es auf GitHub, ob es eine neue Version gibt, lädt sie im Hintergrund herunter und installiert sie beim nächsten Start (Optionen → Updates: Automatisch / Nachfragen / Aus). Deine Einstellungen bleiben erhalten, und es wird nur GitHub kontaktiert, ohne persönliche Daten.
+        play=f"""Das Spiel ist in der **Alpha-Phase** (Version {VERSION}). **Windows**: Lade die neueste Version von der [Release-Seite]({REPO}/releases/latest) herunter, entpacke das ganze Zip und starte `A Survivor to the Past.exe`. Windows warnt eventuell, dass das Spiel nicht signiert ist: Klicke auf *Weitere Informationen* → *Trotzdem ausführen*. Danach **aktualisiert sich das Spiel selbst**: Beim Start prüft es auf GitHub, ob es eine neue Version gibt, lädt sie im Hintergrund herunter und installiert sie beim nächsten Start (Optionen → Updates: Automatisch / Nachfragen / Aus). Deine Einstellungen bleiben erhalten und es werden keine persönlichen Daten gesendet: Updates kontaktieren nur GitHub, und die Weltrangliste kontaktiert die Website des Spiels nur, wenn du sie öffnest oder eine Punktzahl veröffentlichst (Spitzname und Punktzahl).
 
 **Browser**: [direkt auf der Website spielen]({SITE}play/), ohne Installation. Am besten am Computer, in Chrome, Edge oder Firefox; dein Fortschritt wird im Browser gespeichert. Versionen für Linux, macOS und Android folgen später. Bis dahin kannst du das Spiel mit [Rust](https://rustup.rs) (stable) aus dem Quellcode bauen:""",
         linux="Unter Linux werden außerdem die Entwicklungspakete für ALSA und udev benötigt (`libasound2-dev`, `libudev-dev`).",
@@ -205,7 +219,6 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
         road_h="Fahrplan",
         road=[
             'Echte, handgemachte Karten und weitere spielbare Figuren',
-            'Online-Bestenliste für jede Stage, mit einem Spitznamen deiner Wahl',
             'Weitere Bosse mit eigenen Angriffen und Animationen',
             'Touch-Steuerung für Smartphones und Tablets',
             'Versionen für Linux, macOS und Android',
@@ -238,10 +251,13 @@ Guía a Link entre hordas cada vez más grandes, recoge rupias para subir de niv
             '**12 personajes jugables** por desbloquear — Link, Link Minish, Link sin gorro, Sonic, la princesa Zelda, el Link de NES, el Link de *Four Swords* (4 colores), el de *Link\'s Awakening*, Link adulto, Link Deku, Shy Guy y Shadow Link (derrotando a Ganon) — cada uno con sus puntos fuertes, sus debilidades y su arma inicial',
             'Una **Bob-omb** rara que barre a todos los enemigos de la pantalla, y **decorado destructible** que esconde rupias, corazones, hadas o el medallón de Éter',
             '**Encuentros** aleatorios: un campeón errante espera en algún lugar y una flecha indica el camino — derrótalo para obtener una bendición, una mejora especial de arma o una reliquia que conservas si ganas',
+            "Un **Pikit ladrón** que devora las rupias del suelo — atrápalo para recuperarlas todas",
             '**12 armas**, cada una con una **evolución**, y **12 objetos pasivos** — 6 huecos de armas y 6 de objetos: cada elección cuenta',
-            '**17 tipos de enemigos** de Hyrule, **7 jefes** y **élites** que sueltan cofres',
+            '**18 tipos de enemigos** de Hyrule, **7 jefes** y **élites** que sueltan cofres',
             '**Progresión entre partidas**: la tienda de Kakariko (mejoras permanentes), las bendiciones de la Gran Hada, una **reliquia** por fase, 4 **dificultades** y los **sellos** de Ganon para ganar más rupias',
             '**Perfil**: bestiario, armería, estadísticas, y exportar / importar la partida como código de texto',
+            "**5 jugadores** en el mismo ordenador, cada uno con su nombre, su avatar y su progreso; una **puntuación** en cada partida y **clasificaciones**: mejores puntuaciones por fase, entre los jugadores de casa y un **top 100 mundial** por versión del juego",
+            "Un **manual de instrucciones** al estilo del original (PDF, inglés y francés)",
             'Ataques automáticos o **apuntado manual** en cualquier momento — teclado, ratón o mando, y **todas las teclas se pueden reasignar**',
             '**Gráficos, música y sonidos** originales de A Link to the Past en SNES',
             '**Filtros de vídeo retro**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, más un modo **4:3** — y **filtros de audio** a juego',
@@ -257,7 +273,7 @@ Guía a Link entre hordas cada vez más grandes, recoge rupias para subir de niv
                   boss="Jefe: Hinox", options="Opciones (idioma, filtros, volumen)", about="Acerca de"),
         filters_cap="Filtros de vídeo: ninguno · CRT / Game Boy Advance · Game Boy / Scanlines · CRT en 4:3",
         play_h="Jugar",
-        play=f"""El juego está en **alfa** (versión {VERSION}). **Windows**: descarga la última versión en la [página de versiones]({REPO}/releases/latest), extrae todo el zip y ejecuta `A Survivor to the Past.exe`. Windows puede avisar de que el juego no está firmado: haz clic en *Más información* → *Ejecutar de todas formas*. Después, el juego **se actualiza solo**: al iniciarse comprueba en GitHub si hay una versión nueva, la descarga en segundo plano y la instala en el siguiente inicio (Opciones → Actualizaciones: Automáticas / Preguntar / No). Tus ajustes se conservan y solo se contacta con GitHub, sin ningún dato personal.
+        play=f"""El juego está en **alfa** (versión {VERSION}). **Windows**: descarga la última versión en la [página de versiones]({REPO}/releases/latest), extrae todo el zip y ejecuta `A Survivor to the Past.exe`. Windows puede avisar de que el juego no está firmado: haz clic en *Más información* → *Ejecutar de todas formas*. Después, el juego **se actualiza solo**: al iniciarse comprueba en GitHub si hay una versión nueva, la descarga en segundo plano y la instala en el siguiente inicio (Opciones → Actualizaciones: Automáticas / Preguntar / No). Tus ajustes se conservan y no se envía ningún dato personal: las actualizaciones solo contactan con GitHub, y la clasificación mundial solo contacta con la web del juego cuando la abres o publicas una puntuación (apodo y puntuación).
 
 **Navegador**: [juega directamente en la web]({SITE}play/), sin instalar nada. Funciona mejor en ordenador, en Chrome, Edge o Firefox, y tu progreso se guarda en el navegador. Las versiones para Linux, macOS y Android llegarán más adelante. Mientras tanto, puedes compilar el juego desde el código fuente con [Rust](https://rustup.rs) (stable):""",
         linux="En Linux, instala también los paquetes de desarrollo de ALSA y udev (`libasound2-dev`, `libudev-dev`).",
@@ -272,7 +288,6 @@ Guía a Link entre hordas cada vez más grandes, recoge rupias para subir de niv
         road_h="Hoja de ruta",
         road=[
             'Mapas de verdad hechos a mano y más personajes jugables',
-            'Clasificación en línea para cada fase, con el apodo que elijas',
             'Más jefes con sus propios ataques y animaciones',
             'Controles táctiles para móviles y tabletas',
             'Versiones para Linux, macOS y Android',
@@ -305,10 +320,13 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
             '**12 personaggi giocabili** da sbloccare — Link, Link Minish, Link senza berretto, Sonic, la principessa Zelda, il Link del NES, il Link di *Four Swords* (4 colori), quello di *Link\'s Awakening*, Link adulto, Link Deku, Tipo Timido e Shadow Link (sconfiggendo Ganon) — ognuno con punti di forza, debolezze e la sua arma iniziale',
             "Una **Bob-omb** rara che spazza via tutti i nemici sullo schermo, e **scenari distruttibili** che nascondono rupie, cuori, fate o il medaglione dell'Etere",
             '**Incontri** casuali: un campione errante aspetta da qualche parte, una freccia indica la strada — sconfiggilo per una benedizione, un potenziamento speciale o una reliquia che resta se vinci',
+            "Un **Pikit ladro** che divora le rupie rimaste a terra — prendilo per recuperarle tutte",
             "**12 armi**, ognuna con un'**evoluzione**, e **12 oggetti passivi** — 6 slot per le armi e 6 per gli oggetti: ogni scelta conta",
-            '**17 tipi di nemici** di Hyrule, **7 boss** ed **élite** che lasciano forzieri',
+            '**18 tipi di nemici** di Hyrule, **7 boss** ed **élite** che lasciano forzieri',
             '**Progressi tra le partite**: il negozio di Kakariko (potenziamenti permanenti), le benedizioni della Grande Fata, una **reliquia** per ogni stage, 4 **difficoltà** e i **sigilli** di Ganon per guadagnare più rupie',
             '**Profilo**: bestiario, armeria, statistiche, ed esportazione / importazione del salvataggio come codice di testo',
+            "**5 giocatori** sullo stesso computer, ognuno con nome, avatar e progressi propri; un **punteggio** per ogni partita e **classifiche**: migliori punteggi per livello, tra i giocatori di casa e una **top 100 mondiale** per versione del gioco",
+            "Un **libretto di istruzioni** nello stile dell'originale (PDF, inglese e francese)",
             'Attacchi automatici o **mira manuale** in qualsiasi momento — tastiera, mouse o controller, e **tutti i tasti sono riassegnabili**',
             '**Grafica, musica e suoni** originali di A Link to the Past per SNES',
             '**Filtri video retrò**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, più una modalità **4:3** — e **filtri audio** abbinati',
@@ -324,7 +342,7 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
                   boss="Boss: Hinox", options="Opzioni (lingua, filtri, volumi)", about="Informazioni"),
         filters_cap="Filtri video: nessuno · CRT / Game Boy Advance · Game Boy / Scanlines · CRT in 4:3",
         play_h="Giocare",
-        play=f"""Il gioco è in **alfa** (versione {VERSION}). **Windows**: scarica l'ultima versione dalla [pagina delle release]({REPO}/releases/latest), estrai tutto lo zip e avvia `A Survivor to the Past.exe`. Windows potrebbe avvisare che il gioco non è firmato: fai clic su *Ulteriori informazioni* → *Esegui comunque*. Poi il gioco **si aggiorna da solo**: all'avvio controlla su GitHub se c'è una nuova versione, la scarica in background e la installa all'avvio successivo (Opzioni → Aggiornamenti: Automatici / Chiedi / No). Le tue impostazioni restano e viene contattato solo GitHub, senza alcun dato personale.
+        play=f"""Il gioco è in **alfa** (versione {VERSION}). **Windows**: scarica l'ultima versione dalla [pagina delle release]({REPO}/releases/latest), estrai tutto lo zip e avvia `A Survivor to the Past.exe`. Windows potrebbe avvisare che il gioco non è firmato: fai clic su *Ulteriori informazioni* → *Esegui comunque*. Poi il gioco **si aggiorna da solo**: all'avvio controlla su GitHub se c'è una nuova versione, la scarica in background e la installa all'avvio successivo (Opzioni → Aggiornamenti: Automatici / Chiedi / No). Le tue impostazioni restano e non viene inviato alcun dato personale: gli aggiornamenti contattano solo GitHub, e la classifica mondiale contatta il sito del gioco solo quando la apri o pubblichi un punteggio (soprannome e punteggio).
 
 **Browser**: [gioca direttamente sul sito]({SITE}play/), senza installare nulla. Meglio su computer, con Chrome, Edge o Firefox; i progressi sono salvati nel browser. Le versioni per Linux, macOS e Android arriveranno più avanti. Nel frattempo puoi compilare il gioco dai sorgenti con [Rust](https://rustup.rs) (stable):""",
         linux="Su Linux installa anche i pacchetti di sviluppo di ALSA e udev (`libasound2-dev`, `libudev-dev`).",
@@ -339,7 +357,6 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
         road_h="Tabella di marcia",
         road=[
             'Mappe vere fatte a mano e altri personaggi giocabili',
-            'Classifica online per ogni stage, con un nickname a scelta',
             'Altri boss con attacchi e animazioni propri',
             'Comandi touch per telefoni e tablet',
             'Versioni per Linux, macOS e Android',
@@ -372,10 +389,13 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
             '**12 personagens jogáveis** para desbloquear — Link, Link Minish, Link sem gorro, Sonic, a princesa Zelda, o Link do NES, o Link de *Four Swords* (4 cores), o de *Link\'s Awakening*, Link adulto, Link Deku, Shy Guy e Shadow Link (derrotando Ganon) — cada um com pontos fortes, fraquezas e sua arma inicial',
             'Uma **Bob-omb** rara que varre todos os inimigos da tela, e **cenário destrutível** que esconde rupias, corações, fadas ou o medalhão do Éter',
             '**Encontros** aleatórios: um campeão errante espera em algum lugar e uma seta mostra o caminho — derrote-o para ganhar uma bênção, uma melhoria especial de arma ou uma relíquia mantida se você vencer',
+            "Um **Pikit ladrão** que devora as rupias deixadas no chão — pegue-o para recuperar todas",
             '**12 armas**, cada uma com uma **evolução**, e **12 itens passivos** — 6 espaços de armas e 6 de itens: cada escolha conta',
-            '**17 tipos de inimigos** de Hyrule, **7 chefes** e **elites** que deixam baús',
+            '**18 tipos de inimigos** de Hyrule, **7 chefes** e **elites** que deixam baús',
             '**Progressão entre partidas**: a loja de Kakariko (melhorias permanentes), as bênçãos da Grande Fada, uma **relíquia** por fase, 4 **dificuldades** e os **selos** de Ganon para ganhar mais rupias',
             '**Perfil**: bestiário, arsenal, estatísticas, e exportar / importar o progresso como código de texto',
+            "**5 jogadores** no mesmo computador, cada um com nome, avatar e progresso próprios; uma **pontuação** em cada partida e **rankings**: melhores pontuações por fase, entre os jogadores da casa e um **top 100 mundial** por versão do jogo",
+            "Um **manual de instruções** no estilo do original (PDF, inglês e francês)",
             'Ataques automáticos ou **mira manual** a qualquer momento — teclado, mouse ou controle, e **todas as teclas podem ser reconfiguradas**',
             '**Gráficos, músicas e sons** originais de A Link to the Past no SNES',
             '**Filtros de vídeo retrô**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, mais um modo **4:3** — e **filtros de áudio** combinando',
@@ -391,7 +411,7 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
                   boss="Chefe: Hinox", options="Opções (idioma, filtros, volumes)", about="Sobre"),
         filters_cap="Filtros de vídeo: nenhum · CRT / Game Boy Advance · Game Boy / Scanlines · CRT em 4:3",
         play_h="Jogar",
-        play=f"""O jogo está em **alfa** (versão {VERSION}). **Windows**: baixe a versão mais recente na [página de versões]({REPO}/releases/latest), extraia o zip inteiro e abra `A Survivor to the Past.exe`. O Windows pode avisar que o jogo não é assinado: clique em *Mais informações* → *Executar assim mesmo*. Depois, o jogo **se atualiza sozinho**: ao iniciar, ele verifica no GitHub se há uma nova versão, baixa em segundo plano e instala no próximo início (Opções → Atualizações: Automáticas / Perguntar / Não). Suas configurações são mantidas e só o GitHub é contatado, sem nenhum dado pessoal.
+        play=f"""O jogo está em **alfa** (versão {VERSION}). **Windows**: baixe a versão mais recente na [página de versões]({REPO}/releases/latest), extraia o zip inteiro e abra `A Survivor to the Past.exe`. O Windows pode avisar que o jogo não é assinado: clique em *Mais informações* → *Executar assim mesmo*. Depois, o jogo **se atualiza sozinho**: ao iniciar, ele verifica no GitHub se há uma nova versão, baixa em segundo plano e instala no próximo início (Opções → Atualizações: Automáticas / Perguntar / Não). Suas configurações são mantidas e nenhum dado pessoal é enviado: as atualizações só contatam o GitHub, e o ranking mundial só contata o site do jogo quando você o abre ou publica uma pontuação (apelido e pontuação).
 
 **Navegador**: [jogue direto no site]({SITE}play/), sem instalar nada. Funciona melhor no computador, no Chrome, Edge ou Firefox, e seu progresso fica salvo no navegador. As versões para Linux, macOS e Android virão depois. Enquanto isso, você pode compilar o jogo a partir do código-fonte com [Rust](https://rustup.rs) (stable):""",
         linux="No Linux, instale também os pacotes de desenvolvimento do ALSA e do udev (`libasound2-dev`, `libudev-dev`).",
@@ -406,7 +426,6 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
         road_h="Próximos passos",
         road=[
             'Mapas de verdade feitos à mão e mais personagens jogáveis',
-            'Ranking online para cada fase, com um apelido à sua escolha',
             'Mais chefes com ataques e animações próprios',
             'Controles de toque para celulares e tablets',
             'Versões para Linux, macOS e Android',
@@ -439,10 +458,13 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
             '解放できる**12人のキャラクター** — リンク、ミニッシュリンク、帽子なしのリンク、ソニック、ゼルダ姫、ファミコン版リンク、『4つの剣』のリンク（4色）、『夢をみる島』のリンク、大人のリンク、デクリンク、ヘイホー、シャドウリンク（ガノンを倒すと解放）。それぞれ長所と短所、最初の武器が異なります',
             '画面の敵をすべて吹き飛ばすレアな**ボム兵**と、ルピー・ハート・妖精・エーテルのメダルが隠れた**壊せる背景**',
             'ランダムな**遭遇戦**：どこかで待つ放浪のチャンピオンを矢印が示します。倒すと祝福、武器の特別強化、勝利すれば持ち帰れるレリックが手に入ります',
+            "地面に残ったルピーを食べてしまう**泥棒ピキット** — 捕まえればすべて取り戻せます",
             '**12種類の武器**（それぞれ**進化**あり）と**12種類のパッシブアイテム** — 武器枠6つ、アイテム枠6つで、選択が重要です',
-            'ハイラルの**17種類の敵**、**7体のボス**、宝箱を落とす**エリート**',
+            'ハイラルの**18種類の敵**、**7体のボス**、宝箱を落とす**エリート**',
             '**プレイをまたぐ成長**：カカリコのショップ（永続強化）、大妖精の祝福、ステージごとの**レリック**、4段階の**難易度**、ルピーが増えるガノンの**封印**',
             '**プロフィール**：モンスター図鑑、武器図鑑、統計、テキストコードによるセーブのエクスポート / インポート',
+            "同じパソコンで**5人のプレイヤー**（名前・アバター・進行状況）。毎回の**スコア**と**ランキング**：ステージごとの自己ベスト、家族のプレイヤー同士、バージョンごとの**世界トップ100**",
+            "オリジナルの説明書を模した**取扱説明書**（PDF、英語とフランス語）",
             '自動攻撃、またはいつでも**手動照準** — キーボード、マウス、コントローラーに対応し、**すべてのキーを変更可能**',
             'SNES 版『神々のトライフォース』のオリジナル**グラフィック・音楽・効果音**',
             '**レトロ映像フィルター**：SNES、CRT、スキャンライン、ゲームボーイアドバンス、ゲームボーイ、**4:3** モード — 対応する**音声フィルター**付き',
@@ -458,7 +480,7 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
                   boss="ボス：ヒノックス", options="オプション（言語・フィルター・音量）", about="このゲームについて"),
         filters_cap="映像フィルター：なし · CRT / ゲームボーイアドバンス · ゲームボーイ / スキャンライン · CRT（4:3）",
         play_h="遊ぶ",
-        play=f"""このゲームは**アルファ版**（バージョン {VERSION}）です。**Windows**：[リリースページ]({REPO}/releases/latest)から最新版をダウンロードし、zip をすべて展開して `A Survivor to the Past.exe` を起動してください。署名がないため Windows に警告された場合は、*詳細情報* → *実行* をクリックします。その後は**自動でアップデート**されます。起動時に GitHub で新しいバージョンを確認し、バックグラウンドでダウンロードして次回起動時にインストールします（オプション → アップデート：じどう / かくにん する / オフ）。設定はそのまま残り、通信先は GitHub だけで、個人情報は送信されません。
+        play=f"""このゲームは**アルファ版**（バージョン {VERSION}）です。**Windows**：[リリースページ]({REPO}/releases/latest)から最新版をダウンロードし、zip をすべて展開して `A Survivor to the Past.exe` を起動してください。署名がないため Windows に警告された場合は、*詳細情報* → *実行* をクリックします。その後は**自動でアップデート**されます。起動時に GitHub で新しいバージョンを確認し、バックグラウンドでダウンロードして次回起動時にインストールします（オプション → アップデート：じどう / かくにん する / オフ）。設定はそのまま残り、個人情報は送信されません。アップデートの通信先は GitHub だけで、世界ランキングは開いたときやスコアを公開したときだけゲームのサイトに接続します（ニックネームとスコア）。
 
 **ブラウザ**：[サイト上で直接プレイ]({SITE}play/)でき、インストールは不要です。パソコンの Chrome、Edge、Firefox がおすすめで、進行状況はブラウザに保存されます。Linux・macOS・Android 版は今後予定しています。それまでは [Rust](https://rustup.rs)（stable）でソースからビルドできます：""",
         linux="Linux では ALSA と udev の開発パッケージ（`libasound2-dev`、`libudev-dev`）も必要です。",
@@ -473,7 +495,6 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
         road_h="今後の予定",
         road=[
             '手作りの本格的なマップと新しいプレイアブルキャラクター',
-            'ステージごとのオンラインランキング（好きなニックネームで）',
             '独自の攻撃とアニメーションを持つボスの追加',
             'スマートフォン・タブレット向けのタッチ操作',
             'Linux・macOS・Android 版',

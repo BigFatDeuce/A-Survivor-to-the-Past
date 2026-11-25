@@ -17,6 +17,10 @@ pub const DIM: Color = [0.02, 0.0, 0.06, 0.72];
 const CARD_BG: Color = [0.09, 0.07, 0.18, 0.94];
 const NEW_GREEN: Color = rgb(120, 240, 120);
 const SOFT: Color = rgb(200, 200, 230);
+/// Cartes qui fusionnent avec un objet deja possede.
+const FUSION: Color = rgb(255, 120, 230);
+const FUSION_LIGHT: Color = rgb(255, 190, 245);
+const FUSION_BG: Color = [0.2, 0.06, 0.22, 0.95];
 
 // ---------------------------------------------------------------------------------------------
 // Navigation
@@ -309,19 +313,51 @@ pub fn draw_cards(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: 
     text(list, main, head.0, Vec2::new(view.x * 0.5, y0 - 54.0 - (pop - 2.0) * 7.0), pop, head.2, Align::Center);
     text(list, main, head.1, Vec2::new(view.x * 0.5, y0 - 19.0), 1.0, SOFT, Align::Center);
     let locked = t < LEVELUP_LOCK;
+    let rt = ctx.real_time as f32;
     for (k, ((pos, size), info)) in rects.into_iter().zip(infos).enumerate() {
+        // fusion possible avec un objet (ou une arme) deja possede : la carte brille en rose
+        let fusion = info.evo.iter().any(|e| e.2);
         // entree echelonnee par la droite
         let u = ((t - k as f32 * 0.05) / 0.18).clamp(0.0, 1.0);
         let e = 1.0 - (1.0 - u) * (1.0 - u);
         let selected = k == sel;
         let pos = pos + Vec2::new(((1.0 - e) * 60.0).round() + if selected { 4.0 } else { 0.0 }, 0.0);
         let a = e;
-        list.rect(white, pos, size, with_alpha(CARD_BG, a));
-        let pulse = 0.75 + 0.25 * (ctx.real_time as f32 * 6.0).sin();
-        let border = if selected { with_alpha(GOLD, a * if locked { 0.6 } else { pulse }) } else { [1.0, 1.0, 1.0, 0.3 * a] };
+        list.rect(white, pos, size, with_alpha(if fusion { FUSION_BG } else { CARD_BG }, a));
+        let pulse = 0.75 + 0.25 * (rt * 6.0).sin();
+        let border = if selected {
+            with_alpha(GOLD, a * if locked { 0.6 } else { pulse })
+        } else if fusion {
+            with_alpha(FUSION, a * (0.55 + 0.35 * (rt * 4.0).sin()))
+        } else {
+            [1.0, 1.0, 1.0, 0.3 * a]
+        };
         frame_rect(list, white, pos, size, border);
         if selected {
             frame_rect(list, white, pos + Vec2::ONE, size - Vec2::splat(2.0), with_alpha(border, 0.5));
+        }
+        if fusion {
+            // halo rose qui respire autour de la carte, et deux etincelles qui en font le tour
+            let glow = 0.25 + 0.2 * (rt * 4.0).sin();
+            list.set(Space::Ui, Blend::Add);
+            frame_rect(list, white, pos - Vec2::splat(2.0), size + Vec2::splat(4.0), with_alpha(FUSION, glow * a));
+            frame_rect(list, white, pos - Vec2::splat(3.0), size + Vec2::splat(6.0), with_alpha(FUSION, glow * 0.5 * a));
+            let per = 2.0 * (size.x + size.y);
+            for s in 0..2 {
+                let d = ((rt * 140.0 + s as f32 * per * 0.5) % per + per) % per;
+                let q = if d < size.x {
+                    pos + Vec2::new(d, 0.0)
+                } else if d < size.x + size.y {
+                    pos + Vec2::new(size.x, d - size.x)
+                } else if d < 2.0 * size.x + size.y {
+                    pos + Vec2::new(size.x - (d - size.x - size.y), size.y)
+                } else {
+                    pos + Vec2::new(0.0, size.y - (d - 2.0 * size.x - size.y))
+                };
+                list.rect(white, (q - Vec2::splat(1.5)).round(), Vec2::splat(3.0), with_alpha(WHITE, 0.9 * a));
+                list.rect(white, (q - Vec2::splat(3.0)).round(), Vec2::splat(6.0), with_alpha(FUSION, 0.35 * a));
+            }
+            list.set(Space::Ui, Blend::Alpha);
         }
         // icone x2 dans sa case
         let ib = Vec2::new(44.0, 44.0);
@@ -366,11 +402,20 @@ pub fn draw_cards(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: 
         // partenaire d'evolution : c'est la que les choix prennent du sens
         if !info.evo.is_empty() {
             let y = pos.y + size.y - 17.0;
-            let lbl = if info.evo_label.is_empty() { lang.get("ui.evolves") } else { info.evo_label.as_str() };
-            let mut x = tx + text(list, main, lbl, Vec2::new(tx, y), 1.0, with_alpha(rgb(190, 170, 110), a), Align::Left) + 10.0;
+            let lbl = if !info.evo_label.is_empty() {
+                info.evo_label.as_str()
+            } else if fusion {
+                lang.get("ui.fusion_with")
+            } else {
+                lang.get("ui.evolves")
+            };
+            let lc = if fusion { FUSION } else { rgb(190, 170, 110) };
+            let mut x = tx + text(list, main, lbl, Vec2::new(tx, y), 1.0, with_alpha(lc, a), Align::Left) + 10.0;
             for (icon, name, owned) in &info.evo {
-                let c = if *owned { GOLD } else { [1.0, 1.0, 1.0, 0.55] };
-                list.frame(atlas.frame(*icon, 0.0), Vec2::new(x, y + 6.0), &Params::default().color(with_alpha(c, a)));
+                let c = if *owned { FUSION_LIGHT } else { [1.0, 1.0, 1.0, 0.55] };
+                // l'objet deja possede sautille
+                let hop = if *owned { (2.0 * (rt * 6.0).sin().abs()).round() } else { 0.0 };
+                list.frame(atlas.frame(*icon, 0.0), Vec2::new(x, y + 6.0 - hop), &Params::default().color(with_alpha(if *owned { WHITE } else { c }, a)));
                 x += 10.0;
                 x += text(list, main, name, Vec2::new(x, y), 1.0, with_alpha(c, a), Align::Left) + 12.0;
             }
@@ -810,7 +855,9 @@ pub fn input_options(nav: &NavIn, view: Vec2, sel: &mut usize) -> (OptAction, bo
 // ---------------------------------------------------------------------------------------------
 // Fin de partie
 
-pub fn draw_dead(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang: &Lang, t: f32, sel: usize) {
+/// `score` : score de la partie et record du stage.
+#[allow(clippy::too_many_arguments)]
+pub fn draw_dead(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang: &Lang, t: f32, sel: usize, score: Option<(u64, bool)>) {
     let view = ctx.view;
     let main = ctx.atlas.font("main");
     dim(list, vis, view, [0.1, 0.0, 0.02, 0.72]);
@@ -825,15 +872,28 @@ pub fn draw_dead(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang:
     ];
     let w = 300.0f32.min(view.x - 40.0);
     let x0 = ((view.x - w) * 0.5).round();
+    let y0 = (view.y * 0.38).round();
     for (k, (l, v)) in rows.iter().enumerate() {
-        let y = (view.y * 0.42).round() + k as f32 * 18.0;
+        let y = y0 + k as f32 * 18.0;
         text(list, main, l, Vec2::new(x0, y), 1.0, SOFT, Align::Left);
         text(list, main, v, Vec2::new(x0 + w, y), 1.0, WHITE, Align::Right);
+    }
+    let mut ny = y0 + rows.len() as f32 * 18.0;
+    if let Some((s, record)) = score {
+        text(list, main, lang.get("ui.score"), Vec2::new(x0, ny), 1.0, SOFT, Align::Left);
+        text(list, main, &crate::scores::fmt_score(s), Vec2::new(x0 + w, ny), 1.0, GOLD, Align::Right);
+        if record {
+            let blink = (ctx.real_time as f32 * 2.5).fract() < 0.75;
+            let label = lang.get("ui.new_record");
+            text(list, main, label, Vec2::new(view.x * 0.5, ny + 16.0), 1.0, with_alpha(GOLD, if blink { 1.0 } else { 0.6 }), Align::Center);
+            ny += 16.0;
+        }
+        ny += 18.0;
     }
     // armes et objets de la partie
     let atlas = &ctx.atlas;
     let mut x = (view.x * 0.5 - (world.weapons.len() + world.passives.len()) as f32 * 11.0).round() + 11.0;
-    let y = (view.y * 0.42).round() + 4.0 * 18.0 + 16.0;
+    let y = ny + 14.0;
     for w in &world.weapons {
         list.frame(atlas.frame(vis.weapons[w.id as usize].icon, 0.0), Vec2::new(x, y), &Params::default());
         x += 22.0;

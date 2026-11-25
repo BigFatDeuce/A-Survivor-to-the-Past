@@ -8,7 +8,10 @@ use crate::juice::{Juice, NumKind};
 use crate::lang::{Lang, LANGS};
 use crate::menus::{self, Nav, NavIn, Opt, OptAction, OptValues};
 use crate::meta::Meta;
-use crate::profile::Profile;
+use crate::online::{self, Online, Status as NetStatus, Submission};
+use crate::players;
+use crate::profile::{self as profiles, Profile, ScoreRecord};
+use crate::scores;
 use crate::settings::Settings;
 use crate::reward::{self, Reward};
 use crate::{clipboard, controls, records, shop, storage};
@@ -87,6 +90,21 @@ enum State {
     Records { tab: usize, sel: usize, armed: bool },
     /// Commandes (depuis les options) ; `wait` : action en attente d'une touche et temps restant.
     Controls { tab: usize, sel: usize, wait: Option<(usize, f32)>, from_title: bool },
+    /// Joueurs (5 emplacements) ; `armed` : suppression du joueur actif a confirmer.
+    Players { sel: usize, armed: bool },
+    /// Saisie d'un nom (nouveau joueur, renommage, pseudo du classement en ligne).
+    NameEntry { purpose: NamePurpose, text: String, sel: usize },
+    /// Classements : onglet, ligne, stage choisi, version choisie (vide : la plus recente).
+    Scores { tab: usize, sel: usize, stage: usize, version: String },
+}
+
+/// Ce que valide la saisie d'un nom.
+enum NamePurpose {
+    /// Nouveau joueur dans cet emplacement.
+    Create(usize),
+    Rename,
+    /// Publication d'une partie ; retour a la ligne `sel` du stage `stage`.
+    Pseudo { rec: ScoreRecord, stage: usize, sel: usize },
 }
 
 impl State {
@@ -105,6 +123,9 @@ impl State {
                 | State::StageSelect { .. }
                 | State::Shop { .. }
                 | State::Records { .. }
+                | State::Players { .. }
+                | State::NameEntry { .. }
+                | State::Scores { .. }
                 | State::Controls { from_title: true, .. }
                 | State::Options { from_title: true, .. }
         )
@@ -183,13 +204,27 @@ pub struct Game {
     meta: Meta,
     /// Message de la boutique / du profil et son temps restant (s).
     hub_toast: (String, f32),
+    /// Demi-taille visible des sprites de tirs ennemis (zone de contact, voir `World::shot_hit`).
+    shot_hit: Vec<f32>,
+    /// Classement en ligne (requetes en arriere-plan).
+    online: Online,
+    /// Score de la derniere partie et record du stage battu.
+    last_score: Option<(u64, bool)>,
+    /// Les 5 emplacements de joueurs (relus a l'ouverture des ecrans Joueurs et Classements).
+    slots: Vec<Option<Profile>>,
+    /// Partie en cours de publication (stage, partie).
+    publishing: Option<(String, ScoreRecord)>,
 }
 
 /// Position des entrees fixes du menu titre (retour depuis un sous-ecran).
-const TITLE_SHOP: usize = 1;
-const TITLE_PROFILE: usize = 2;
-const TITLE_OPTIONS: usize = 3;
-const TITLE_ABOUT: usize = 4;
+const TITLE_PLAYERS: usize = 1;
+const TITLE_SHOP: usize = 2;
+const TITLE_PROFILE: usize = 3;
+const TITLE_SCORES: usize = 4;
+const TITLE_OPTIONS: usize = 5;
+const TITLE_ABOUT: usize = 6;
+/// Entree de mise a jour (apres les 7 entrees fixes).
+const TITLE_UPDATE: usize = 7;
 /// Fichier de repli de l'export du profil (presse-papiers indisponible).
 const CODE_FILE: &str = "profile_code.txt";
 
@@ -200,6 +235,8 @@ const FIRE: [f32; 4] = [1.0, 0.6, 0.2, 1.0];
 const ICE: [f32; 4] = [0.7, 0.88, 1.0, 1.0];
 /// Couleur des champions errants (rencontres).
 const CHAMPION: [f32; 4] = [0.85, 0.5, 1.0, 1.0];
+/// Couleur du Pikit voleur de rubis.
+const THIEF: [f32; 4] = [0.47, 1.0, 0.63, 1.0];
 
 impl Game {
     pub fn new(ctx: &mut Ctx, opts: Options) -> Game {
@@ -282,8 +319,24 @@ impl Game {
             last_chars: Vec::new(),
             meta: Meta::load(&ctx.root),
             hub_toast: (String::new(), 0.0),
+            shot_hit: Vec::new(),
+            online: Online::default(),
+            last_score: None,
+            slots: Vec::new(),
+            publishing: None,
         };
+        g.shot_hit = g
+            .vis
+            .shots
+            .iter()
+            .map(|&(a, _)| {
+                let f = ctx.atlas.frame(a, 0.0);
+                0.5 * f.w.min(f.h) as f32
+            })
+            .collect();
+        g.world.shot_hit = g.shot_hit.clone();
         g.stage_ids = stages::stage_ids(&g.content);
+        g.slots = profiles::all_slots(&ctx.root);
         g.run_kills = vec![0; g.content.enemies.len()];
         if let Some(v) = g.opts.video {
             g.settings.video = v;
@@ -309,8 +362,12 @@ impl Game {
             Some("stages") => State::StageSelect { sel: 0 },
             Some("chars") => State::CharSelect { sel: g.char_sel() },
             Some("victory") => State::Victory { t: 3.0, sel: 0 },
+            Some("levelup") => State::LevelUp { offers: g.world.roll_offers(), sel: 0, t: 1.0 },
             Some("shop") => State::Shop { tab: 0, sel: 0 },
             Some("profile") => State::Records { tab: 0, sel: 0, armed: false },
+            Some("players") => State::Players { sel: 0, armed: false },
+            Some("scores") => State::Scores { tab: 0, sel: 0, stage: 0, version: String::new() },
+            Some("scores_world") => State::Scores { tab: scores::WORLD, sel: 0, stage: 0, version: String::new() },
             Some("controls") => State::Controls { tab: 0, sel: 0, wait: None, from_title: true },
             _ if direct => State::Playing,
             _ => State::Title { sel: 0 },
@@ -362,6 +419,7 @@ impl Game {
             return 0;
         }
         self.run_open = false;
+        self.last_score = None;
         if self.opts.demo || self.opts.bench.is_some() || self.opts.uicheck {
             return 0;
         }
@@ -428,6 +486,26 @@ impl Game {
                 self.last_unlocked = self.stage_ids.get(k + 1).cloned();
             }
         }
+        // meilleurs scores du stage
+        let mult = self.meta.score_mult(&self.profile);
+        let w = &self.world;
+        let score = profiles::score(w.player.kills, w.time, self.run_bosses, won, mult);
+        let rec = ScoreRecord {
+            score,
+            time: w.time,
+            kills: w.player.kills,
+            level: w.player.level,
+            bosses: self.run_bosses,
+            won,
+            character: self.opts.character.clone(),
+            difficulty: self.profile.difficulty,
+            mult,
+            version: title::VERSION.to_string(),
+            published: false,
+        };
+        let had = self.profile.best_score(&w.map_id).is_some();
+        let place = self.profile.add_score(&w.map_id, rec);
+        self.last_score = Some((score, had && place == Some(0)));
         self.last_chars = chars::newly_unlocked(&self.content, &before, &self.profile);
         self.profile.save(root);
         banked
@@ -518,6 +596,50 @@ impl Game {
         }
         self.profile.totals.kills = 9_876_543;
         self.profile.totals.time = 360000.0;
+        // joueurs et classements : noms les plus larges, scores sur le premier stage, classement mondial plein
+        self.profile.name = "WWWWWWWWWWWW".into();
+        self.profile.avatar = 19;
+        let first = self.stage_ids.first().cloned().unwrap_or_default();
+        for k in 0..profiles::KEEP_SCORES {
+            let rec = ScoreRecord {
+                score: 9_876_543 - k as u64 * 1000,
+                time: 3599.0,
+                kills: 99_999,
+                level: 99,
+                bosses: 9,
+                won: k % 2 == 0,
+                character: self.opts.character.clone(),
+                difficulty: 3,
+                mult: 2.5,
+                version: "10.20.30".into(),
+                published: k == 1,
+            };
+            self.profile.add_score(&first, rec);
+        }
+        self.last_score = Some((9_876_543, true));
+        self.slots = (0..profiles::SLOTS)
+            .map(|k| {
+                let mut p = Profile::fresh(k, "WWWWWWWWWWWW", k * 3);
+                p.scores = self.profile.scores.clone();
+                p.totals.time = 360000.0;
+                p.totals.kills = 9_876_543;
+                Some(p)
+            })
+            .collect();
+        let entries = (1..=100)
+            .map(|r| online::Entry {
+                rank: r,
+                name: "WWWWWWWWWWWW".into(),
+                score: 99_999_999 - r as u64,
+                character: self.opts.character.clone(),
+                time: 3599.0,
+                kills: 99_999,
+                won: true,
+                difficulty: 3,
+            })
+            .collect();
+        let board = online::Board { version: "10.20.30".into(), versions: vec!["10.20.30".into(), "10.20.29".into()], scores: entries };
+        self.online.force(&first, "", NetStatus::Done(board));
         let mut rep = Report::default();
         for code in LANGS {
             self.lang = Lang::load(&ctx.root, code);
@@ -529,9 +651,9 @@ impl Game {
                 self.hud.banner(&boss, GOLD, 5.0);
                 let mut screens: Vec<(String, State)> = vec![
                     ("titre".into(), State::Title { sel: 0 }),
-                    ("titre_maj_dispo".into(), State::Title { sel: 3 }),
+                    ("titre_maj_dispo".into(), State::Title { sel: TITLE_UPDATE }),
                     ("titre_maj_telechargement".into(), State::Title { sel: 0 }),
-                    ("titre_maj_prete".into(), State::Title { sel: 3 }),
+                    ("titre_maj_prete".into(), State::Title { sel: TITLE_UPDATE }),
                     ("titre_maj_echec".into(), State::Title { sel: 0 }),
                     ("a_propos".into(), State::About { sel: 1, toast: 0.0 }),
                     ("a_propos_lien_ouvert".into(), State::About { sel: 0, toast: 1.0 }),
@@ -573,6 +695,13 @@ impl Game {
                 screens.push(("boutique_retour".into(), State::Shop { tab: 0, sel: 99 }));
                 for tab in 0..records::TABS.len() {
                     screens.push((format!("profil_{tab}"), State::Records { tab, sel: 1, armed: tab == 3 }));
+                }
+                screens.push(("joueurs".into(), State::Players { sel: 1, armed: false }));
+                screens.push(("joueurs_supprimer".into(), State::Players { sel: players::DELETE, armed: true }));
+                screens.push(("nom".into(), State::NameEntry { purpose: NamePurpose::Rename, text: "WWWWWWWWWWWW".into(), sel: players::DONE }));
+                screens.push(("nom_pseudo".into(), State::NameEntry { purpose: NamePurpose::Create(4), text: String::new(), sel: 0 }));
+                for tab in 0..scores::TABS.len() {
+                    screens.push((format!("classement_{tab}"), State::Scores { tab, sel: 1, stage: 0, version: String::new() }));
                 }
                 for tab in 0..controls::TABS.len() {
                     let wait = Some((1, 1.0));
@@ -645,6 +774,9 @@ impl Game {
             } else if id == "chest" || id == "big_chest" {
                 // coffre ouvert des le debut (essais des evolutions)
                 w.pending_chests.push(id == "big_chest");
+            } else if id == "thief" {
+                // essais : le Pikit voleur arrive tout de suite
+                w.thief_t = 0.0;
             } else if id == "bobomb" {
                 // essais : une Bob-omb tout pres (souffle de l'ecran)
                 if let Some(k) = w.bomb_kind {
@@ -710,6 +842,7 @@ impl Game {
         self.thunder = None;
         ctx.audio.stop_ambience(0.5);
         self.world = Self::make_world(&self.content, &self.opts, ctx.view);
+        self.world.shot_hit = self.shot_hit.clone();
         self.apply_mods();
         self.juice.clear();
         self.hud = Hud::new();
@@ -724,6 +857,17 @@ impl Game {
 
     fn sfx(&mut self, ctx: &mut Ctx, event: &str) {
         self.sfx_p(ctx, event, 1.0, 1.0);
+    }
+
+    /// Son propre a un ennemi (« shot.agahnim »...), sinon le son commun de l'evenement.
+    fn sfx_enemy(&mut self, ctx: &mut Ctx, event: &str, kind: u16) {
+        let prefix = if event == "enemy_shot" { "shot" } else { event };
+        let key = format!("{prefix}.{}", self.content.enemy_ids[kind as usize]);
+        if self.audio_cfg.events.contains_key(&key) {
+            self.sfx(ctx, &key);
+        } else {
+            self.sfx(ctx, event);
+        }
     }
 
     fn sfx_p(&mut self, ctx: &mut Ctx, event: &str, gain: f32, pitch: f32) {
@@ -1048,9 +1192,9 @@ impl Game {
                     if self.content.enemies[kind as usize].boss {
                         self.juice.anim_ex(self.vis.spark, pos - Vec2::new(0.0, 66.0), 0.2, 0.0, 2.0, WHITE, true);
                     }
-                    self.sfx(ctx, "windup");
+                    self.sfx_enemy(ctx, "windup", kind);
                 }
-                Event::EnemyShot { .. } => self.sfx(ctx, "enemy_shot"),
+                Event::EnemyShot { kind, .. } => self.sfx_enemy(ctx, "enemy_shot", kind),
                 Event::ShotBlast { pos, radius } => {
                     let sc = (radius / 18.0).clamp(1.0, 3.0).round();
                     self.juice.anim_ex(self.vis.explosion, pos - Vec2::new(0.0, 4.0), 0.36, 0.0, sc, WHITE, false);
@@ -1212,6 +1356,26 @@ impl Game {
                     self.juice.anim_ex(self.vis.explosion, pos, 0.3, 0.0, 1.0, WHITE, false);
                     self.juice.add_trauma(0.06, 0.4);
                 }
+                Event::ThiefSpawned { .. } => {
+                    self.sfx(ctx, "pikit_spawn");
+                    let s = self.lang.get("ui.thief_spawned").to_string();
+                    self.hud.banner(&s, THIEF, 3.0);
+                }
+                Event::ThiefFled { pos } => {
+                    self.sfx(ctx, "encounter_fled");
+                    let s = self.lang.get("ui.thief_fled").to_string();
+                    self.hud.banner(&s, rgb(190, 210, 190), 2.2);
+                    self.juice.ring(pos - Vec2::new(0.0, 8.0), 22.0, 2.0, 0.4, THIEF);
+                }
+                Event::ThiefLooted { pos, count } => {
+                    self.sfx(ctx, "pikit_loot");
+                    let s = self.lang.get("ui.thief_looted").replace("{n}", &count.to_string());
+                    self.hud.banner(&s, THIEF, 2.6);
+                    self.juice.flash([0.7, 1.0, 0.8, 0.25], 0.3);
+                    self.juice.ring(pos - Vec2::new(0.0, 8.0), 4.0, 90.0, 0.5, THIEF);
+                    self.juice.debris(pos - Vec2::new(0.0, 8.0), Vec2::ZERO, 18, rgb(140, 255, 140), 120.0, true);
+                    self.juice.add_trauma(0.3, 0.5);
+                }
                 Event::Medallion { pos } => {
                     self.sfx(ctx, "medallion");
                     let s = self.lang.get("ui.pickup_medallion").to_string();
@@ -1312,8 +1476,10 @@ impl Game {
         let l = &self.lang;
         let mut v = vec![
             (TitleItem::Play, l.get("ui.play").to_string()),
+            (TitleItem::Players, l.get("ui.player_item").replace("{s}", &self.profile.name)),
             (TitleItem::Shop, l.get("ui.shop").to_string()),
             (TitleItem::Profile, l.get("ui.profile").to_string()),
+            (TitleItem::Scores, l.get("ui.scores").to_string()),
             (TitleItem::Options, l.get("ui.options").to_string()),
             (TitleItem::About, l.get("ui.about").to_string()),
         ];
@@ -1555,7 +1721,11 @@ impl Game {
                         .or_else(|| storage::read(&ctx.root, CODE_FILE));
                     match text.and_then(|t| Profile::import_code(&t)) {
                         Some(p) => {
+                            // le code importe remplace le joueur actif (meme emplacement)
+                            let slot = self.profile.slot;
                             self.profile = p;
+                            self.profile.slot = slot;
+                            chars::apply_skins(&mut self.content, &self.profile);
                             self.profile.save(&ctx.root);
                             self.sfx(ctx, "relic");
                             self.toast("ui.imported");
@@ -1644,6 +1814,307 @@ impl Game {
         State::Controls { tab, sel, wait, from_title }
     }
 
+    /// Avatar propose a un nouveau joueur : le premier que personne n'a pris.
+    fn free_avatar(&self, slot: usize) -> usize {
+        let n = players::AVATARS.len();
+        let used: Vec<usize> = self.slots.iter().flatten().filter(|p| p.slot != slot).map(|p| p.avatar).collect();
+        (0..n).map(|a| (a + slot * 4) % n).find(|a| !used.contains(a)).unwrap_or(0)
+    }
+
+    /// Change de joueur actif (le profil courant est enregistre d'abord).
+    fn switch_profile(&mut self, root: &std::path::Path, slot: usize) {
+        self.profile.save(root);
+        self.profile = Profile::load_slot(root, slot).unwrap_or_else(|| Profile::fresh(slot, profiles::DEFAULT_NAME, 0));
+        profiles::set_active(root, slot);
+        chars::apply_skins(&mut self.content, &self.profile);
+        self.slots = profiles::all_slots(root);
+    }
+
+    fn update_players(&mut self, ctx: &mut Ctx, nav: &NavIn, mut sel: usize, mut armed: bool) -> State {
+        let root = ctx.root.clone();
+        let active = self.profile.slot;
+        let act = players::input(nav, ctx.view, active, &mut sel);
+        if !matches!(act, players::Action::None | players::Action::Delete) {
+            armed = false;
+        }
+        match act {
+            players::Action::Back => {
+                self.sfx(ctx, "confirm");
+                return State::Title { sel: TITLE_PLAYERS };
+            }
+            players::Action::Moved => self.sfx(ctx, "cursor"),
+            players::Action::Avatar(d) => {
+                let n = players::AVATARS.len() as i32;
+                self.profile.avatar = (self.profile.avatar as i32 + d).rem_euclid(n) as usize;
+                self.profile.save(&root);
+                self.sfx(ctx, "cursor");
+            }
+            players::Action::Pick(k) if k == active => {
+                self.sfx(ctx, "confirm");
+                return State::NameEntry { purpose: NamePurpose::Rename, text: self.profile.name.clone(), sel: players::DONE };
+            }
+            players::Action::Pick(k) if self.slots.get(k).is_some_and(|s| s.is_some()) => {
+                self.switch_profile(&root, k);
+                self.sfx(ctx, "equip");
+                let s = self.lang.get("ui.player_switched").replace("{s}", &self.profile.name);
+                self.hub_toast = (s, 2.5);
+            }
+            players::Action::Pick(k) => {
+                self.sfx(ctx, "confirm");
+                return State::NameEntry { purpose: NamePurpose::Create(k), text: String::new(), sel: 0 };
+            }
+            players::Action::Delete if !armed => {
+                armed = true;
+                sel = players::DELETE;
+                self.sfx(ctx, "cursor");
+            }
+            players::Action::Delete => {
+                // le joueur actif est efface ; on passe au premier autre joueur (ou a un nouveau LINK)
+                armed = false;
+                profiles::delete_slot(&root, active);
+                let next = (0..profiles::SLOTS).find(|&k| k != active && self.slots.get(k).is_some_and(|s| s.is_some()));
+                self.profile = match next.and_then(|k| Profile::load_slot(&root, k)) {
+                    Some(p) => p,
+                    None => {
+                        let p = Profile::fresh(active, profiles::DEFAULT_NAME, 0);
+                        p.save(&root);
+                        p
+                    }
+                };
+                profiles::set_active(&root, self.profile.slot);
+                chars::apply_skins(&mut self.content, &self.profile);
+                self.slots = profiles::all_slots(&root);
+                sel = self.profile.slot;
+                self.sfx(ctx, "confirm");
+                self.toast("ui.player_deleted");
+            }
+            players::Action::None => {}
+        }
+        State::Players { sel, armed }
+    }
+
+    fn update_name(&mut self, ctx: &mut Ctx, nav: &NavIn, purpose: NamePurpose, mut text: String, mut sel: usize) -> State {
+        match players::name_input(ctx, nav, &mut text, &mut sel) {
+            players::NameAction::Moved | players::NameAction::Typed => self.sfx(ctx, "cursor"),
+            players::NameAction::Cancel => {
+                self.sfx(ctx, "confirm");
+                return match purpose {
+                    NamePurpose::Create(k) => State::Players { sel: k, armed: false },
+                    NamePurpose::Rename => State::Players { sel: self.profile.slot, armed: false },
+                    NamePurpose::Pseudo { stage, sel, .. } => State::Scores { tab: scores::MINE, sel, stage, version: String::new() },
+                };
+            }
+            players::NameAction::Done => {
+                let name = text.trim().to_string();
+                if name.is_empty() {
+                    self.sfx(ctx, "error");
+                } else {
+                    return self.name_done(ctx, purpose, name);
+                }
+            }
+            players::NameAction::None => {}
+        }
+        State::NameEntry { purpose, text, sel }
+    }
+
+    fn name_done(&mut self, ctx: &mut Ctx, purpose: NamePurpose, name: String) -> State {
+        let root = ctx.root.clone();
+        match purpose {
+            NamePurpose::Create(k) => {
+                self.profile.save(&root);
+                let p = Profile::fresh(k, &name, self.free_avatar(k));
+                p.save(&root);
+                self.profile = p;
+                profiles::set_active(&root, k);
+                chars::apply_skins(&mut self.content, &self.profile);
+                self.slots = profiles::all_slots(&root);
+                self.sfx(ctx, "relic");
+                let s = self.lang.get("ui.player_created").replace("{s}", &name);
+                self.hub_toast = (s, 2.5);
+                State::Players { sel: k, armed: false }
+            }
+            NamePurpose::Rename => {
+                self.profile.name = name;
+                self.profile.save(&root);
+                self.slots = profiles::all_slots(&root);
+                self.sfx(ctx, "equip");
+                State::Players { sel: self.profile.slot, armed: false }
+            }
+            NamePurpose::Pseudo { rec, stage, sel } => {
+                self.profile.pseudo = name.clone();
+                self.profile.save(&root);
+                let map = self.stage_ids.get(stage).cloned().unwrap_or_default();
+                self.online.submit(Submission {
+                    map: map.clone(),
+                    version: rec.version.clone(),
+                    name,
+                    score: rec.score,
+                    time: rec.time,
+                    kills: rec.kills,
+                    level: rec.level,
+                    bosses: rec.bosses,
+                    won: rec.won,
+                    character: rec.character.clone(),
+                    difficulty: rec.difficulty,
+                    mult: rec.mult,
+                });
+                self.publishing = Some((map, rec));
+                self.sfx(ctx, "confirm");
+                self.hub_toast = (self.lang.get("ui.publishing").to_string(), 30.0);
+                State::Scores { tab: scores::MINE, sel, stage, version: String::new() }
+            }
+        }
+    }
+
+    /// Reponse du serveur a une publication.
+    fn poll_publish(&mut self, ctx: &mut Ctx) {
+        if self.publishing.is_none() {
+            return;
+        }
+        let (ok, msg) = match self.online.submit_status() {
+            NetStatus::Done(rep) => {
+                let msg = match rep.rank {
+                    Some(n) => self.lang.get("ui.published_rank").replace("{n}", &n.to_string()),
+                    None => self.lang.get("ui.published_ok").to_string(),
+                };
+                (true, msg)
+            }
+            NetStatus::Failed(e) => {
+                let key = match e.as_str() {
+                    "bad_name" => "ui.net.bad_name",
+                    "implausible" => "ui.net.implausible",
+                    "rate_limited" => "ui.net.rate_limited",
+                    "duplicate" => "ui.already_published",
+                    "old_version" => "ui.net.old_version",
+                    _ => "ui.net.offline",
+                };
+                log::info!("publication refusee : {e}");
+                (e == "duplicate", self.lang.get(key).to_string())
+            }
+            _ => return,
+        };
+        if let Some((map, rec)) = self.publishing.take() {
+            if ok {
+                let found = self.profile.scores.get_mut(&map).and_then(|l| l.iter_mut().find(|r| r.score == rec.score && r.time == rec.time && r.kills == rec.kills));
+                if let Some(r) = found {
+                    r.published = true;
+                }
+                self.profile.save(&ctx.root);
+                self.online.refresh();
+            }
+        }
+        self.online.clear_submit();
+        self.sfx(ctx, if ok { "reward" } else { "error" });
+        self.hub_toast = (msg, 4.0);
+    }
+
+    /// Lignes de l'ecran Classements.
+    fn score_rows(&self, ctx: &Ctx, tab: usize, stage: usize, version: &str) -> (Vec<hub::Row>, Vec<String>) {
+        let lang = &self.lang;
+        let stage_id = self.stage_ids.get(stage).map(|s| s.as_str()).unwrap_or("");
+        let board = self.online.board();
+        let diffs: Vec<String> = self.meta.difficulties.iter().map(|d| lang.get(&format!("difficulty.{}.name", d.id)).to_string()).collect();
+        let v = scores::View {
+            lang,
+            content: &self.content,
+            atlas: &ctx.atlas,
+            stage: stage_id,
+            profile: &self.profile,
+            slots: &self.slots,
+            difficulties: &diffs,
+            board: &board,
+            version,
+        };
+        scores::rows(&v, tab)
+    }
+
+    /// Version voisine dans le classement mondial (vide : la plus recente).
+    fn step_version(&self, stage_id: &str, version: &str, d: i32) -> String {
+        let ((map, _), st) = self.online.board();
+        let NetStatus::Done(b) = st else { return version.to_string() };
+        if map != stage_id || b.versions.is_empty() {
+            return version.to_string();
+        }
+        let cur = if version.is_empty() { b.version.clone() } else { version.to_string() };
+        let n = b.versions.len() as i32;
+        let k = b.versions.iter().position(|v| *v == cur).unwrap_or(0) as i32;
+        let next = (k + d).rem_euclid(n) as usize;
+        if next == 0 {
+            String::new()
+        } else {
+            b.versions[next].clone()
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn update_scores(&mut self, ctx: &mut Ctx, nav: &NavIn, mut tab: usize, mut sel: usize, mut stage: usize, mut version: String) -> State {
+        let ns = self.stage_ids.len().max(1);
+        stage = stage.min(ns - 1);
+        let stage_id = self.stage_ids.get(stage).cloned().unwrap_or_default();
+        if tab == scores::WORLD {
+            self.online.fetch(&stage_id, &version);
+        }
+        let n = self.score_rows(ctx, tab, stage, &version).0.len();
+        let input = hub::input(nav, ctx.view, scores::TABS.len(), n, &mut sel);
+        let head = scores::head(tab);
+        match input {
+            hub::Input::Back => {
+                self.sfx(ctx, "confirm");
+                return State::Title { sel: TITLE_SCORES };
+            }
+            hub::Input::Moved => self.sfx(ctx, "cursor"),
+            hub::Input::Tab(k) => {
+                if k != tab {
+                    tab = k;
+                    sel = 0;
+                    self.sfx(ctx, "cursor");
+                }
+            }
+            hub::Input::Left(k) | hub::Input::Right(k) => {
+                let d = if matches!(input, hub::Input::Left(_)) { -1 } else { 1 };
+                if k == scores::STAGE_ROW {
+                    stage = (stage as i32 + d).rem_euclid(ns as i32) as usize;
+                } else if tab == scores::WORLD && k == scores::VERSION_ROW {
+                    version = self.step_version(&stage_id, &version, d);
+                } else {
+                    tab = (tab as i32 + d).rem_euclid(scores::TABS.len() as i32) as usize;
+                    sel = 0;
+                }
+                self.sfx(ctx, "cursor");
+            }
+            hub::Input::Pick(k) if k == scores::STAGE_ROW => {
+                stage = (stage + 1) % ns;
+                self.sfx(ctx, "cursor");
+            }
+            hub::Input::Pick(k) if tab == scores::WORLD && k == scores::VERSION_ROW => {
+                version = self.step_version(&stage_id, &version, 1);
+                self.sfx(ctx, "cursor");
+            }
+            hub::Input::Pick(k) if tab == scores::MINE => {
+                let rec = self.profile.scores.get(&stage_id).and_then(|l| l.get(k.wrapping_sub(head))).cloned();
+                match rec {
+                    Some(r) if r.published => {
+                        self.sfx(ctx, "error");
+                        self.toast("ui.already_published");
+                    }
+                    Some(_) if self.publishing.is_some() => {
+                        self.sfx(ctx, "error");
+                        self.toast("ui.publishing");
+                    }
+                    Some(r) => {
+                        self.sfx(ctx, "confirm");
+                        self.hub_toast.1 = 0.0;
+                        let text = if self.profile.pseudo.is_empty() { self.profile.name.clone() } else { self.profile.pseudo.clone() };
+                        return State::NameEntry { purpose: NamePurpose::Pseudo { rec: r, stage, sel }, text, sel: players::DONE };
+                    }
+                    None => {}
+                }
+            }
+            hub::Input::Pick(_) | hub::Input::None => {}
+        }
+        State::Scores { tab, sel, stage, version }
+    }
+
     fn draw_hub(&self, ctx: &Ctx, list: &mut DrawList) {
         let lang = &self.lang;
         let (title, tabs, tab, sel, rows, details, corner) = match self.state {
@@ -1655,6 +2126,10 @@ impl Game {
             State::Records { tab, sel, armed } => {
                 let (r, d) = records::rows(&self.content, &self.vis, &self.profile, lang, tab, armed);
                 (lang.get("ui.profile"), &records::TABS[..], tab, sel, r, d, None)
+            }
+            State::Scores { tab, sel, stage, ref version } => {
+                let (r, d) = self.score_rows(ctx, tab, stage, version);
+                (lang.get("ui.scores"), &scores::TABS[..], tab, sel, r, d, None)
             }
             State::Controls { tab, sel, wait, .. } => {
                 let (r, d) = controls::rows(&ctx.input, lang, &self.bindings, tab, wait.map(|w| w.0));
@@ -1675,6 +2150,7 @@ impl Game {
         let view = ctx.view;
         self.hub_toast.1 = (self.hub_toast.1 - dt).max(0.0);
         let pause = ctx.input.action_pressed(&self.bindings, "pause");
+        self.poll_publish(ctx);
         let state = std::mem::replace(&mut self.state, State::Playing);
         self.state = match state {
             State::Title { mut sel } => {
@@ -1695,10 +2171,23 @@ impl Game {
                         self.sfx(ctx, "confirm");
                         State::CharSelect { sel: self.char_sel() }
                     }
+                    Some(TitleItem::Players) => {
+                        self.sfx(ctx, "confirm");
+                        self.hub_toast.1 = 0.0;
+                        self.slots = profiles::all_slots(&ctx.root);
+                        State::Players { sel: self.profile.slot, armed: false }
+                    }
                     Some(TitleItem::Shop) => {
                         self.sfx(ctx, "confirm");
                         self.hub_toast.1 = 0.0;
                         State::Shop { tab: 0, sel: 0 }
+                    }
+                    Some(TitleItem::Scores) => {
+                        self.sfx(ctx, "confirm");
+                        self.hub_toast.1 = 0.0;
+                        self.slots = profiles::all_slots(&ctx.root);
+                        let stage = self.stage_ids.iter().position(|s| *s == self.world.map_id).unwrap_or(0);
+                        State::Scores { tab: scores::MINE, sel: 0, stage, version: String::new() }
                     }
                     Some(TitleItem::Profile) => {
                         self.sfx(ctx, "confirm");
@@ -1751,14 +2240,23 @@ impl Game {
                 if moved {
                     self.sfx(ctx, "cursor");
                 }
-                // gauche / droite : couleur du personnage (s'il en propose plusieurs)
-                if (nav.left || nav.right) && sel < n {
+                // gauche / droite (ou clic sur le bouton des couleurs) : couleur du personnage
+                let mut side = if nav.right { 1 } else if nav.left { -1 } else { 0 };
+                if nav.click {
+                    if let Some((bp, bs)) = chars::skin_button(ctx, &self.lang, &self.content, &self.profile, &ids, sel) {
+                        let m = nav.mouse;
+                        if m.x >= bp.x && m.y >= bp.y && m.x < bp.x + bs.x && m.y < bp.y + bs.y {
+                            side = if m.x < bp.x + bs.x * 0.5 { -1 } else { 1 };
+                        }
+                    }
+                }
+                if side != 0 && sel < n {
                     let id = ids[sel].clone();
                     let def = &self.content.characters[&id];
                     let m = def.skins.len();
                     if m > 1 && chars::unlocked(def, &self.profile) {
                         let k = chars::skin(def, &self.profile, &id);
-                        let k = if nav.right { (k + 1) % m } else { (k + m - 1) % m };
+                        let k = if side > 0 { (k + 1) % m } else { (k + m - 1) % m };
                         self.profile.skins.insert(id, k);
                         self.profile.save(&ctx.root);
                         chars::apply_skins(&mut self.content, &self.profile);
@@ -1861,6 +2359,9 @@ impl Game {
             }
             State::Shop { tab, sel } => self.update_shop(ctx, nav, tab, sel),
             State::Records { tab, sel, armed } => self.update_records(ctx, nav, tab, sel, armed),
+            State::Players { sel, armed } => self.update_players(ctx, nav, sel, armed),
+            State::NameEntry { purpose, text, sel } => self.update_name(ctx, nav, purpose, text, sel),
+            State::Scores { tab, sel, stage, version } => self.update_scores(ctx, nav, tab, sel, stage, version),
             State::Controls { tab, sel, wait, from_title } => self.update_controls(ctx, nav, tab, sel, wait, from_title, dt),
             State::About { mut sel, toast } => {
                 let toast = (toast - dt).max(0.0);
@@ -2009,6 +2510,7 @@ impl Game {
                 let t2 = t + dt;
                 if t < menus::CHEST_OPEN && t2 >= menus::CHEST_OPEN {
                     self.sfx(ctx, "chest_open");
+                    self.sfx(ctx, "chest_fanfare");
                     if reward.evolution.is_some() {
                         self.sfx(ctx, "evolution");
                     }
@@ -2566,8 +3068,56 @@ impl Game {
                 }
                 list.frame(f, pos - Vec2::new(0.0, s.z.round()), &prm);
             } else {
+                // lisibilite dans la foule : courte trainee, halo rouge qui pulse et contour sombre
+                let dir = s.vel.normalize_or_zero();
+                for k in 1..=2 {
+                    let q = pos - dir * (5.0 * k as f32);
+                    list.frame(f, q, &prm.color([1.0, 0.55, 0.45, 0.3 / k as f32]));
+                }
+                let beat = 0.5 + 0.5 * (rt * 10.0 + s.age * 3.0).sin();
+                list.set(Space::World, Blend::Add);
+                let halo = Params { scale: prm.scale * 1.7, ..prm }.flash([1.0, 0.25, 0.1], 1.0).color([1.0, 1.0, 1.0, 0.3 + 0.25 * beat]);
+                list.frame(f, pos, &halo);
+                list.set(Space::World, Blend::Alpha);
+                let edge = Params { flash: [0.25, 0.0, 0.05, 1.0], ..prm };
+                for d in [Vec2::X, -Vec2::X, Vec2::Y, -Vec2::Y] {
+                    list.frame(f, pos + d, &edge);
+                }
                 list.frame(f, pos, &prm);
             }
+        }
+
+        // barres de vie sous les mini-boss : elites, champions errants, Pikit et boss de mi-parcours
+        list.set(Space::World, Blend::Alpha);
+        for i in 0..h.len() {
+            let k = h.kind[i] as usize;
+            let boss = self.content.enemies[k].boss;
+            let mid_boss = boss && w.final_uid != Some(h.uid[i]);
+            let thief = Some(h.kind[i]) == w.thief_kind;
+            if !(h.elite[i] || mid_boss || thief) || h.hp[i] <= 0.0 {
+                continue;
+            }
+            let p = h.prev[i].lerp(h.pos[i], alpha);
+            if !in_view(p) {
+                continue;
+            }
+            let frac = (h.hp[i] / h.max_hp[i].max(1.0)).clamp(0.0, 1.0);
+            let es = self.vis.enemy_scale[k];
+            let bw = if boss { 44.0 } else { (18.0 * es).max(20.0) };
+            let at = Vec2::new((p.x - bw * 0.5).round(), (p.y + 4.0 + 2.0 * es).round());
+            let edge = if w.is_champion(i) {
+                CHAMPION
+            } else if thief {
+                THIEF
+            } else if boss {
+                rgb(255, 110, 110)
+            } else {
+                GOLD
+            };
+            list.rect(&white, at - Vec2::ONE, Vec2::new(bw + 2.0, 5.0), with_alpha(edge, 0.85));
+            list.rect(&white, at, Vec2::new(bw, 3.0), [0.12, 0.02, 0.04, 1.0]);
+            list.rect(&white, at, Vec2::new((bw * frac).round().max(1.0), 3.0), rgb(230, 40, 50));
+            list.rect(&white, at, Vec2::new((bw * frac).round().max(1.0), 1.0), rgb(255, 140, 140));
         }
 
         // jauges sous Link
@@ -2634,6 +3184,30 @@ impl Game {
             } else if !e.engaged {
                 let s = format!("{}s", e.t.ceil() as i32);
                 crate::hud::text(list, font, &s, ui + Vec2::new(0.0, 6.0), 1.0, with_alpha(CHAMPION, if blink { 1.0 } else { 0.7 }), engine::draw::Align::Center);
+            }
+        }
+        // Pikit voleur hors champ : fleche, distance et temps restant
+        if let (Some(th), Some(tp)) = (self.world.thief.as_ref(), self.world.thief_pos()) {
+            let ui = tp - cam + view * 0.5;
+            let m = 22.0;
+            let on_screen = ui.x >= 0.0 && ui.y >= 0.0 && ui.x <= view.x && ui.y <= view.y;
+            let font = ctx.atlas.font("main");
+            let blink = (ctx.real_time * 3.0).fract() < 0.65;
+            if !on_screen {
+                let c = Vec2::new(ui.x.clamp(m + 18.0, view.x - m - 18.0), ui.y.clamp(m + 74.0, view.y - 56.0));
+                if let Some(k) = self.world.thief_kind {
+                    let (anim, _) = self.vis.enemies[k as usize].pick(FACE_DOWN, 0.0, false);
+                    list.frame(ctx.atlas.frame(anim, ctx.real_time as f32), c + Vec2::new(0.0, 8.0), &Params::default().color([1.0, 1.0, 1.0, if blink { 1.0 } else { 0.7 }]));
+                }
+                let d = (ui - c).normalize_or_zero();
+                self.edge_arrow(ctx, list, c, d, 20.0);
+                let dist = ((tp - self.world.player.pos).length() / 16.0).round() as i32;
+                let s = format!("{dist}m {}s", th.t.ceil() as i32);
+                let ty = if d.y > 0.4 { -36.0 } else { 16.0 };
+                crate::hud::text(list, font, &s, c + Vec2::new(0.0, ty), 1.0, THIEF, engine::draw::Align::Center);
+            } else {
+                let s = format!("{}s", th.t.ceil() as i32);
+                crate::hud::text(list, font, &s, ui + Vec2::new(0.0, 8.0), 1.0, with_alpha(THIEF, if blink { 1.0 } else { 0.7 }), engine::draw::Align::Center);
             }
         }
         if let Some(bk) = self.world.bomb_kind {
@@ -2710,7 +3284,7 @@ impl Game {
                 let a = (t / 1.8).min(1.0) * 0.55;
                 list.rect(white, Vec2::ZERO, view, [0.25, 0.0, 0.0, a]);
             }
-            State::Dead { t, sel } => menus::draw_dead(list, ctx, &self.world, &self.vis, lang, *t, *sel),
+            State::Dead { t, sel } => menus::draw_dead(list, ctx, &self.world, &self.vis, lang, *t, *sel, self.last_score),
             State::Victory { t, sel } => {
                 let items = stages::victory_items(self.next_stage().is_some());
                 let mut notes = Vec::new();
@@ -2723,9 +3297,15 @@ impl Game {
                 for id in &self.last_chars {
                     notes.push(lang.get("ui.new_character").replace("{s}", &chars::name(lang, id)));
                 }
-                stages::draw_victory(list, ctx, &self.world, lang, *t, *sel, &items, self.last_banked, &notes);
+                stages::draw_victory(list, ctx, &self.world, lang, *t, *sel, &items, self.last_banked, self.last_score, &notes);
             }
-            State::CharSelect { .. } | State::StageSelect { .. } | State::Shop { .. } | State::Records { .. } => {}
+            State::CharSelect { .. }
+            | State::StageSelect { .. }
+            | State::Shop { .. }
+            | State::Records { .. }
+            | State::Players { .. }
+            | State::NameEntry { .. }
+            | State::Scores { .. } => {}
             State::Controls { .. } => self.draw_hub(ctx, list),
             State::Playing => {
                 let p = &self.world.player;
@@ -2871,11 +3451,34 @@ impl GameTrait for Game {
                 }
                 State::Title { sel } => {
                     let items = self.title_items();
-                    title::draw_title(list, ctx, &self.title_vis, &self.lang, &white, &items, *sel, self.menu_t)
+                    title::draw_title(list, ctx, &self.title_vis, &self.lang, &white, &items, *sel, self.profile.avatar, self.menu_t)
                 }
-                State::Shop { .. } | State::Records { .. } | State::Controls { .. } => {
+                State::Shop { .. } | State::Records { .. } | State::Controls { .. } | State::Scores { .. } => {
                     title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
                     self.draw_hub(ctx, list);
+                }
+                State::Players { sel, armed } => {
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    let views: Vec<Option<players::SlotView>> = (0..profiles::SLOTS)
+                        .map(|k| {
+                            if k == self.profile.slot {
+                                Some(players::SlotView::of(&self.profile))
+                            } else {
+                                self.slots.get(k).and_then(|s| s.as_ref()).map(players::SlotView::of)
+                            }
+                        })
+                        .collect();
+                    let toast = if self.hub_toast.1 > 0.0 { self.hub_toast.0.as_str() } else { "" };
+                    players::draw(list, ctx, &self.lang, &views, self.profile.slot, *sel, *armed, self.stage_ids.len(), toast, self.menu_t);
+                }
+                State::NameEntry { purpose, text, sel } => {
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    let (key, avatar) = match purpose {
+                        NamePurpose::Create(k) => ("ui.name_new", self.free_avatar(*k)),
+                        NamePurpose::Rename => ("ui.name_rename", self.profile.avatar),
+                        NamePurpose::Pseudo { .. } => ("ui.name_pseudo", self.profile.avatar),
+                    };
+                    players::draw_name(list, ctx, &self.lang, self.lang.get(key), text, *sel, Some(avatar), self.menu_t);
                 }
                 State::CharSelect { sel } => {
                     title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);

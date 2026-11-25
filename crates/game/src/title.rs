@@ -24,8 +24,12 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TitleItem {
     Play,
+    /// Joueur actif (nom et avatar) : ouvre l'ecran Joueurs.
+    Players,
     Shop,
     Profile,
+    /// Classements (meilleurs scores locaux et mondiaux).
+    Scores,
     Options,
     About,
     Update,
@@ -146,18 +150,28 @@ pub fn layout(view: Vec2, n: usize) -> Layout {
     let right_edge = (view.x - bg_pos.x) / k;
     let lx = LOGO_AT.x.min(right_edge - LOGO_HALF_W - 4.0);
     let logo = (bg_pos + Vec2::new(lx, LOGO_AT.y) * k).round();
-    let big = view.x >= 560.0;
+    let mut big = view.x >= 560.0;
     let left = (view.x * 0.07).round().max(14.0);
     let title_y = (view.y * 0.09).round();
-    let mut item_h: f32 = if big { 30.0 } else { 22.0 };
     let item_w = (logo.x - LOGO_HALF_W * k - left - 4.0).clamp(140.0, 260.0);
-    // menu long (boutique, profil, mise a jour) : on remonte puis on resserre au-dessus du pied de page
+    // menu long (mise a jour, petite fenetre) : on remonte jusque sous le nom du jeu, on resserre,
+    // et si les grands caracteres n'y tiennent plus, nom du jeu et menu passent en petits caracteres
     let foot = view.y - 30.0;
-    let mut y0 = (view.y * 0.44).round();
-    let need = n as f32 * item_h;
-    if y0 + need > foot {
-        y0 = (foot - need).max((view.y * 0.3).round());
-        item_h = item_h.min(((foot - y0) / n.max(1) as f32).floor()).max(if big { 24.0 } else { 18.0 });
+    let nf = n.max(1) as f32;
+    let place = |big: bool| -> (f32, f32) {
+        let item_h: f32 = if big { 30.0 } else { 22.0 };
+        let y0 = (view.y * 0.44).round();
+        if y0 + nf * item_h <= foot {
+            return (y0, item_h);
+        }
+        let top = title_y + 2.0 * 14.0 * if big { 3.0 } else { 2.0 } + 8.0;
+        let y0 = (foot - nf * item_h).max(top);
+        (y0, item_h.min(((foot - y0) / nf).floor()).max(18.0))
+    };
+    let (mut y0, mut item_h) = place(big);
+    if big && item_h < 28.0 {
+        big = false;
+        (y0, item_h) = place(false);
     }
     let items = (0..n)
         .map(|i| (Vec2::new(left - 8.0, y0 + i as f32 * item_h - 4.0), Vec2::new(item_w, item_h - 4.0)))
@@ -255,6 +269,7 @@ pub fn draw_title(
     white: &assetkit::meta::Frame,
     items: &[(TitleItem, String)],
     sel: usize,
+    avatar: usize,
     t: f32,
 ) {
     let view = ctx.view;
@@ -283,8 +298,9 @@ pub fn draw_title(
         } else {
             SOFT
         };
-        // libelle trop long pour le cadre : plus petit
-        let room = s.x - 12.0 - 10.0 * is;
+        // libelle trop long pour le cadre : plus petit (l'avatar du joueur prend la droite de sa ligne)
+        let players = *item == TitleItem::Players;
+        let room = s.x - 12.0 - 10.0 * is - if players { 22.0 } else { 0.0 };
         let is = if main.measure(label) as f32 * is > room { 1.0 } else { is };
         let ty = (p.y + (s.y - main.line_height as f32 * is) * 0.5 + is).round();
         if k == sel {
@@ -294,6 +310,10 @@ pub fn draw_title(
         }
         let lx = if l.big { p.x + 28.0 } else { p.x + 18.0 };
         text(list, main, label, Vec2::new(lx, ty), is, c, Align::Left);
+        if players {
+            let at = Vec2::new(p.x + s.x - 12.0, p.y + s.y * 0.5);
+            crate::players::draw_avatar(list, &ctx.atlas, avatar, at, 16.0, t, WHITE);
+        }
     }
     // pied de page
     let fy = view.y - 16.0;

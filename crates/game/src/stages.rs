@@ -343,6 +343,7 @@ pub fn draw_victory(
     sel: usize,
     items: &[&str],
     banked: u64,
+    score: Option<(u64, bool)>,
     notes: &[String],
 ) {
     let view = ctx.view;
@@ -373,17 +374,28 @@ pub fn draw_victory(
         (lang.get("ui.level_reached"), p.level.to_string()),
         (lang.get("ui.enemies_defeated"), p.kills.to_string()),
         (lang.get("ui.rupees_banked"), format!("+{banked}")),
+        (lang.get("ui.score"), score.map(|s| crate::scores::fmt_score(s.0)).unwrap_or_default()),
     ];
+    let rows = &rows[..if score.is_some() { 5 } else { 4 }];
     let w = 300.0f32.min(view.x - 40.0);
     let x0 = ((view.x - w) * 0.5).round();
     let ry = (view.y * 0.16).round() + 62.0;
     for (k, (l, v)) in rows.iter().enumerate() {
         let y = ry + k as f32 * 16.0;
         text(list, main, l, Vec2::new(x0, y), 1.0, with_alpha(SOFT, a), Align::Left);
-        text(list, main, v, Vec2::new(x0 + w, y), 1.0, with_alpha(if k == 3 { WIN } else { WHITE }, a), Align::Right);
+        let vc = match k {
+            3 => WIN,
+            4 => GOLD,
+            _ => WHITE,
+        };
+        text(list, main, v, Vec2::new(x0 + w, y), 1.0, with_alpha(vc, a), Align::Right);
     }
     let mut y = ry + rows.len() as f32 * 16.0 + 8.0;
     let blink = (t * 2.5).fract() < 0.75;
+    if score.is_some_and(|s| s.1) {
+        text(list, main, lang.get("ui.new_record"), Vec2::new(view.x * 0.5, y), 1.0, with_alpha(GOLD, if blink { a } else { a * 0.6 }), Align::Center);
+        y += 14.0;
+    }
     for s in notes {
         for line in wrap(main, s, view.x - 40.0, 1.0) {
             text(list, main, &line, Vec2::new(view.x * 0.5, y), 1.0, with_alpha(rgb(150, 240, 150), if blink { a } else { a * 0.7 }), Align::Center);
@@ -404,8 +416,44 @@ pub fn draw_victory(
 
 #[cfg(test)]
 mod tests {
+    use engine::Vec2;
+    use sim::pickups::PickupKind;
     use sim::{Event, PlayerInput, World};
     use std::path::Path;
+
+    /// Pikit voleur vaincu : tous les rubis au sol reviennent au joueur.
+    #[test]
+    fn pikit_brings_back_rupees() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let content = crate::content::load_content(&root);
+        let mut w = World::new(content, "link", "hyrule_field", 11);
+        w.player.god = true;
+        assert!(w.thief_kind.is_some(), "Pikit absent des ennemis");
+        let start = w.player.pos;
+        for k in 0..6 {
+            let at = start + Vec2::from_angle(k as f32) * 260.0;
+            w.pickups.spawn(PickupKind::RupeeRed, 20, at, Vec2::ZERO, 0.0);
+        }
+        w.thief_t = 0.0;
+        let input = PlayerInput::default();
+        w.tick(&input);
+        let pos = w.thief_pos().expect("Pikit apparu");
+        let i = w.horde.pos.iter().position(|&p| p == pos).unwrap();
+        let before = w.player.rupees;
+        w.damage_enemy(i, 1.0e6, false, Vec2::X, 0.0, 0);
+        let mut looted = None;
+        for _ in 0..600 {
+            w.tick(&input);
+            for e in w.events.drain(..) {
+                if let Event::ThiefLooted { count, .. } = e {
+                    looted = Some(count);
+                }
+            }
+        }
+        assert!(looted.unwrap_or(0) >= 6, "rubis comptes : {looted:?}");
+        assert!(w.player.rupees >= before + 120, "rubis ramasses : {} -> {}", before, w.player.rupees);
+        assert!(w.thief.is_none());
+    }
 
     /// Chaque stage se gagne : boss final, porte de sortie, victoire. Le decor laisse de la place.
     #[test]

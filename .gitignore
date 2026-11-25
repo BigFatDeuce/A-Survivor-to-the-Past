@@ -6,6 +6,9 @@
 /settings.ron
 /profile.ron
 /profile.broken.ron
+/profile.old.ron
+/profile_*.ron
+/profiles.ron
 /profile_code.txt
 *.ron.tmp
 /saves/
@@ -38,6 +41,8 @@ desktop.ini
 
 # Version web copiee dans le site au moment du deploiement (make_web.py puis make_site.py)
 /site/play/
+# Livret PDF (dist/manual, joint a chaque release) copie dans le site par make_site.py
+/site/manual/
 
 # Restes d'essais de mise a jour lances depuis le dossier du projet
 /A Survivor to the Past.exe

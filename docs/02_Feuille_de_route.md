@@ -178,10 +178,47 @@ Chaque jalon se termine par un point avec toi (démo + questions éventuelles).
 - Traductions des 7 langues (`lang_v05.py`, `lang_v05b.py`) ; tests 10/10 ; vérification de l'interface :
   0 problème sur 2940 écrans.
 
+### Version 0.6.0 : publiée le 25/11/2026
+- **Sons plus fidèles** : la fanfare d'objet bien connue (`item_get_4`, reconnue à la hauteur des notes) à
+  l'ouverture des coffres, après le bruit du coffre ; sons d'origine pour les tirs d'Agahnim (et sa charge), des
+  archers, Lynels, Ganon et Kholdstare, l'évolution, les reliques, les récompenses et le déblocage d'un personnage.
+- **Fusions mises en évidence** : dans les choix de niveau, une carte qui peut fusionner avec une arme ou un objet
+  déjà possédé est rose (bordure qui pulse, halo, deux étincelles), « Fusionne avec » et l'icône du partenaire qui
+  sautille. **Fusions revues** (choix validés) : Boomerang + Palmes de Zora, Grappin + Bottes de Pégase,
+  Abeilles + Filet à papillons, Canne de Byrna + Cape magique.
+- **5 joueurs** (`players.rs`, `profile.rs`) : un fichier par joueur (`profile_1.ron` à `profile_5.ron`, joueur
+  actif dans `profiles.ron`), nom (12 caractères, clavier direct ou grille de lettres à la manette / souris) et
+  avatar parmi 20 sprites d'*A Link to the Past* ; créer, changer, renommer, supprimer (double confirmation).
+  L'ancien `profile.ron` devient le premier joueur (copie `profile.old.ron`). Le joueur actif et son avatar sont
+  dans le menu titre (mise en page du menu adaptée aux menus longs).
+- **Link (Four Swords)** : bouton de couleur sous le portrait qui « respire » (fondu entre les 4 couleurs).
+- **Barres de vie** sous les mini-boss, champions errants et le Pikit (le boss final garde sa barre en haut).
+- **Tirs ennemis** 22 % plus lents (`rules.ron` `shot_speed`), halo rouge pulsé, traînée et contour sombre ; zone
+  de contact = 90 % de la taille visible du sprite (`shot_hitbox`, calculée depuis l'atlas).
+- **Pikit voleur** (`crates/sim/src/thief.rs`, choix validé) : vers 1:50 puis toutes les 150 à 190 s (2 à 3 fois
+  par partie), un Pikit arrive hors de l'écran (annonce, flèche avec distance et temps), fuit en sautant ; vaincu,
+  tous les rubis au sol reviennent au joueur ; ignoré, il repart au bout de 45 s.
+- **Score** (choix validé) : ennemis x10 + secondes x10 + boss x1000 + victoire 5000, multiplié par la difficulté et
+  les Sceaux ; affiché en fin de partie avec « Nouveau record ! » ; 5 meilleures parties par stage et par joueur.
+- **Classements** (`scores.rs`, `online.rs`) : mes parties, joueurs de cet ordinateur, monde (top 100 par stage et
+  par version, la dernière par défaut). Publication avec un pseudo. Serveur : Cloudflare Worker (`worker/index.js`)
+  + base D1 `astp-scores` (`worker/schema.sql`) sur le domaine du site ; **anti-triche par vraisemblance** (choix
+  validé, pas de rejeu) : score recalculé, limites de temps / ennemis / niveau / boss / multiplicateur, 12 envois
+  par heure et 40 par jour par adresse (empreinte salée, effacée au bout de 30 jours), pseudos filtrés, 3 parties
+  gardées par pseudo. Suppression manuelle : `npx wrangler d1 execute astp-scores --remote --command "DELETE ..."`.
+  `make_site.py` met à jour `LATEST` et `STAGES` dans `wrangler.jsonc`. **À la 1.0 : les scores des 0.x sont
+  masqués par le serveur et à effacer** (`DELETE FROM scores WHERE version LIKE '0.%'`).
+- **Manuel** (`research/tools/make_manual.py`, textes `manual_text.py`) sur le modèle du livret d'*A Link to the
+  Past* : couverture, légende, 11 chapitres, listes tirées des données du jeu, captures prises par le jeu dans un
+  dossier temporaire. **À régénérer à chaque version.** **Écart** : français et anglais seulement (pas 7 langues).
+- **Écart** : les caractères `&` et `_` n'existent pas dans la police : la grille de noms propose `+` et `:`.
+- Traductions des 7 langues (`lang_v06.py`) ; tests 15/15 (+ essais du serveur `node --test worker/test.mjs`) ;
+  vérification de l'interface : 0 problème sur 3192 écrans.
+
 ## Idées du 24/11/2026 : propositions (à valider)
 | Idée | Proposition | Jalon proposé |
 |---|---|---|
-| **Classement en ligne** par map, avec pseudo | Petit service Cloudflare (Worker + base D1) sur le même domaine. La simulation est déterministe : le jeu envoie la graine et les entrées de la partie, le serveur rejoue la partie (simulation compilée en WASM) et n'enregistre que les scores vérifiés. Pseudo filtré, limite d'envois. | J8 |
+| **Classement en ligne** par map, avec pseudo | Petit service Cloudflare (Worker + base D1) sur le même domaine, pseudo filtré, limite d'envois. Rejeu des parties côté serveur écarté au profit de contrôles de vraisemblance (choix du 25/11/2026). | **Fait (0.6.0)** |
 | **Export / import des sauvegardes** | Profil dans un seul fichier ; boutons Exporter / Importer (fichier, ou code à copier-coller pour le navigateur et Android). | **Fait (0.3.0)** |
 | **Bestiaire, armurerie, statistiques** | Bestiaire (ennemis vus/vaincus, description, sprite animé), armurerie (armes, évolutions découvertes et leur recette), statistiques (parties, temps, ennemis vaincus, records par map). | **Fait (0.3.0)** |
 | **Toutes les plateformes** | Windows, Linux, macOS, Android, navigateur : **uniquement quand tu diras que le jeu est prêt**. Points à prévoir : commandes tactiles (Android), musiques en flux (navigateur, 50 Mo), signature macOS. | Windows et **navigateur faits (0.3.0)** ; Linux, macOS, Android sur ton signal |

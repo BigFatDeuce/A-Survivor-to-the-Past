@@ -71,7 +71,7 @@
             [Amount(1)],
             [Damage(5.0), Duration(0.25)],
         ],
-        evolution: Some((passive: "pegasus_boots", into: "magic_boomerang")),
+        evolution: Some((passive: "flippers", into: "magic_boomerang")),
     ),
     "magic_boomerang": (
         kind: Boomerang, icon: "icon_magic_boomerang", sprite: "proj_magic_boomerang", sfx: "boomerang", evolved: true,
@@ -172,7 +172,7 @@
             [Amount(1), Area(0.15)],
             [Duration(0.4), Damage(5.0)],
         ],
-        evolution: Some((passive: "bug_net", into: "fairy_ring")),
+        evolution: Some((passive: "magic_cape", into: "fairy_ring")),
     ),
     "fairy_ring": (
         kind: Orbit, icon: "icon_fairy", sprite: "fairy", sfx: "fairy", evolved: true,
@@ -193,7 +193,7 @@
             [Damage(5.0), Speed(0.15)],
             [Amount(1), Cooldown(-0.15)],
         ],
-        evolution: Some((passive: "flippers", into: "longshot")),
+        evolution: Some((passive: "pegasus_boots", into: "longshot")),
     ),
     "longshot": (
         kind: Boomerang, icon: "icon_hookshot", sprite: "proj_hookshot", sfx: "hookshot", chain: true, evolved: true,
@@ -257,7 +257,7 @@
             [Amount(1)],
             [Damage(3.0), Amount(1)],
         ],
-        evolution: Some((passive: "magic_cape", into: "golden_bees")),
+        evolution: Some((passive: "bug_net", into: "golden_bees")),
     ),
     "golden_bees": (
         kind: Bees, icon: "icon_golden_bee", sprite: "proj_golden_bee", sfx: "bees", evolved: true,

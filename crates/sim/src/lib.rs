@@ -11,6 +11,7 @@ pub mod mods;
 pub mod pickups;
 pub mod props;
 pub mod rng;
+pub mod thief;
 pub mod upgrades;
 pub mod world;
 

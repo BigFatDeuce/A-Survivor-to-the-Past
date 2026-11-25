@@ -121,6 +121,13 @@
         "life_refill":       (max_voices: 1, min_interval: 0.3, volume: 0.45, pitch_jitter: 0.0),
         "item_get_4":        (max_voices: 1, min_interval: 0.3, volume: 0.55, pitch_jitter: 0.0),
         "magic_powder_2":    (max_voices: 1, min_interval: 0.3, volume: 0.4, pitch_jitter: 0.0),
+        // 0.6 : sons propres a certains ennemis, fanfare des coffres, Pikit
+        "agahnim_shoot":     (max_voices: 2, min_interval: 0.15, volume: 0.36, pitch_jitter: 0.03),
+        "agahnim_charge":    (max_voices: 1, min_interval: 0.4, volume: 0.36, pitch_jitter: 0.0),
+        "heart_piece_1":     (max_voices: 1, min_interval: 0.3, volume: 0.5, pitch_jitter: 0.0),
+        "sword_shine_2":     (max_voices: 1, min_interval: 0.2, volume: 0.42, pitch_jitter: 0.0),
+        "wallet_1":          (max_voices: 1, min_interval: 0.3, volume: 0.45, pitch_jitter: 0.0),
+        "zol":               (max_voices: 2, min_interval: 0.2, volume: 0.28, pitch_jitter: 0.08),
     },
     // Evenement du jeu -> effets (un tirage au hasard si plusieurs).
     events: {
@@ -155,8 +162,11 @@
         "boss_hit":      ["boss_hit"],
         "boss_die":      ["boss_dies"],
         "chest_drop":    ["chest_appears_1"],
+        // coffre : craquement du couvercle puis la fanfare connue de tous (La, La#, Si, Do)
         "chest_open":    ["chest_open"],
-        "evolution":     ["item_get_3"],
+        "chest_fanfare": ["item_get_4"],
+        // evolution : eclat de l'Epee de legende par-dessus la fanfare
+        "evolution":     ["sword_shine_2"],
         "mass_kill":     ["spin_energy"],
         // sons des armes (cle `sfx` de weapons.ron)
         "bow":           ["arrow_1", "arrow_2"],
@@ -178,7 +188,7 @@
         "portal_open":   ["secret"],
         "buy":           ["item_get_2"],
         "equip":         ["button"],
-        "relic":         ["item_get_4"],
+        "relic":         ["heart_piece_1"],
         "save_code":     ["message_finish"],
         "victory":       ["warp"],
         // 0.4
@@ -194,12 +204,24 @@
         "net_pickup":    ["bug_net"],
         "fairy_pickup":  ["life_refill"],
         "medallion":     ["thunder"],
-        "char_unlock":   ["item_get_4"],
+        "char_unlock":   ["secret"],
         "powder":        ["magic_powder_2"],
         // 0.5
         "encounter":     ["secret"],
         "encounter_won": ["item_get_3"],
         "encounter_fled": ["menu_close"],
-        "reward":        ["item_get_4"],
+        "reward":        ["item_get_2"],
+        // 0.6 : tirs et annonces propres a un ennemi (cle « shot.<ennemi> » / « windup.<ennemi> »,
+        // sinon « enemy_shot » / « windup »)
+        "shot.agahnim":    ["agahnim_shoot"],
+        "windup.agahnim":  ["agahnim_charge"],
+        "shot.archer":     ["arrow_1", "arrow_2"],
+        "shot.lynel":      ["fireball"],
+        "shot.ganon":      ["fireball"],
+        "shot.kholdstare": ["ice_rod"],
+        // Pikit voleur de rubis : arrivee, bonds, rubis rendus
+        "pikit_spawn":   ["wallet_1"],
+        "pikit_hop":     ["zol"],
+        "pikit_loot":    ["secret"],
     },
 )

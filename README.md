@@ -1,7 +1,7 @@
 <p align="center"><img src="media/icon.png" width="128" height="128" alt="A Survivor to the Past"></p>
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i>A survivors-like in the world of <b>A Link to the Past</b>: hold out against hordes of Hyrule's monsters.</i></p>
-<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.5.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.6.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
 <p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Download for Windows</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ Play in your browser</b></a></p>
 <p align="center"><b>English</b> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a> · <a href="README.it.md">Italiano</a> · <a href="README.pt.md">Português</a> · <a href="README.ja.md">日本語</a></p>
 
@@ -19,10 +19,13 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
 - **12 playable characters** to unlock — Link, Minish Link, Capless Link, Sonic, Princess Zelda, NES Link, Four Swords Link (4 colors), *Link's Awakening* Link, Adult Link, Deku Link, Shy Guy and Shadow Link (defeat Ganon) — each with strengths, weaknesses and a starting weapon
 - A rare **Bob-omb** that blows away every enemy on screen, and **breakable scenery** hiding rupees, hearts, fairies or the Ether medallion
 - Random **encounters**: a wandering champion waits somewhere, an arrow shows the way — beat it for a blessing, a special weapon upgrade or a relic you keep if you win
+- A **thief Pikit** that gobbles the rupees left on the ground — catch it to get them all back
 - **12 weapons**, each with an **evolution**, and **12 passive items** — 6 weapon slots and 6 item slots, so every choice matters
-- **17 enemy types** from Hyrule, **7 bosses** and **elites** that drop chests
+- **18 enemy types** from Hyrule, **7 bosses** and **elites** that drop chests
 - **Progression between runs**: the Kakariko shop (permanent upgrades), the Great Fairy's blessings, a **relic** won on each stage, 4 **difficulties** and Ganon's **seals** to earn more rupees
 - **Profile**: bestiary, armory, statistics, and save export / import as a text code
+- **5 players** on the same computer, each with a name, an avatar and their own progress; a **score** for every run and **leaderboards**: best scores per stage, between the players at home and a **world top 100** per game version
+- An **instruction booklet** in the style of the original one (PDF, English and French)
 - Automatic attacks, or **manual aiming** at any time — keyboard, mouse or gamepad, and **every key can be remapped**
 - Original SNES **graphics, music and sounds** of A Link to the Past
 - **Retro video filters**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, plus a **4:3** mode — and matching **audio filters**
@@ -35,16 +38,16 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
 |---|---|---|
 | Fighter's Sword | Heart Container | **Master Sword** |
 | Bow | Quiver | **Silver Arrows** |
-| Boomerang | Pegasus Boots | **Magical Boomerang** |
+| Boomerang | Zora's Flippers | **Magical Boomerang** |
 | Fire Rod | Lamp | **Bombos Medallion** |
 | Ice Rod | Half Magic | **Ether Medallion** |
 | Magic Hammer | Power Glove | **Quake Medallion** |
 | Bombs | Mirror Shield | **Super Bomb** |
-| Cane of Byrna | Bug-Catching Net | **Fairy Ring** |
-| Hookshot | Zora's Flippers | **Longshot** |
+| Cane of Byrna | Magic Cape | **Fairy Ring** |
+| Hookshot | Pegasus Boots | **Longshot** |
 | Magic Powder | Mushroom | **Witch's Powder** |
 | Cane of Somaria | Book of Mudora | **Great Somaria** |
-| Bees | Magic Cape | **Golden Bees** |
+| Bees | Bug-Catching Net | **Golden Bees** |
 
 ## Screenshots
 
@@ -75,7 +78,7 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
 
 ## Play
 
-The game is in **early alpha** (version 0.5.0). **Windows**: download the latest version from the [Releases page](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), extract the whole zip and launch `A Survivor to the Past.exe`. Windows may warn that the game is not signed: click *More info* → *Run anyway*. The game then **updates itself**: at launch it checks GitHub for a new version, downloads it in the background and installs it at the next launch (Options → Updates: Automatic / Ask me / Off). Your settings are kept, and only GitHub is contacted, without any personal data.
+The game is in **early alpha** (version 0.6.0). **Windows**: download the latest version from the [Releases page](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), extract the whole zip and launch `A Survivor to the Past.exe`. Windows may warn that the game is not signed: click *More info* → *Run anyway*. The game then **updates itself**: at launch it checks GitHub for a new version, downloads it in the background and installs it at the next launch (Options → Updates: Automatic / Ask me / Off). Your settings are kept and no personal data is sent: updates only contact GitHub, and the world leaderboard only contacts the game's website when you open it or publish a score (nickname and score).
 
 **Browser**: [play directly on the website](https://a-survivor-to-the-past.holy-c.men/play/), nothing to install. It works best on a computer, in Chrome, Edge or Firefox, and your progress is saved in the browser. Linux, macOS and Android versions will come later. Meanwhile you can build the game from source with [Rust](https://rustup.rs) (stable):
 
@@ -101,7 +104,6 @@ On Linux, also install the ALSA and udev development packages (`libasound2-dev`,
 ## Roadmap
 
 - Real hand-made maps and more playable characters
-- Online leaderboard for each stage, with a nickname of your choice
 - More bosses with their own attacks and animations
 - Touch controls for phones and tablets
 - Builds for Linux, macOS and Android

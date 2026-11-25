@@ -80,6 +80,13 @@
         hp: 6.0, speed: 24.0, damage: 0.0, radius: 6.0, mass: 1.0, xp: 5,
         behavior: Wander(turn: 1.6), shadow: 1,
     ),
+    // Pikit (A Link to the Past) : voleur de rubis inoffensif qui fuit en sautant ; vaincu, sa langue
+    // rapporte au joueur tous les rubis au sol. Apparition : rules.ron (thief).
+    "pikit": (
+        sprite: "pikit", anims: Hop(idle: "idle", jump: "jump"),
+        hp: 40.0, speed: 0.0, damage: 0.0, radius: 7.0, mass: 1.2, xp: 5,
+        behavior: Flee(rest: 0.35, jump: 0.4, speed: 150.0, range: 130.0), shadow: 1,
+    ),
     // Lynel (Montagne de la Mort) : robuste, crache des boules de feu a distance.
     "lynel": (
         sprite: "lynel", anims: Dir4(prefix: "walk", side_faces_left: false),

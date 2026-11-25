@@ -1,7 +1,7 @@
 <p align="center"><img src="media/icon.png" width="128" height="128" alt="A Survivor to the Past"></p>
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i>Un survivors-like nel mondo di <b>A Link to the Past</b>: resisti alle orde di mostri di Hyrule.</i></p>
-<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.5.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.6.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
 <p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Scarica per Windows</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ Gioca nel browser</b></a></p>
 <p align="center"><a href="README.md">English</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a> · <b>Italiano</b> · <a href="README.pt.md">Português</a> · <a href="README.ja.md">日本語</a></p>
 
@@ -19,10 +19,13 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
 - **12 personaggi giocabili** da sbloccare — Link, Link Minish, Link senza berretto, Sonic, la principessa Zelda, il Link del NES, il Link di *Four Swords* (4 colori), quello di *Link's Awakening*, Link adulto, Link Deku, Tipo Timido e Shadow Link (sconfiggendo Ganon) — ognuno con punti di forza, debolezze e la sua arma iniziale
 - Una **Bob-omb** rara che spazza via tutti i nemici sullo schermo, e **scenari distruttibili** che nascondono rupie, cuori, fate o il medaglione dell'Etere
 - **Incontri** casuali: un campione errante aspetta da qualche parte, una freccia indica la strada — sconfiggilo per una benedizione, un potenziamento speciale o una reliquia che resta se vinci
+- Un **Pikit ladro** che divora le rupie rimaste a terra — prendilo per recuperarle tutte
 - **12 armi**, ognuna con un'**evoluzione**, e **12 oggetti passivi** — 6 slot per le armi e 6 per gli oggetti: ogni scelta conta
-- **17 tipi di nemici** di Hyrule, **7 boss** ed **élite** che lasciano forzieri
+- **18 tipi di nemici** di Hyrule, **7 boss** ed **élite** che lasciano forzieri
 - **Progressi tra le partite**: il negozio di Kakariko (potenziamenti permanenti), le benedizioni della Grande Fata, una **reliquia** per ogni stage, 4 **difficoltà** e i **sigilli** di Ganon per guadagnare più rupie
 - **Profilo**: bestiario, armeria, statistiche, ed esportazione / importazione del salvataggio come codice di testo
+- **5 giocatori** sullo stesso computer, ognuno con nome, avatar e progressi propri; un **punteggio** per ogni partita e **classifiche**: migliori punteggi per livello, tra i giocatori di casa e una **top 100 mondiale** per versione del gioco
+- Un **libretto di istruzioni** nello stile dell'originale (PDF, inglese e francese)
 - Attacchi automatici o **mira manuale** in qualsiasi momento — tastiera, mouse o controller, e **tutti i tasti sono riassegnabili**
 - **Grafica, musica e suoni** originali di A Link to the Past per SNES
 - **Filtri video retrò**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, più una modalità **4:3** — e **filtri audio** abbinati
@@ -35,16 +38,16 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
 |---|---|---|
 | Spada del guerriero | Portacuore | **Spada Suprema** |
 | Arco | Faretra | **Frecce d'argento** |
-| Boomerang | Stivali di Pegaso | **Boomerang magico** |
+| Boomerang | Pinne di Zora | **Boomerang magico** |
 | Verga di fuoco | Lanterna | **Medaglione Bombos** |
 | Verga di ghiaccio | Mezza magia | **Medaglione Etere** |
 | Martello magico | Guanto del potere | **Medaglione Sisma** |
 | Bombe | Scudo specchio | **Superbomba** |
-| Bastone di Byrna | Retino | **Girotondo di fate** |
-| Rampino | Pinne di Zora | **Super rampino** |
+| Bastone di Byrna | Mantello magico | **Girotondo di fate** |
+| Rampino | Stivali di Pegaso | **Super rampino** |
 | Polvere magica | Fungo | **Polvere della strega** |
 | Bastone di Somaria | Libro di Mudora | **Grande Somaria** |
-| Api | Mantello magico | **Api dorate** |
+| Api | Retino | **Api dorate** |
 
 ## Immagini
 
@@ -75,7 +78,7 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
 
 ## Giocare
 
-Il gioco è in **alfa** (versione 0.5.0). **Windows**: scarica l'ultima versione dalla [pagina delle release](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), estrai tutto lo zip e avvia `A Survivor to the Past.exe`. Windows potrebbe avvisare che il gioco non è firmato: fai clic su *Ulteriori informazioni* → *Esegui comunque*. Poi il gioco **si aggiorna da solo**: all'avvio controlla su GitHub se c'è una nuova versione, la scarica in background e la installa all'avvio successivo (Opzioni → Aggiornamenti: Automatici / Chiedi / No). Le tue impostazioni restano e viene contattato solo GitHub, senza alcun dato personale.
+Il gioco è in **alfa** (versione 0.6.0). **Windows**: scarica l'ultima versione dalla [pagina delle release](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), estrai tutto lo zip e avvia `A Survivor to the Past.exe`. Windows potrebbe avvisare che il gioco non è firmato: fai clic su *Ulteriori informazioni* → *Esegui comunque*. Poi il gioco **si aggiorna da solo**: all'avvio controlla su GitHub se c'è una nuova versione, la scarica in background e la installa all'avvio successivo (Opzioni → Aggiornamenti: Automatici / Chiedi / No). Le tue impostazioni restano e non viene inviato alcun dato personale: gli aggiornamenti contattano solo GitHub, e la classifica mondiale contatta il sito del gioco solo quando la apri o pubblichi un punteggio (soprannome e punteggio).
 
 **Browser**: [gioca direttamente sul sito](https://a-survivor-to-the-past.holy-c.men/play/), senza installare nulla. Meglio su computer, con Chrome, Edge o Firefox; i progressi sono salvati nel browser. Le versioni per Linux, macOS e Android arriveranno più avanti. Nel frattempo puoi compilare il gioco dai sorgenti con [Rust](https://rustup.rs) (stable):
 
@@ -101,7 +104,6 @@ Su Linux installa anche i pacchetti di sviluppo di ALSA e udev (`libasound2-dev`
 ## Tabella di marcia
 
 - Mappe vere fatte a mano e altri personaggi giocabili
-- Classifica online per ogni stage, con un nickname a scelta
 - Altri boss con attacchi e animazioni propri
 - Comandi touch per telefoni e tablet
 - Versioni per Linux, macOS e Android
