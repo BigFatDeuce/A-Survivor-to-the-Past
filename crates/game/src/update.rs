@@ -555,7 +555,7 @@ mod tests {
         }
         // chemin absolu : ramene dans le dossier de destination, jamais ecrit ailleurs
         // macOS : seuls les fichiers de « .app/Contents/MacOS » sont repris
-        let m = if cfg!(target_os = "macos") { "Contents/MacOS/" } else { "" };
+        let m = if cfg!(target_os = "macos") { "A.app/Contents/MacOS/" } else { "" };
         let z = zip_with(&dir, &[&format!("/{m}abs.txt")]);
         let dest = dir.join("new");
         extract(&z, &dest).unwrap();
