@@ -15,15 +15,16 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
 
 ## Features
 
-- **6 stages** unlocked one after the other — Hyrule Field, Lost Woods, Desert of Mystery, Frozen Lake, Pyramid of Power and the bonus Death Mountain — each with its own weather, music, mid-boss and final boss, up to Agahnim and Ganon
+- **10 stages** in the order of the original game — Hyrule Field, Desert of Mystery, Death Mountain, Hyrule Castle, Palace of Darkness, Swamp, Lost Woods, Thieves' Town, Frozen Lake and the Pyramid of Power — each with its own weather, music, mid-boss and final boss, up to Agahnim and Ganon
 - **350 playable characters** in six universes — the hand-made cast (Link, Minish Link, Sonic, Zelda, Mario, Vivi, Ganondorf, the very last one...) and more than 300 sprites from the *A Link to the Past Randomizer* community, each with its authors credited and up to four colors (blue mail, red mail, bunny). Some are unlocked by feats (enemies, bosses, levels, stages), others are bought with red rupees — each with strengths, weaknesses and a starting weapon
 - A rare **Bob-omb** that blows away every enemy on screen, and **breakable scenery** hiding rupees, hearts, fairies or the Ether medallion
 - Random **encounters**: a wandering champion waits somewhere, an arrow shows the way — beat it for a blessing, a special weapon upgrade or a relic you keep if you win
 - A **thief Boo** that gobbles the rupees left on the ground — catch it to get them all back
-- **12 weapons**, each with an **evolution**, and **12 passive items** — 6 weapon slots and 6 item slots, so every choice matters
-- **18 enemy types** from Hyrule, **12 bosses** (a different one on every stage) and **elites** that drop chests
+- The **Fortune Teller** after the final boss (chest game, double or nothing) and a **Witch** who sells potions for the whole run
+- **18 weapons** (six of them won from mid-bosses) and the **Master Sword** for beating Ganon, each with its **fusion**, and **12 passive items** — 6 weapon slots and 6 item slots, so every choice matters
+- **More than 30 enemy types** from Hyrule, **12 bosses** (a different one on every stage) and **elites** that drop chests
 - **Progression between runs**: the Kakariko shop (permanent upgrades), the Great Fairy's blessings, a **relic** won on each stage, 4 **difficulties** and Ganon's **seals** to earn more rupees
-- **Profile**: bestiary, armory, statistics, and save export / import as a text code
+- **Collection** (bestiary with animated cards, weapons, items, fusions) and **Achievements** (59 bronze, silver and gold trophies, statistics); save export / import as a text code; red rupees also buy outfits, jukebox tracks and leaderboard titles
 - **5 players** on the same computer, each with a name, an avatar and their own progress; a **score** for every run and **leaderboards**: best scores per stage, between the players at home and a **world top 100** per game version
 - An **instruction booklet** in the style of the original one (PDF, English and French)
 - Automatic attacks, or **manual aiming** at any time — keyboard, mouse or gamepad, and **every key can be remapped**

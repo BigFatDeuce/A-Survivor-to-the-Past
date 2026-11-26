@@ -15,15 +15,16 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
 
 ## Contenu
 
-- **6 stages** à débloquer l'un après l'autre — Plaine d'Hyrule, Bois Perdus, Désert du Mystère, Lac gelé, Pyramide de la Puissance et la Montagne de la Mort en bonus — chacun avec sa météo, sa musique, son boss intermédiaire et son boss final, jusqu'à Agahnim et Ganon
+- **10 stages** dans l'ordre du jeu d'origine — Plaine d'Hyrule, Désert du Mystère, Montagne de la Mort, Château d'Hyrule, Palais des Ténèbres, Grand Marais, Bois Perdus, Village des Voleurs, Lac gelé et Pyramide de la Puissance — chacun avec sa météo, sa musique, son boss intermédiaire et son boss final, jusqu'à Agahnim et Ganon
 - **350 personnages jouables** dans six univers — la troupe faite main (Link, Link Minish, Sonic, Zelda, Mario, Vivi, Ganondorf, le tout dernier...) et plus de 300 sprites de la communauté du *A Link to the Past Randomizer*, chacun crédité à ses auteurs, avec jusqu'à quatre couleurs (cotte bleue, cotte rouge, lapin). Certains se débloquent par des exploits (ennemis, boss, niveaux, stages), d'autres s'achètent en rubis rouges — chacun avec ses forces, ses faiblesses et son arme de départ
 - Une **Bob-omb** rare qui souffle tous les ennemis à l'écran, et un **décor cassable** qui cache rubis, cœurs, fées ou médaillon d'Éther
 - Des **rencontres** aléatoires : un champion errant attend quelque part, une flèche indique où aller — battez-le pour une bénédiction, une amélioration spéciale d'arme ou une relique gardée si vous gagnez
 - Un **Boo voleur** qui dévore les rubis restés au sol — rattrapez-le pour tout récupérer
-- **12 armes**, chacune avec une **évolution**, et **12 objets passifs** — 6 emplacements d'armes et 6 d'objets : chaque choix compte
-- **18 types d'ennemis** d'Hyrule, **12 boss** (un différent à chaque stage) et des **élites** qui lâchent des coffres
+- La **diseuse de bonne aventure** après le boss final (jeu des coffres, quitte ou double) et une **sorcière** qui vend des potions pour toute la partie
+- **18 armes** (dont six gagnées sur les boss intermédiaires) et la **Master Sword** en battant Ganon, chacune avec sa **fusion**, et **12 objets passifs** — 6 emplacements d'armes et 6 d'objets : chaque choix compte
+- **Plus de 30 types d'ennemis** d'Hyrule, **12 boss** (un différent à chaque stage) et des **élites** qui lâchent des coffres
 - **Progression entre les parties** : la boutique de Cocorico (améliorations permanentes), les bénédictions de la Grande Fée, une **relique** gagnée sur chaque stage, 4 **difficultés** et les **sceaux** de Ganon pour gagner plus de rubis
-- **Profil** : bestiaire, armurerie, statistiques, et export / import de la sauvegarde sous forme de code texte
+- **Recueil** (bestiaire aux fiches animées, armes, objets, fusions) et **Exploits** (59 trophées de bronze, d'argent et d'or, statistiques) ; export / import de la sauvegarde sous forme de code texte ; les rubis rouges achètent aussi des tenues, des musiques et des titres pour le classement
 - **5 joueurs** sur le même ordinateur, chacun avec son nom, son avatar et sa progression ; un **score** à chaque partie et des **classements** : meilleurs scores par stage, entre les joueurs de la maison et **top 100 mondial** par version du jeu
 - Un **livret d'instructions** à la manière de celui d'origine (PDF, français et anglais)
 - Attaques automatiques, ou **visée manuelle** à tout moment — clavier, souris ou manette, et **toutes les touches sont reconfigurables**

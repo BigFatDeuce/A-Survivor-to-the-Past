@@ -15,15 +15,16 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
 
 ## Conteúdo
 
-- **6 fases** desbloqueadas uma após a outra — Campo de Hyrule, Bosque Perdido, Deserto do Mistério, Lago congelado, Pirâmide do Poder e a Montanha da Morte como bônus — cada uma com seu clima, sua música, um chefe intermediário e um chefe final, até Agahnim e Ganon
+- **10 fases** na ordem do jogo original — Campo de Hyrule, Deserto do Mistério, Montanha da Morte, Castelo de Hyrule, Palácio das Trevas, Pântano, Bosque Perdido, Vila dos Ladrões, Lago congelado e Pirâmide do Poder — cada uma com seu clima, sua música, seu chefe intermediário e seu chefe final, até Agahnim e Ganon
 - **350 personagens jogáveis** em seis universos — o elenco feito à mão (Link, Link Minish, Sonic, Zelda, Mario, Vivi, Ganondorf, o último de todos...) e mais de 300 sprites da comunidade do *A Link to the Past Randomizer*, cada um com seus autores nos créditos e até quatro cores (malha azul, malha vermelha, coelho). Alguns são desbloqueados por façanhas (inimigos, chefes, níveis, stages), outros comprados com rupias vermelhas — cada um com forças, fraquezas e arma inicial
 - Uma **Bob-omb** rara que varre todos os inimigos da tela, e **cenário destrutível** que esconde rupias, corações, fadas ou o medalhão do Éter
 - **Encontros** aleatórios: um campeão errante espera em algum lugar e uma seta mostra o caminho — derrote-o para ganhar uma bênção, uma melhoria especial de arma ou uma relíquia mantida se você vencer
 - Um **Boo ladrão** que devora as rupias deixadas no chão — pegue-o para recuperar todas
-- **12 armas**, cada uma com uma **evolução**, e **12 itens passivos** — 6 espaços de armas e 6 de itens: cada escolha conta
-- **18 tipos de inimigos** de Hyrule, **12 chefes** (um diferente em cada fase) e **elites** que deixam baús
+- A **cartomante** depois do chefe final (jogo dos baús, dobro ou nada) e uma **bruxa** que vende poções para a partida inteira
+- **18 armas** (seis delas ganhas dos chefes intermediários) e a **Master Sword** ao derrotar Ganon, cada uma com sua **fusão**, e **12 itens passivos** — 6 espaços de armas e 6 de itens: cada escolha conta
+- **Mais de 30 tipos de inimigos** de Hyrule, **12 chefes** (um diferente em cada fase) e **elites** que deixam baús
 - **Progressão entre partidas**: a loja de Kakariko (melhorias permanentes), as bênçãos da Grande Fada, uma **relíquia** por fase, 4 **dificuldades** e os **selos** de Ganon para ganhar mais rupias
-- **Perfil**: bestiário, arsenal, estatísticas, e exportar / importar o progresso como código de texto
+- **Coleção** (bestiário com fichas animadas, armas, itens, fusões) e **Conquistas** (59 troféus de bronze, prata e ouro, estatísticas); exportar / importar o progresso como código de texto; as rupias vermelhas também compram trajes, músicas e títulos para o ranking
 - **5 jogadores** no mesmo computador, cada um com nome, avatar e progresso próprios; uma **pontuação** em cada partida e **rankings**: melhores pontuações por fase, entre os jogadores da casa e um **top 100 mundial** por versão do jogo
 - Um **manual de instruções** no estilo do original (PDF, inglês e francês)
 - Ataques automáticos ou **mira manual** a qualquer momento — teclado, mouse ou controle, e **todas as teclas podem ser reconfiguradas**

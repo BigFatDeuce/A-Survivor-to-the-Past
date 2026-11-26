@@ -15,15 +15,16 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
 
 ## Contenuti
 
-- **6 stage** da sbloccare uno dopo l'altro — Piana di Hyrule, Boschi Perduti, Deserto del Mistero, Lago ghiacciato, Piramide del Potere e il Monte Morte come bonus — ognuno con il suo meteo, la sua musica, un boss intermedio e un boss finale, fino ad Agahnim e Ganon
+- **10 stage** nell'ordine del gioco originale — Piana di Hyrule, Deserto del Mistero, Montagna della Morte, Castello di Hyrule, Palazzo delle Tenebre, Palude, Boschi Perduti, Villaggio dei Ladri, Lago ghiacciato e Piramide del Potere — ognuno con il suo meteo, la sua musica, il suo boss intermedio e il suo boss finale, fino ad Agahnim e Ganon
 - **350 personaggi giocabili** in sei universi — il cast fatto a mano (Link, Link Minish, Sonic, Zelda, Mario, Vivi, Ganondorf, l'ultimo di tutti...) e più di 300 sprite della comunità del *A Link to the Past Randomizer*, ognuno con i suoi autori nei crediti e fino a quattro colori (maglia blu, maglia rossa, coniglio). Alcuni si sbloccano con le imprese (nemici, boss, livelli, stage), altri si comprano con le rupie rosse — ognuno con punti di forza, debolezze e arma iniziale
 - Una **Bob-omb** rara che spazza via tutti i nemici sullo schermo, e **scenari distruttibili** che nascondono rupie, cuori, fate o il medaglione dell'Etere
 - **Incontri** casuali: un campione errante aspetta da qualche parte, una freccia indica la strada — sconfiggilo per una benedizione, un potenziamento speciale o una reliquia che resta se vinci
 - Un **Boo ladro** che divora le rupie rimaste a terra — prendilo per recuperarle tutte
-- **12 armi**, ognuna con un'**evoluzione**, e **12 oggetti passivi** — 6 slot per le armi e 6 per gli oggetti: ogni scelta conta
-- **18 tipi di nemici** di Hyrule, **12 boss** (uno diverso in ogni stage) ed **élite** che lasciano forzieri
+- La **chiromante** dopo il boss finale (gioco dei forzieri, lascia o raddoppia) e una **strega** che vende pozioni per tutta la partita
+- **18 armi** (sei vinte contro i boss intermedi) e la **Master Sword** sconfiggendo Ganon, ognuna con la sua **fusione**, e **12 oggetti passivi** — 6 slot per le armi e 6 per gli oggetti: ogni scelta conta
+- **Più di 30 tipi di nemici** di Hyrule, **12 boss** (uno diverso in ogni stage) ed **élite** che lasciano forzieri
 - **Progressi tra le partite**: il negozio di Kakariko (potenziamenti permanenti), le benedizioni della Grande Fata, una **reliquia** per ogni stage, 4 **difficoltà** e i **sigilli** di Ganon per guadagnare più rupie
-- **Profilo**: bestiario, armeria, statistiche, ed esportazione / importazione del salvataggio come codice di testo
+- **Raccolta** (bestiario con schede animate, armi, oggetti, fusioni) e **Imprese** (59 trofei di bronzo, argento e oro, statistiche); esportazione / importazione del salvataggio come codice di testo; le rupie rosse comprano anche costumi, musiche e titoli per la classifica
 - **5 giocatori** sullo stesso computer, ognuno con nome, avatar e progressi propri; un **punteggio** per ogni partita e **classifiche**: migliori punteggi per livello, tra i giocatori di casa e una **top 100 mondiale** per versione del gioco
 - Un **libretto di istruzioni** nello stile dell'originale (PDF, inglese e francese)
 - Attacchi automatici o **mira manuale** in qualsiasi momento — tastiera, mouse o controller, e **tutti i tasti sono riassegnabili**

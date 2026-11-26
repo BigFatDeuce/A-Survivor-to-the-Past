@@ -15,15 +15,16 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
 
 ## Inhalt
 
-- **6 Stages**, die nacheinander freigeschaltet werden — Hyrule-Ebene, Verlorene Wälder, Wüste der Mysterien, Gefrorener See, Pyramide der Macht und der Bonus-Stage Todesberg — jede mit eigenem Wetter, eigener Musik, Zwischenboss und Endboss, bis zu Agahnim und Ganon
+- **10 Stages** in der Reihenfolge des Originals — Hyrule-Ebene, Wüste der Mysterien, Todesberg, Schloss Hyrule, Palast der Finsternis, Sumpf, Verlorene Wälder, Diebesdorf, Gefrorener See und Pyramide der Macht — jede mit eigenem Wetter, eigener Musik, Zwischen- und Endboss, bis zu Agahnim und Ganon
 - **350 spielbare Figuren** in sechs Welten — die handgemachte Truppe (Link, Minish-Link, Sonic, Zelda, Mario, Vivi, Ganondorf als Allerletzter...) und über 300 Sprites der *A Link to the Past Randomizer*-Community, jeweils mit Nennung der Autoren und bis zu vier Farben (blaues Kettenhemd, rotes Kettenhemd, Hase). Manche werden durch Erfolge freigeschaltet (Gegner, Bosse, Level, Stages), andere mit roten Rubinen gekauft — jede mit Stärken, Schwächen und Startwaffe
 - Ein seltener **Bob-omb**, der alle Gegner auf dem Bildschirm wegsprengt, und **zerstörbare Umgebung** mit Rubinen, Herzen, Feen oder dem Äther-Medaillon
 - Zufällige **Begegnungen**: Ein wandernder Champion wartet irgendwo, ein Pfeil zeigt den Weg — besiege ihn für einen Segen, eine Spezialverbesserung oder ein Relikt, das bleibt, wenn du gewinnst
 - Ein **diebischer Boo**, der die Rubine am Boden frisst — fang ihn, um alle zurückzubekommen
-- **12 Waffen**, jede mit einer **Entwicklung**, und **12 passive Gegenstände** — 6 Waffen- und 6 Gegenstandsplätze, jede Wahl zählt
-- **18 Gegnertypen** aus Hyrule, **12 Bosse** (in jeder Stage ein anderer) und **Elite-Gegner**, die Truhen fallen lassen
+- Die **Wahrsagerin** nach dem Endboss (Truhenspiel, doppelt oder nichts) und eine **Hexe**, die Tränke für den ganzen Lauf verkauft
+- **18 Waffen** (sechs davon von Zwischenbossen erbeutet) und das **Master-Schwert** für den Sieg über Ganon, jede mit ihrer **Fusion**, und **12 passive Gegenstände** — 6 Waffen- und 6 Gegenstandsplätze, jede Wahl zählt
+- **Über 30 Gegnertypen** aus Hyrule, **12 Bosse** (in jeder Stage ein anderer) und **Elite-Gegner**, die Truhen fallen lassen
 - **Fortschritt zwischen den Runden**: der Laden von Kakariko (dauerhafte Verbesserungen), die Segen der Großen Fee, eine **Reliquie** pro Stage, 4 **Schwierigkeitsgrade** und Ganons **Siegel** für mehr Rubine
-- **Profil**: Bestiarium, Waffenkammer, Statistiken sowie Export / Import des Spielstands als Textcode
+- **Sammlung** (Bestiarium mit animierten Karten, Waffen, Gegenstände, Fusionen) und **Erfolge** (59 Trophäen in Bronze, Silber und Gold, Statistiken); Export / Import des Spielstands als Textcode; rote Rubine kaufen auch Outfits, Musikstücke und Titel für die Rangliste
 - **5 Spieler** auf demselben Computer, jeder mit Namen, Avatar und eigenem Fortschritt; eine **Punktzahl** für jede Runde und **Ranglisten**: Bestwerte pro Stage, unter den Spielern zu Hause und eine **Welt-Top-100** pro Spielversion
 - Eine **Spielanleitung** im Stil des Originalhefts (PDF, Englisch und Französisch)
 - Automatische Angriffe oder jederzeit **manuelles Zielen** — Tastatur, Maus oder Controller, und **alle Tasten sind frei belegbar**
