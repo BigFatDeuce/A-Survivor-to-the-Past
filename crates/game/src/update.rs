@@ -554,12 +554,14 @@ mod tests {
             let _ = fs::remove_dir_all(&dest);
         }
         // chemin absolu : ramene dans le dossier de destination, jamais ecrit ailleurs
-        let z = zip_with(&dir, &["/abs.txt"]);
+        // macOS : seuls les fichiers de « .app/Contents/MacOS » sont repris
+        let m = if cfg!(target_os = "macos") { "Contents/MacOS/" } else { "" };
+        let z = zip_with(&dir, &[&format!("/{m}abs.txt")]);
         let dest = dir.join("new");
         extract(&z, &dest).unwrap();
         assert!(dest.join("abs.txt").is_file() && !dir.join("abs.txt").exists());
         let _ = fs::remove_dir_all(&dest);
-        let z = zip_with(&dir, &["A Survivor/data/ok.txt", "A Survivor/game.exe"]);
+        let z = zip_with(&dir, &[&format!("A Survivor/{m}data/ok.txt"), &format!("A Survivor/{m}game.exe")]);
         let dest = dir.join("new");
         extract(&z, &dest).unwrap();
         assert!(dest.join("data/ok.txt").is_file() && dest.join("game.exe").is_file());
