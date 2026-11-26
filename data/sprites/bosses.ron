@@ -1,4 +1,4 @@
-// Boss des stages : Chevaliers Armos, Mothula, Lanmola, Kholdstare, Agahnim et Ganon, avec leurs tirs.
+// Boss des stages : les 12 boss d'A Link to the Past (un par zone), avec leurs tirs.
 (
     sheets: [
         (
@@ -60,6 +60,61 @@
                 },
                 "shot_fire_bat": { "0": (frames: [(297, 983, 28, 13)], pivot: (0, 0), align: Center) },
                 "shot_flame": { "0": (frames: [(482, 980, 14, 16)], pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            // Palais des tenebres : le Roi Helmasaure, masque intact, la queue qui balance
+            source: "Bosses - Helmasaur King.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "helmasaur_king": { "walk": (frames: [(296, 356, 91, 100), (518, 355, 90, 101)], fps: 3, pivot: (0, -1), align: Bottom) },
+                "shot_helm_fire": { "0": (frames: [(504, 136, 16, 16), (528, 136, 16, 16)], fps: 10, pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            // Village des voleurs : Blind, en marche (la tete bouge a part)
+            source: "Bosses - Blind.png",
+            transparent: ["#11ff11"],
+            sprites: {
+                "blind": { "walk": (frames: [(312, 25, 48, 39), (373, 25, 46, 39), (433, 25, 54, 39), (373, 25, 46, 39)], fps: 5, pivot: (0, -1), align: Bottom) },
+            },
+        ),
+        (
+            // Palais des marais : Arrghus (corps et tentacules) et ses Arrgi
+            source: "Bosses - Arrghus & Arrgi.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "arrghus": { "float": (frames: [(9, 290, 32, 43), (48, 290, 32, 43), (9, 353, 32, 42), (47, 353, 32, 42)], fps: 5, pivot: (0, -1), align: Bottom) },
+                "shot_arrgi": { "0": (frames: [(208, 24, 16, 16), (233, 25, 14, 14)], fps: 6, pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            // Marais du desespoir : Vitreous, le grand oeil, et ses petits yeux
+            source: "Bosses - Vitreous.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "vitreous": { "idle": (frames: [(296, 376, 32, 32), (336, 376, 32, 32), (376, 376, 32, 32), (336, 376, 32, 32)], fps: 4, pivot: (0, -1), align: Bottom) },
+                "shot_eye": { "0": (frames: [(296, 432, 16, 16), (376, 432, 16, 16)], fps: 6, pivot: (0, 0), align: Center) },
+            },
+        ),
+        (
+            // Tour d'Hera : Moldorm, les yeux tournes vers sa route
+            source: "Bosses - Moldorm.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "moldorm": {
+                    "walk_down": (frames: [(9, 365, 32, 35), (50, 365, 32, 35)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(100, 365, 34, 30), (141, 365, 34, 30)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(194, 362, 32, 33), (235, 362, 32, 33)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        (
+            // Roc de la tortue : Trinexx, ses trois tetes (pierre, feu, glace)
+            source: "Bosses - Trinexx.png",
+            transparent: ["#ff00ff", "#f880f8"],
+            sprites: {
+                "trinexx": { "idle": (frames: [(575, 27, 82, 209)], pivot: (0, -1), align: Bottom) },
             },
         ),
     ],

@@ -23,9 +23,14 @@
         (id: "luck",     icon: "icon_mushroom",        stat: Some(Luck),         per_level: 0.05,  max: 3, cost: 250, growth: 1.7),
         (id: "growth",   icon: "icon_book",            stat: Some(Growth),       per_level: 0.04,  max: 3, cost: 300, growth: 1.8),
         (id: "greed",    icon: "icon_rupees",          stat: None,               per_level: 0.1,   max: 5, cost: 250, growth: 1.7),
+        // 0.6.2 : relances et passes en plus a la montee de niveau
+        (id: "reroll",   icon: "icon_lens_of_truth",   stat: None, perk: Some(Reroll), per_level: 1.0, max: 3, cost: 400, growth: 2.0),
+        (id: "skip",     icon: "icon_kinstone",        stat: None, perk: Some(Skip),   per_level: 1.0, max: 3, cost: 300, growth: 2.0),
     ],
     // Grande Fee : benedictions achetees une fois
     blessings: [
+        // 0.6.3 : la sorciere (poudre magique) passe dans chaque partie et vend ses potions ; en tete (0.6.4)
+        (id: "witch",   icon: "icon_magic_powder", cost: 10000, effect: Witch),
         (id: "fairy",   icon: "icon_fairy_bottle", cost: 800,  effect: Revive),
         (id: "fairy2",  icon: "icon_fairy_bottle", cost: 2500, effect: Revive, requires: Some("fairy")),
         (id: "wisdom",  icon: "icon_blue_potion",  cost: 1200, effect: Xp(0.15)),
@@ -50,13 +55,67 @@
         (id: "small_key",    icon: "icon_small_key",    encounter: true, stats: [(DashCooldown, -0.15), (MoveSpeed, 0.04)]),
         (id: "golden_sword", icon: "icon_golden_sword", encounter: true, stats: [(Might, 0.12), (Cooldown, 0.05)]),
         (id: "fire_shield",  icon: "icon_fire_shield",  encounter: true, stats: [(MaxHp, 20.0), (Speed, 0.1)]),
+        // 0.6.2 : une relance / une passe de plus pour toute la partie (choix de la montee de niveau)
+        (id: "lens_of_truth", icon: "icon_lens_of_truth", encounter: true, stats: [], rerolls: 1),
+        (id: "kinstone",      icon: "icon_kinstone",      encounter: true, stats: [], skips: 1),
     ],
+    // 0.6.3 : de quoi depenser les rubis une fois tout debloque, sans rendre les personnages plus forts.
+    // Garde-robe : tenues achetees une fois (couleurs du personnage, voir `skins`).
+    wardrobe: [
+        (character: "link", sprite: "link_blue", icon: "icon_blue_mail", cost: 3000),
+        (character: "link", sprite: "link_red",  icon: "icon_red_mail",  cost: 6000),
+        // 0.6.4 : sans icone, la ligne montre la tenue elle-meme (recolorations : gen_wardrobe_v064.py)
+        (character: "link",       sprite: "link_bunny",       cost: 4000),
+        (character: "link_adult", sprite: "link_adult_goron", cost: 3000),
+        (character: "link_adult", sprite: "link_adult_zora",  cost: 3000),
+        (character: "toon_link",  sprite: "toon_link_red",    cost: 2500),
+        (character: "toon_link",  sprite: "toon_link_blue",   cost: 2500),
+    ],
+    // Juke-box : musiques a acheter, puis a choisir pour l'ecran titre (la premiere est offerte).
+    jukebox: [
+        (id: "seal_of_seven_maidens", cost: 0),
+        (id: "title_link_to_the_past", cost: 300),
+        (id: "beginning_of_the_journey", cost: 300),
+        (id: "time_of_the_falling_rain", cost: 300),
+        (id: "majestic_castle", cost: 400),
+        (id: "princess_zelda_s_rescue", cost: 400),
+        (id: "safety_in_the_sanctuary", cost: 400),
+        (id: "hyrule_field_main_theme", cost: 500),
+        (id: "kakariko_village", cost: 500),
+        (id: "guessing_game_house", cost: 500),
+        (id: "fortune_teller", cost: 500),
+        (id: "soldiers_of_kakariko_village", cost: 500),
+        (id: "dank_dungeons", cost: 600),
+        (id: "lost_ancient_ruins", cost: 600),
+        (id: "forest_of_mystery", cost: 600),
+        (id: "anger_of_the_guardians", cost: 800),
+        (id: "the_silly_pink_rabbit", cost: 800),
+        (id: "priest_of_the_dark_order", cost: 800),
+        (id: "dark_golden_land", cost: 1000),
+        (id: "black_mist", cost: 1000),
+        (id: "dungeon_of_shadows", cost: 1000),
+        (id: "meeting_the_maidens", cost: 1000),
+        (id: "the_goddess_appears", cost: 1200),
+        (id: "ganon_s_message", cost: 1500),
+        (id: "the_prince_of_darkness", cost: 1500),
+        (id: "power_of_the_gods", cost: 2000),
+        (id: "epilogue_beautiful_hyrule", cost: 3000),
+        (id: "staff_roll", cost: 3000),
+    ],
+    // Offrandes a la Grande Fee : titre au classement en ligne (pseudo en couleur), dans l'ordre.
+    titles: [
+        (id: "fairy_friend", cost: 5000),
+        (id: "knight",       cost: 20000),
+        (id: "hero",         cost: 60000),
+    ],
+    // Figurines du bestiaire : ennemi, boss, Ganon
+    figurines: (150, 1000, 5000),
     // Sceaux de Ganon : defis optionnels, chacun augmente les rubis mis en banque
     seals: [
-        (id: "seal_might",  icon: "icon_medallion_quake",  enemy_hp: 1.5,     bonus: 0.25),
-        (id: "seal_swarm",  icon: "icon_medallion_bombos", spawn_rate: 1.35,  bonus: 0.25),
-        (id: "seal_fury",   icon: "icon_medallion_ether",  enemy_damage: 1.5, bonus: 0.25),
-        (id: "seal_haste",  icon: "icon_boots",            enemy_speed: 1.2,  bonus: 0.2),
-        (id: "seal_famine", icon: "icon_heart",            heal: 0.0,         bonus: 0.3),
+        (id: "seal_might",  icon: "icon_sage_spirit",     enemy_hp: 1.5,     bonus: 0.25),
+        (id: "seal_swarm",  icon: "icon_sage_forest",     spawn_rate: 1.35,  bonus: 0.25),
+        (id: "seal_fury",   icon: "icon_sage_fire",       enemy_damage: 1.5, bonus: 0.25),
+        (id: "seal_haste",  icon: "icon_sage_water",      enemy_speed: 1.2,  bonus: 0.2),
+        (id: "seal_famine", icon: "icon_sage_shadow",     heal: 0.0,         bonus: 0.3),
     ],
 )

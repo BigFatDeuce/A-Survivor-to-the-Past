@@ -10,11 +10,13 @@ use std::path::Path;
 /// Ancien fichier unique (avant la 0.6), repris dans le premier emplacement.
 const LEGACY: &str = "profile.ron";
 const INDEX: &str = "profiles.ron";
-const VERSION: u32 = 2;
+const VERSION: u32 = 4;
 /// Nombre d'emplacements de joueurs.
 pub const SLOTS: usize = 5;
 /// Meilleures parties gardees par stage.
 pub const KEEP_SCORES: usize = 5;
+/// « Mes parties » : une partie plus courte n'est pas gardee (retour 0.6.1).
+pub const MIN_RUN_TIME: f32 = 30.0;
 /// Nom par defaut (celui du heros d'A Link to the Past).
 pub const DEFAULT_NAME: &str = "LINK";
 
@@ -144,6 +146,12 @@ pub struct Profile {
     pub armory: BTreeMap<String, u32>,
     #[serde(default)]
     pub evolutions: BTreeSet<String>,
+    /// Personnages debloques mais pas encore joues : nom en vert dans le choix des personnages.
+    #[serde(default)]
+    pub new_chars: BTreeSet<String>,
+    /// Armes debloquees (celles qui demandent de vaincre un mini-boss).
+    #[serde(default)]
+    pub weapons: BTreeSet<String>,
     #[serde(default)]
     pub totals: Totals,
     /// Dernier personnage choisi.
@@ -163,6 +171,21 @@ pub struct Profile {
     /// Meilleures parties par stage (du meilleur score au moins bon).
     #[serde(default)]
     pub scores: BTreeMap<String, Vec<ScoreRecord>>,
+    /// 0.6.3 : tenues achetees (sprites), musiques du juke-box et celle de l'ecran titre (vide : par
+    /// defaut), offrandes a la Grande Fee (nombre de titres), figurines du bestiaire (ennemis).
+    #[serde(default)]
+    pub wardrobe: BTreeSet<String>,
+    /// 0.6.5 : personnages achetes a la boutique.
+    #[serde(default)]
+    pub chars_bought: BTreeSet<String>,
+    #[serde(default)]
+    pub jukebox: BTreeSet<String>,
+    #[serde(default)]
+    pub title_music: String,
+    #[serde(default)]
+    pub title: u32,
+    #[serde(default)]
+    pub figurines: BTreeSet<String>,
     /// Emplacement du profil (non enregistre : c'est le nom du fichier).
     #[serde(skip)]
     pub slot: usize,
@@ -180,7 +203,7 @@ impl Profile {
             if let Some(t) = storage::read(root, LEGACY) {
                 if let Ok(mut p) = ron::from_str::<Profile>(&t) {
                     p.slot = 0;
-                    p.version = VERSION;
+                    p.migrate();
                     if p.name.is_empty() {
                         p.name = DEFAULT_NAME.to_string();
                     }
@@ -216,12 +239,43 @@ impl Profile {
                 return None;
             }
         };
-        p.version = VERSION;
+        p.migrate();
         p.slot = slot;
         if p.name.is_empty() {
             p.name = DEFAULT_NAME.to_string();
         }
+        // anciennes parties trop courtes (0.6.0) : retirees de « Mes parties »
+        for list in p.scores.values_mut() {
+            list.retain(|r| r.time >= MIN_RUN_TIME);
+        }
         Some(p)
+    }
+
+    /// Met a jour un profil d'une version precedente.
+    fn migrate(&mut self) {
+        if self.version < 3 {
+            // 0.6.3 : l'ancienne fusion « Master Sword » (epee + receptacle) s'appelle l'Epee de combat ;
+            // la Master Sword devient la fusion ultime, offerte a ceux qui ont deja vaincu Ganon.
+            if self.evolutions.remove("master_sword") {
+                self.evolutions.insert("combat_sword".to_string());
+            }
+            if let Some(n) = self.armory.remove("master_sword") {
+                *self.armory.entry("combat_sword".to_string()).or_default() += n;
+            }
+            if self.bestiary.get("ganon").is_some_and(|&n| n > 0) {
+                self.weapons.insert("master_sword".to_string());
+            }
+        }
+        if self.version < 4 {
+            // 0.6.4 : le voleur de rubis n'est plus un Pikit mais un Boo (victoires et figurine gardees)
+            if let Some(n) = self.bestiary.remove("pikit") {
+                *self.bestiary.entry("boo".to_string()).or_default() += n;
+            }
+            if self.figurines.remove("pikit") {
+                self.figurines.insert("boo".to_string());
+            }
+        }
+        self.version = VERSION;
     }
 
     pub fn new() -> Profile {
@@ -390,6 +444,22 @@ mod tests {
         assert_eq!(l, vec![30, 20, 10, 7, 6]);
         assert_eq!(p.best_score("a").map(|r| r.score), Some(30));
         assert!(p.best_score("b").is_none());
+    }
+
+    #[test]
+    fn old_master_sword_becomes_combat_sword() {
+        let mut p = Profile { version: 2, ..Default::default() };
+        p.evolutions.insert("master_sword".into());
+        p.armory.insert("master_sword".into(), 4);
+        p.bestiary.insert("ganon".into(), 1);
+        p.migrate();
+        assert!(p.evolutions.contains("combat_sword") && !p.evolutions.contains("master_sword"));
+        assert_eq!(p.armory.get("combat_sword"), Some(&4));
+        assert!(p.weapons.contains("master_sword"));
+        // deja a jour : rien ne bouge (la Master Sword gagnee reste une vraie fusion ultime)
+        p.evolutions.insert("master_sword".into());
+        p.migrate();
+        assert!(p.evolutions.contains("master_sword"));
     }
 
     /// Ancien profil unique repris dans le premier emplacement, puis plusieurs joueurs.

@@ -1,0 +1,26 @@
+// Version 0.6.2 : icones des nouvelles armes et reliques. Genere par research/tools/gen_items_v062.py.
+// Planche « Items (The Minish Cap-Style) », ChaosMiles07 et contributeurs. Voir CREDITS.md.
+(
+    sheets: [
+        (
+            source: "Derived - items_v062.png",
+            sprites: {
+                "icon_slingshot": { "0": (frames: [(0, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_hyper_slingshot": { "0": (frames: [(17, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_roc_feather": { "0": (frames: [(34, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_roc_cape": { "0": (frames: [(51, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_lantern": { "0": (frames: [(68, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_blue_lantern": { "0": (frames: [(85, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_gust_jar": { "0": (frames: [(102, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_vaati_jar": { "0": (frames: [(119, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_ocarina": { "0": (frames: [(136, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_ocarina_of_time": { "0": (frames: [(153, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_din_fire": { "0": (frames: [(170, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_din_wrath": { "0": (frames: [(187, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_lens_of_truth": { "0": (frames: [(204, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "icon_kinstone": { "0": (frames: [(221, 0, 16, 16)], pivot: (0, 0), align: Center) },
+                "proj_seed": { "0": (frames: [(238, 0, 11, 10)], pivot: (0, 0), align: Center) },
+            },
+        ),
+    ],
+)

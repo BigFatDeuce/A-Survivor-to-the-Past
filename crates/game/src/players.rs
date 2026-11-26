@@ -231,6 +231,9 @@ pub fn draw(list: &mut DrawList, ctx: &Ctx, lang: &Lang, slots: &[Option<SlotVie
             [1.0, 1.0, 1.0, 0.22]
         };
         frame_rect(list, white, p, s, border);
+        if selected {
+            crate::hub::focus_frame(list, ctx, p, s);
+        }
         list.probe_panel(p, s, "carte de joueur");
         let num = format!("{}", k + 1);
         text(list, main, &num, Vec2::new(p.x + 4.0, p.y + 4.0), 1.0, if is_active { GOLD } else { DIMMED }, Align::Left);
@@ -284,6 +287,9 @@ pub fn draw(list: &mut DrawList, ctx: &Ctx, lang: &Lang, slots: &[Option<SlotVie
         let selected = sel == DELETE + k;
         list.rect(white, r.0, r.1, with_alpha(BACK, 0.9));
         frame_rect(list, white, r.0, r.1, if selected { GOLD } else { [1.0, 1.0, 1.0, 0.3] });
+        if selected {
+            crate::hub::focus_frame(list, ctx, r.0, r.1);
+        }
         let c = if k == 0 && armed { RED } else if selected { GOLD } else { SOFT };
         text(list, main, lang.get(key), Vec2::new(r.0.x + r.1.x * 0.5, r.0.y + 4.0), 1.0, c, Align::Center);
     }
@@ -456,6 +462,7 @@ pub fn name_input(ctx: &Ctx, nav: &NavIn, text: &mut String, sel: &mut usize) ->
     act
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn draw_name(list: &mut DrawList, ctx: &Ctx, lang: &Lang, title: &str, name: &str, sel: usize, avatar: Option<usize>, t: f32) {
     let view = ctx.view;
     let atlas = &ctx.atlas;
@@ -483,7 +490,7 @@ pub fn draw_name(list: &mut DrawList, ctx: &Ctx, lang: &Lang, title: &str, name:
         let selected = k == sel;
         list.rect(white, p, s, with_alpha(BACK, if selected { 0.95 } else { 0.7 }));
         if selected {
-            frame_rect(list, white, p, s, GOLD);
+            crate::hub::focus_frame(list, ctx, p, s);
         }
         match grid_char(k) {
             // espace : petit crochet
@@ -505,6 +512,9 @@ pub fn draw_name(list: &mut DrawList, ctx: &Ctx, lang: &Lang, title: &str, name:
         let selected = sel == k;
         list.rect(white, r.0, r.1, with_alpha(BACK, 0.9));
         frame_rect(list, white, r.0, r.1, if selected { GOLD } else { [1.0, 1.0, 1.0, 0.3] });
+        if selected {
+            crate::hub::focus_frame(list, ctx, r.0, r.1);
+        }
         text(list, main, lang.get(key), Vec2::new(r.0.x + r.1.x * 0.5, r.0.y + 4.0), 1.0, if selected { GOLD } else { SOFT }, Align::Center);
     }
     text(list, main, lang.get("ui.name_hint"), Vec2::new(view.x * 0.5, l.hint_y), 1.0, SOFT, Align::Center);

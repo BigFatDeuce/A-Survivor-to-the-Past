@@ -77,15 +77,17 @@
     // (hors boss). Apparition : rules.ron (bomb_enemy, bomb_every).
     "bobomb": (
         sprite: "bobomb", anims: Single("walk"),
-        hp: 6.0, speed: 24.0, damage: 0.0, radius: 6.0, mass: 1.0, xp: 5,
-        behavior: Wander(turn: 1.6), shadow: 1,
+        // vie reelle : trois fois celle d'un ennemi ordinaire du stage (World::toughen_encounter) ; affichee en x2
+        hp: 6.0, speed: 24.0, damage: 0.0, radius: 10.0, mass: 3.0, xp: 5,
+        behavior: Wander(turn: 1.6), shadow: 2, scale: 2.0,
     ),
-    // Pikit (A Link to the Past) : voleur de rubis inoffensif qui fuit en sautant ; vaincu, sa langue
-    // rapporte au joueur tous les rubis au sol. Apparition : rules.ron (thief).
-    "pikit": (
-        sprite: "pikit", anims: Hop(idle: "idle", jump: "jump"),
-        hp: 40.0, speed: 0.0, damage: 0.0, radius: 7.0, mass: 1.2, xp: 5,
-        behavior: Flee(rest: 0.35, jump: 0.4, speed: 150.0, range: 130.0), shadow: 1,
+    // Boo (Link's Awakening, style A Link to the Past) : voleur de rubis inoffensif qui fuit par bonds ;
+    // vaincu, il rapporte au joueur tous les rubis au sol. Apparition : rules.ron (thief).
+    "boo": (
+        sprite: "boo", anims: Hop(idle: "idle", jump: "jump"),
+        // vie reelle : trois fois celle d'un ennemi ordinaire du stage (World::toughen_encounter) ; affiche en x2
+        hp: 30.0, speed: 0.0, damage: 0.0, radius: 11.0, mass: 3.0, xp: 5,
+        behavior: Flee(rest: 0.35, jump: 0.4, speed: 150.0, range: 130.0), shadow: 2, scale: 2.0,
     ),
     // Lynel (Montagne de la Mort) : robuste, crache des boules de feu a distance.
     "lynel": (
@@ -115,7 +117,8 @@
         hp: 14.0, speed: 50.0, damage: 10.0, radius: 6.0, mass: 0.8, xp: 2,
         behavior: Flutter(amp: 1.2, freq: 2.0), flying: true, shadow: 0,
     ),
-    // Boss generique : Hinox (bombes, charge, renforts).
+    // Hinox : ancien boss de la Plaine d'Hyrule, il ne garde que l'arene de test (0.6.1 : un boss
+    // different par zone). Absent du bestiaire tant qu'il n'a pas ete vaincu.
     "hinox": (
         sprite: "hinox", anims: Dir4(prefix: "walk", side_faces_left: false, attack: Some("throw")),
         // affiche en x2 : un boss doit se lire au premier coup d'oeil dans la foule
@@ -134,13 +137,16 @@
         ]),
     ),
 
-    // ---- Boss des stages (boss de fin ; le boss final d'un stage revient en mi-parcours du suivant) ----
+    // ---- Boss des stages : un par zone (mi-parcours a 4:30, final a 9:00), points de vie croissants
+    // d'un stage a l'autre. Plaine : Armos puis Helmasaure ; Bois perdus : Blind puis Mothula ;
+    // Desert : Lanmola puis Vitreous ; Lac gele : Arrghus puis Kholdstare ; Pyramide : Agahnim puis
+    // Ganon ; Montagne de la mort : Moldorm puis Trinexx. ----
     // Leap(windup, time, radius, damage) : bond sur le joueur et onde de choc a l'atterrissage.
     // Teleport(windup, range) : disparait puis reapparait a `range` pixels du joueur.
     // ring: true : tir en couronne tout autour du boss.
     "armos_knight": (
         sprite: "armos_knight", anims: Single("idle"),
-        hp: 4500.0, speed: 34.0, damage: 20.0, radius: 14.0, mass: 10.0, xp: 0,
+        hp: 2400.0, speed: 34.0, damage: 20.0, radius: 14.0, mass: 10.0, xp: 0,
         boss: true, shadow: 2, scale: 2.0,
         behavior: Boss(actions: [
             Walk(1.5),
@@ -171,7 +177,7 @@
     ),
     "lanmola": (
         sprite: "lanmola", anims: Single("head"),
-        hp: 8000.0, speed: 62.0, damage: 20.0, radius: 12.0, mass: 10.0, xp: 0,
+        hp: 6500.0, speed: 62.0, damage: 20.0, radius: 12.0, mass: 10.0, xp: 0,
         boss: true, shadow: 1, scale: 3.0,
         behavior: Boss(actions: [
             Walk(2.0),
@@ -212,9 +218,10 @@
             Summon(enemy: "stalfos", count: 6),
         ]),
     ),
+    // Ganon : boss final du dernier stage, le plus fort du jeu (vie de base fixee par la Pyramide)
     "ganon": (
         sprite: "ganon", anims: Dir4(prefix: "walk", side_faces_left: false),
-        hp: 18000.0, speed: 32.0, damage: 30.0, radius: 20.0, mass: 10.0, xp: 0,
+        hp: 26000.0, speed: 34.0, damage: 35.0, radius: 20.0, mass: 10.0, xp: 0,
         boss: true, shadow: 2, scale: 2.0,
         behavior: Boss(actions: [
             Walk(2.0),
@@ -226,6 +233,226 @@
             Summon(enemy: "keese", count: 12),
             Walk(1.5),
             Throw(windup: 0.6, shot: (sprite: "shot_fire_bat", speed: 80.0, damage: 20.0, count: 16, ring: true, radius: 7.0)),
+        ]),
+    ),
+    // Roi Helmasaure (final de la Plaine) : boules de feu, charge lourde, soldats en renfort.
+    "helmasaur_king": (
+        sprite: "helmasaur_king", anims: Single("walk"),
+        hp: 4500.0, speed: 24.0, damage: 20.0, radius: 26.0, mass: 10.0, xp: 0,
+        boss: true, shadow: 2, scale: 1.0,
+        behavior: Boss(actions: [
+            Walk(2.0),
+            Throw(windup: 0.6, shot: (sprite: "shot_helm_fire", speed: 110.0, damage: 15.0, count: 3, spread: 22.0, radius: 6.0)),
+            Walk(1.5),
+            Charge(windup: 0.8, speed: 150.0, time: 1.0),
+            Throw(windup: 0.6, shot: (sprite: "shot_helm_fire", speed: 85.0, damage: 15.0, count: 10, ring: true, radius: 6.0)),
+            Summon(enemy: "soldier_green", count: 8),
+            Walk(1.5),
+            Throw(windup: 0.4, shot: (sprite: "shot_helm_fire", speed: 130.0, damage: 15.0, count: 5, spread: 14.0, radius: 6.0)),
+        ]),
+    ),
+    // Blind (mi-parcours des Bois perdus) : tirs en couronne, la tete s'envole et reapparait.
+    "blind": (
+        sprite: "blind", anims: Single("walk"),
+        hp: 4500.0, speed: 30.0, damage: 20.0, radius: 18.0, mass: 10.0, xp: 0,
+        boss: true, shadow: 2, scale: 2.0,
+        behavior: Boss(actions: [
+            Walk(2.0),
+            Throw(windup: 0.6, shot: (sprite: "shot_energy_ball", speed: 95.0, damage: 15.0, count: 10, ring: true, radius: 6.0)),
+            Teleport(windup: 0.7, range: 90.0),
+            Throw(windup: 0.4, shot: (sprite: "shot_energy_ball", speed: 140.0, damage: 15.0, count: 3, spread: 18.0, radius: 6.0)),
+            Walk(1.5),
+            Summon(enemy: "keese", count: 10),
+            Charge(windup: 0.6, speed: 170.0, time: 0.8),
+        ]),
+    ),
+    // Vitreous (final du Desert) : le grand oeil lance ses petits yeux, bondit, appelle des vautours.
+    "vitreous": (
+        sprite: "vitreous", anims: Single("idle"),
+        hp: 8000.0, speed: 26.0, damage: 20.0, radius: 22.0, mass: 10.0, xp: 0,
+        boss: true, flying: true, shadow: 2, scale: 2.0,
+        behavior: Boss(actions: [
+            Walk(2.0),
+            Throw(windup: 0.6, shot: (sprite: "shot_eye", speed: 90.0, damage: 15.0, count: 12, ring: true, radius: 6.0)),
+            Walk(1.5),
+            Leap(windup: 0.6, time: 0.8, radius: 52.0, damage: 22.0),
+            Throw(windup: 0.4, shot: (sprite: "shot_eye", speed: 135.0, damage: 15.0, count: 5, spread: 16.0, radius: 6.0)),
+            Summon(enemy: "vulture", count: 8),
+            Walk(1.0),
+            Throw(windup: 0.6, shot: (sprite: "shot_eye", speed: 75.0, damage: 15.0, count: 18, ring: true, radius: 6.0)),
+        ]),
+    ),
+    // Arrghus (mi-parcours du Lac gele) : nuages d'Arrgi, grand saut, Popo en renfort.
+    "arrghus": (
+        sprite: "arrghus", anims: Single("float"),
+        hp: 8000.0, speed: 30.0, damage: 20.0, radius: 18.0, mass: 10.0, xp: 0,
+        boss: true, flying: true, shadow: 2, scale: 2.0,
+        behavior: Boss(actions: [
+            Walk(2.0),
+            Throw(windup: 0.6, shot: (sprite: "shot_arrgi", speed: 80.0, damage: 15.0, count: 13, ring: true, radius: 6.0)),
+            Leap(windup: 0.7, time: 0.9, radius: 60.0, damage: 25.0),
+            Walk(1.5),
+            Throw(windup: 0.4, shot: (sprite: "shot_arrgi", speed: 125.0, damage: 15.0, count: 5, spread: 18.0, radius: 6.0)),
+            Summon(enemy: "popo", count: 10),
+            Leap(windup: 0.5, time: 0.8, radius: 50.0, damage: 22.0),
+        ]),
+    ),
+    // Moldorm (mi-parcours de la Montagne de la mort) : rapide, charges en serie, Tektites en renfort.
+    "moldorm": (
+        sprite: "moldorm", anims: Dir4(prefix: "walk", side_faces_left: true),
+        hp: 9000.0, speed: 64.0, damage: 22.0, radius: 15.0, mass: 10.0, xp: 0,
+        boss: true, shadow: 2, scale: 2.0,
+        behavior: Boss(actions: [
+            Walk(1.5),
+            Charge(windup: 0.4, speed: 210.0, time: 0.7),
+            Charge(windup: 0.3, speed: 210.0, time: 0.7),
+            Charge(windup: 0.3, speed: 230.0, time: 0.8),
+            Walk(2.0),
+            Summon(enemy: "tektite", count: 12),
+            Walk(1.0),
+            Charge(windup: 0.6, speed: 250.0, time: 1.0),
+        ]),
+    ),
+    // Trinexx (final de la Montagne de la mort, dernier stage) : feu, glace, charge, renforts.
+    "trinexx": (
+        sprite: "trinexx", anims: Single("idle"),
+        hp: 20000.0, speed: 22.0, damage: 30.0, radius: 28.0, mass: 10.0, xp: 0,
+        boss: true, shadow: 2, scale: 1.0,
+        behavior: Boss(actions: [
+            Walk(2.0),
+            Throw(windup: 0.6, shot: (sprite: "shot_flame", speed: 140.0, damage: 22.0, count: 5, spread: 14.0, radius: 6.0)),
+            Walk(1.0),
+            Throw(windup: 0.6, shot: (sprite: "proj_ice", speed: 90.0, damage: 20.0, count: 14, ring: true, radius: 6.0)),
+            Charge(windup: 0.8, speed: 170.0, time: 1.0),
+            Summon(enemy: "stalfos", count: 12),
+            Throw(windup: 0.5, shot: (sprite: "shot_flame", speed: 100.0, damage: 22.0, count: 16, ring: true, radius: 6.0)),
+            Walk(1.5),
+            Throw(windup: 0.5, shot: (sprite: "proj_ice", speed: 150.0, damage: 20.0, count: 7, spread: 12.0, radius: 6.0)),
+            Summon(enemy: "lynel", count: 3),
+        ]),
+    ),
+
+    // ---- 0.6.3 : ennemis des nouveaux stages. Leur vie et leurs degats sont ensuite multiplies par la
+    // difficulte du stage (`power` dans data/maps). ----
+    // Soldat rouge (Chateau d'Hyrule) : lance son trident a distance.
+    "soldier_red": (
+        sprite: "soldier_red", anims: Dir4(prefix: "walk", side_faces_left: false),
+        hp: 40.0, speed: 32.0, damage: 15.0, radius: 6.5, mass: 1.6, xp: 5,
+        behavior: Shooter(range: 160.0, keep: 100.0, cooldown: 3.0, windup: 0.5,
+                          shot: (sprite: "shot_spear", speed: 150.0, damage: 15.0, radius: 3.0)),
+        shadow: 1,
+    ),
+    // Kodongo (Palais des Tenebres) : lent, crache du feu.
+    "kodongo": (
+        sprite: "kodongo", anims: Dir4(prefix: "walk", side_faces_left: false),
+        hp: 45.0, speed: 22.0, damage: 15.0, radius: 6.5, mass: 1.6, xp: 5,
+        behavior: Shooter(range: 140.0, keep: 80.0, cooldown: 3.4, windup: 0.5,
+                          shot: (sprite: "shot_lynel_fire", speed: 120.0, damage: 15.0, radius: 4.0)),
+        shadow: 1,
+    ),
+    // Eyegore (Palais des Tenebres) : colosse a l'oeil unique, charge quand il vous voit.
+    "eyegore": (
+        sprite: "eyegore", anims: Dir4(prefix: "walk", side_faces_left: true),
+        hp: 110.0, speed: 26.0, damage: 20.0, radius: 9.0, mass: 3.5, xp: 8,
+        behavior: Charger(range: 110.0, windup: 0.6, speed: 150.0, time: 0.6, rest: 1.0), shadow: 2,
+    ),
+    // Zazak (Village des Voleurs) : lezard qui crache des boules de feu.
+    "zazak": (
+        sprite: "zazak", anims: Dir4(prefix: "walk", side_faces_left: true),
+        hp: 50.0, speed: 30.0, damage: 15.0, radius: 7.0, mass: 1.8, xp: 5,
+        behavior: Shooter(range: 150.0, keep: 100.0, cooldown: 3.2, windup: 0.45,
+                          shot: (sprite: "shot_lynel_fire", speed: 140.0, damage: 15.0, radius: 4.0)),
+        shadow: 1,
+    ),
+    // Gibdo (Village des Voleurs) : momie lente et tres resistante.
+    "gibdo": (
+        sprite: "gibdo", anims: Dir4(prefix: "walk", side_faces_left: true),
+        hp: 90.0, speed: 18.0, damage: 20.0, radius: 7.0, mass: 2.5, xp: 5,
+        behavior: Chase, shadow: 1,
+    ),
+    // Snapdragon (Village des Voleurs) : bondit en claquant des machoires.
+    "snapdragon": (
+        sprite: "snapdragon", anims: Single("walk"),
+        hp: 40.0, speed: 0.0, damage: 15.0, radius: 8.0, mass: 1.6, xp: 3,
+        behavior: Hop(rest: 0.6, jump: 0.4, speed: 130.0), shadow: 1,
+    ),
+    // Zol (Marais) : gelee qui sautille.
+    "zol": (
+        sprite: "zol", anims: Single("walk"),
+        hp: 20.0, speed: 0.0, damage: 10.0, radius: 5.5, mass: 0.8, xp: 1,
+        behavior: Hop(rest: 0.7, jump: 0.35, speed: 100.0), shadow: 1,
+    ),
+    // Ropa (Marais) : plante qui bondit vite.
+    "ropa": (
+        sprite: "ropa", anims: Single("walk"),
+        hp: 30.0, speed: 0.0, damage: 10.0, radius: 7.0, mass: 1.0, xp: 2,
+        behavior: Hop(rest: 0.5, jump: 0.45, speed: 140.0), shadow: 1,
+    ),
+    // Bari (Marais) : meduse electrique qui flotte.
+    "bari": (
+        sprite: "bari", anims: Single("fly"),
+        hp: 24.0, speed: 30.0, damage: 15.0, radius: 6.0, mass: 0.8, xp: 2,
+        behavior: Flutter(amp: 1.0, freq: 1.5), flying: true, shadow: 1,
+    ),
+    // Zora (Marais) : surgit de l'eau et crache du feu.
+    "zora": (
+        sprite: "zora", anims: Single("walk"),
+        hp: 35.0, speed: 20.0, damage: 15.0, radius: 7.0, mass: 1.4, xp: 3,
+        behavior: Shooter(range: 180.0, keep: 140.0, cooldown: 2.8, windup: 0.6,
+                          shot: (sprite: "shot_lynel_fire", speed: 130.0, damage: 15.0, radius: 4.0)),
+        shadow: 1,
+    ),
+    // Pengator (Lac gele) : pingouin qui glisse sur le ventre.
+    "pengator": (
+        sprite: "pengator", anims: Dir4(prefix: "walk", side_faces_left: true),
+        hp: 40.0, speed: 30.0, damage: 15.0, radius: 7.0, mass: 1.4, xp: 3,
+        behavior: Charger(range: 130.0, windup: 0.35, speed: 175.0, time: 0.6, rest: 0.6), shadow: 1,
+    ),
+
+    // ---- 0.6.3 : boss de mi-parcours (leur vie de base est fixee par le stage, data/maps) ----
+    // Stalfos Knight (Desert) : bonds, tempete d'os, renforts de Stalfos.
+    "stalfos_knight": (
+        sprite: "stalfos_knight", anims: Single("walk"),
+        hp: 3000.0, speed: 30.0, damage: 20.0, radius: 14.0, mass: 10.0, xp: 0,
+        boss: true, shadow: 2, scale: 2.0,
+        behavior: Boss(actions: [
+            Walk(2.0),
+            Leap(windup: 0.5, time: 0.7, radius: 44.0, damage: 20.0),
+            Leap(windup: 0.4, time: 0.6, radius: 44.0, damage: 20.0),
+            Walk(1.5),
+            Throw(windup: 0.6, shot: (sprite: "shot_rock", speed: 120.0, damage: 15.0, count: 8, ring: true, radius: 4.0)),
+            Summon(enemy: "stalfos", count: 6),
+            Charge(windup: 0.6, speed: 170.0, time: 0.8),
+        ]),
+    ),
+    // Lynel geant (Montagne de la Mort) : souffle de feu en eventail, charges, Lynels en renfort.
+    "lynel_king": (
+        sprite: "lynel", anims: Dir4(prefix: "walk", side_faces_left: false),
+        hp: 3800.0, speed: 34.0, damage: 22.0, radius: 15.0, mass: 10.0, xp: 0,
+        boss: true, shadow: 2, scale: 2.0,
+        behavior: Boss(actions: [
+            Walk(2.0),
+            Throw(windup: 0.5, shot: (sprite: "shot_lynel_fire", speed: 150.0, damage: 20.0, count: 5, spread: 18.0, radius: 4.0)),
+            Charge(windup: 0.6, speed: 190.0, time: 0.8),
+            Walk(1.5),
+            Throw(windup: 0.6, shot: (sprite: "shot_lynel_fire", speed: 110.0, damage: 18.0, count: 12, ring: true, radius: 4.0)),
+            Summon(enemy: "lynel", count: 3),
+            Charge(windup: 0.45, speed: 200.0, time: 0.7),
+        ]),
+    ),
+    // Chevalier au fleau (Chateau d'Hyrule) : fait tournoyer sa boule (couronne de tirs) et charge.
+    "flail_knight": (
+        sprite: "flail_knight", anims: Dir4(prefix: "walk", side_faces_left: false),
+        hp: 4500.0, speed: 30.0, damage: 22.0, radius: 13.0, mass: 10.0, xp: 0,
+        boss: true, shadow: 2, scale: 2.0,
+        behavior: Boss(actions: [
+            Walk(2.0),
+            Throw(windup: 0.7, shot: (sprite: "shot_bomb", speed: 120.0, damage: 22.0, count: 10, ring: true, radius: 6.0)),
+            Charge(windup: 0.6, speed: 180.0, time: 0.8),
+            Walk(1.5),
+            Summon(enemy: "soldier_red", count: 5),
+            Throw(windup: 0.5, shot: (sprite: "shot_bomb", speed: 140.0, damage: 22.0, count: 3, spread: 20.0, radius: 6.0)),
+            Charge(windup: 0.5, speed: 200.0, time: 0.7),
         ]),
     ),
 }

@@ -1,8 +1,8 @@
 <p align="center"><img src="media/icon.png" width="128" height="128" alt="A Survivor to the Past"></p>
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i>Ein Survivors-like in der Welt von <b>A Link to the Past</b>: Halte den Monsterhorden Hyrules stand.</i></p>
-<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.6.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
-<p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Für Windows herunterladen</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ Im Browser spielen</b></a></p>
+<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.7.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Herunterladen</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ Im Browser spielen</b></a></p>
 <p align="center"><a href="README.md">English</a> · <a href="README.fr.md">Français</a> · <b>Deutsch</b> · <a href="README.es.md">Español</a> · <a href="README.it.md">Italiano</a> · <a href="README.pt.md">Português</a> · <a href="README.ja.md">日本語</a></p>
 
 <p align="center"><img src="media/horde.png" alt="" width="100%"></p>
@@ -16,12 +16,12 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
 ## Inhalt
 
 - **6 Stages**, die nacheinander freigeschaltet werden — Hyrule-Ebene, Verlorene Wälder, Wüste der Mysterien, Gefrorener See, Pyramide der Macht und der Bonus-Stage Todesberg — jede mit eigenem Wetter, eigener Musik, Zwischenboss und Endboss, bis zu Agahnim und Ganon
-- **12 spielbare Figuren** zum Freischalten — Link, Minish-Link, Link ohne Mütze, Sonic, Prinzessin Zelda, NES-Link, Four-Swords-Link (4 Farben), der Link aus *Link's Awakening*, Erwachsener Link, Deku-Link, Shy Guy und Shadow Link (Ganon besiegen) — jede mit Stärken, Schwächen und eigener Startwaffe
+- **350 spielbare Figuren** in sechs Welten — die handgemachte Truppe (Link, Minish-Link, Sonic, Zelda, Mario, Vivi, Ganondorf als Allerletzter...) und über 300 Sprites der *A Link to the Past Randomizer*-Community, jeweils mit Nennung der Autoren und bis zu vier Farben (blaues Kettenhemd, rotes Kettenhemd, Hase). Manche werden durch Erfolge freigeschaltet (Gegner, Bosse, Level, Stages), andere mit roten Rubinen gekauft — jede mit Stärken, Schwächen und Startwaffe
 - Ein seltener **Bob-omb**, der alle Gegner auf dem Bildschirm wegsprengt, und **zerstörbare Umgebung** mit Rubinen, Herzen, Feen oder dem Äther-Medaillon
 - Zufällige **Begegnungen**: Ein wandernder Champion wartet irgendwo, ein Pfeil zeigt den Weg — besiege ihn für einen Segen, eine Spezialverbesserung oder ein Relikt, das bleibt, wenn du gewinnst
-- Ein **diebischer Pikit**, der die Rubine am Boden frisst — fang ihn, um alle zurückzubekommen
+- Ein **diebischer Boo**, der die Rubine am Boden frisst — fang ihn, um alle zurückzubekommen
 - **12 Waffen**, jede mit einer **Entwicklung**, und **12 passive Gegenstände** — 6 Waffen- und 6 Gegenstandsplätze, jede Wahl zählt
-- **18 Gegnertypen** aus Hyrule, **7 Bosse** und **Elite-Gegner**, die Truhen fallen lassen
+- **18 Gegnertypen** aus Hyrule, **12 Bosse** (in jeder Stage ein anderer) und **Elite-Gegner**, die Truhen fallen lassen
 - **Fortschritt zwischen den Runden**: der Laden von Kakariko (dauerhafte Verbesserungen), die Segen der Großen Fee, eine **Reliquie** pro Stage, 4 **Schwierigkeitsgrade** und Ganons **Siegel** für mehr Rubine
 - **Profil**: Bestiarium, Waffenkammer, Statistiken sowie Export / Import des Spielstands als Textcode
 - **5 Spieler** auf demselben Computer, jeder mit Namen, Avatar und eigenem Fortschritt; eine **Punktzahl** für jede Runde und **Ranglisten**: Bestwerte pro Stage, unter den Spielern zu Hause und eine **Welt-Top-100** pro Spielversion
@@ -30,13 +30,13 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
 - Originale SNES-**Grafiken, Musik und Sounds** aus A Link to the Past
 - **Retro-Videofilter**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, dazu ein **4:3**-Modus — und passende **Audiofilter**
 - **7 Sprachen**: English, Français, Deutsch, Español, Italiano, Português, 日本語
-- Eigene **Rust-Engine** (wgpu): Tausende Gegner auf dem Bildschirm, unter Windows und **im Browser**
+- Eigene **Rust-Engine** (wgpu): Tausende Gegner auf dem Bildschirm, unter Windows, Linux, macOS und **im Browser**
 
 ## Waffen und Entwicklungen
 
-| Waffe | + Gegenstand (beliebige Stufe) | Entwicklung (Waffe auf Höchststufe) |
+| Waffe | + Gegenstand | Entwicklung (beide auf Höchststufe) |
 |---|---|---|
-| Kämpferschwert | Herzcontainer | **Master-Schwert** |
+| Kämpferschwert | Herzcontainer | **Kampfschwert** |
 | Bogen | Köcher | **Silberpfeile** |
 | Bumerang | Zora-Flossen | **Magischer Bumerang** |
 | Feuerstab | Laterne | **Bombos-Medaillon** |
@@ -48,6 +48,12 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
 | Zauberpulver | Pilz | **Hexenpulver** |
 | Somaria-Stab | Buch Mudora | **Große Somaria** |
 | Bienen | Käfernetz | **Goldbienen** |
+| Schleuder | Köcher | **Hyperschleuder** |
+| Rocs Feder | Pegasus-Stiefel | **Rocs Cape** |
+| Leuchtfeuer | Halbe Magie | **Blaues Leuchtfeuer** |
+| Wirbelkrug | Zauberumhang | **Vaatis Krug** |
+| Feen-Okarina | Buch Mudora | **Okarina der Zeit** |
+| Dins Feuerinferno | Laterne | **Dins Zorn** |
 
 ## Bilder
 
@@ -78,7 +84,7 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
 
 ## Spielen
 
-Das Spiel ist in der **Alpha-Phase** (Version 0.6.0). **Windows**: Lade die neueste Version von der [Release-Seite](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest) herunter, entpacke das ganze Zip und starte `A Survivor to the Past.exe`. Windows warnt eventuell, dass das Spiel nicht signiert ist: Klicke auf *Weitere Informationen* → *Trotzdem ausführen*. Danach **aktualisiert sich das Spiel selbst**: Beim Start prüft es auf GitHub, ob es eine neue Version gibt, lädt sie im Hintergrund herunter und installiert sie beim nächsten Start (Optionen → Updates: Automatisch / Nachfragen / Aus). Deine Einstellungen bleiben erhalten und es werden keine persönlichen Daten gesendet: Updates kontaktieren nur GitHub, und die Weltrangliste kontaktiert die Website des Spiels nur, wenn du sie öffnest oder eine Punktzahl veröffentlichst (Spitzname und Punktzahl).
+Das Spiel ist in der **Alpha-Phase** (Version 0.7.0). **Windows**: Lade die neueste Version von der [Release-Seite](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest) herunter, entpacke das ganze Zip und starte `A Survivor to the Past.exe`. Windows warnt eventuell, dass das Spiel nicht signiert ist: Klicke auf *Weitere Informationen* → *Trotzdem ausführen*. **Linux, macOS und Handhelds** (PortMaster, experimentell): gleiche Seite, nimm das Zip für dein System und folge seiner `README.txt`. Danach **aktualisiert sich das Spiel selbst**: Beim Start prüft es auf GitHub, ob es eine neue Version gibt, lädt sie im Hintergrund herunter und installiert sie beim nächsten Start (Optionen → Updates: Automatisch / Nachfragen / Aus). Deine Einstellungen bleiben erhalten und es werden keine persönlichen Daten gesendet: Updates kontaktieren nur GitHub, und die Weltrangliste kontaktiert die Website des Spiels nur, wenn du sie öffnest oder eine Punktzahl veröffentlichst (Spitzname und Punktzahl).
 
 **Browser**: [direkt auf der Website spielen](https://a-survivor-to-the-past.holy-c.men/play/), ohne Installation. Am besten am Computer, in Chrome, Edge oder Firefox; dein Fortschritt wird im Browser gespeichert. Versionen für Linux, macOS und Android folgen später. Bis dahin kannst du das Spiel mit [Rust](https://rustup.rs) (stable) aus dem Quellcode bauen:
 
@@ -99,7 +105,7 @@ Unter Linux werden außerdem die Entwicklungspakete für ALSA und udev benötigt
 | Sprint | Leertaste / Rechtsklick | A / linker Trigger |
 | Auto- oder manueller Angriff | Tab / R | Y |
 | Pause | Esc / P | Start |
-| Vollbild · Info · Bildschirmfoto | F11 · F3 · F12 |  |
+| Vollbild · Info · Bildschirmfoto | F11 · F3 · F12 | Select · – · – |
 
 ## Fahrplan
 
@@ -124,6 +130,6 @@ Webseite: [a-survivor-to-the-past.holy-c.men](https://a-survivor-to-the-past.hol
 
 Die [GPL-3.0-Lizenz](LICENSE) gilt nur für den für dieses Projekt geschriebenen Quellcode; sie gewährt keinerlei Rechte an Nintendos Assets. Die Sprite-Sheets stammen aus den Rips der Community von *The Spriters Resource* — danke an ihre Autoren.
 
-Die Namen aller Sprite-Ripper und Künstler (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny und viele mehr) stehen in **[CREDITS.md](CREDITS.md)**. Shy Guy gehört ebenfalls Nintendo; *Sonic the Hedgehog* ist eine Marke von **SEGA**.
+Die Namen aller Sprite-Ripper und Künstler (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny und viele mehr) stehen in **[CREDITS.md](CREDITS.md)**. Mario und Shy Guy gehören ebenfalls Nintendo; *Sonic the Hedgehog* ist eine Marke von **SEGA**, *Among Us* von **Innersloth**, Simon Belmont (*Castlevania*) von **Konami** und Vivi (*Final Fantasy IX*) von **Square Enix**.
 
 Rechteinhaber: Um Inhalte entfernen zu lassen, eröffne ein Issue oder kontaktiere uns auf [Discord](https://discord.gg/N8f62M2eaK).

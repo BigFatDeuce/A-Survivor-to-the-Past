@@ -21,10 +21,20 @@ pub struct ShopItem {
     pub icon: String,
     /// Statistique amelioree (None : Avarice, plus de rubis en banque).
     pub stat: Option<Stat>,
+    /// Relances ou passes en plus a la montee de niveau (per_level par niveau achete).
+    #[serde(default)]
+    pub perk: Option<Perk>,
     pub per_level: f32,
     pub max: u32,
     pub cost: u32,
     pub growth: f32,
+}
+
+/// Bonus de boutique hors statistiques : choix de la montee de niveau.
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize)]
+pub enum Perk {
+    Reroll,
+    Skip,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -35,6 +45,8 @@ pub enum BlessingEffect {
     Xp(f32),
     /// Soin des coeurs en plus (+0.5 = +50 %).
     Heal(f32),
+    /// La sorciere passe une fois par chaque partie et vend ses potions.
+    Witch,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -58,6 +70,11 @@ pub struct Relic {
     #[serde(default)]
     pub encounter: bool,
     pub stats: Vec<(Stat, f32)>,
+    /// Relances / passes en plus a la montee de niveau.
+    #[serde(default)]
+    pub rerolls: u32,
+    #[serde(default)]
+    pub skips: u32,
 }
 
 fn one() -> f32 {
@@ -82,6 +99,33 @@ pub struct Seal {
     pub bonus: f32,
 }
 
+/// Garde-robe (0.6.3) : tenue achetee une fois, choisie ensuite comme une couleur du personnage.
+/// `sprite` est une entree de `skins` du personnage.
+#[derive(Clone, Debug, Deserialize)]
+pub struct WardrobeItem {
+    pub character: String,
+    pub sprite: String,
+    /// Icone de la ligne ; vide : la tenue elle-meme (0.6.4).
+    #[serde(default)]
+    pub icon: String,
+    pub cost: u64,
+}
+
+/// Juke-box (0.6.3) : musique a acheter, puis a choisir pour l'ecran titre.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Track {
+    pub id: String,
+    pub cost: u64,
+}
+
+/// Offrande a la Grande Fee (0.6.3) : titre affiche au classement en ligne (pseudo en couleur).
+/// Les titres s'achetent dans l'ordre ; seul le plus haut compte.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Title {
+    pub id: String,
+    pub cost: u64,
+}
+
 #[derive(Clone, Debug, Deserialize, Default)]
 pub struct Meta {
     pub difficulties: Vec<Difficulty>,
@@ -90,6 +134,15 @@ pub struct Meta {
     pub max_relics: usize,
     pub relics: Vec<Relic>,
     pub seals: Vec<Seal>,
+    #[serde(default)]
+    pub wardrobe: Vec<WardrobeItem>,
+    #[serde(default)]
+    pub jukebox: Vec<Track>,
+    #[serde(default)]
+    pub titles: Vec<Title>,
+    /// Figurines du bestiaire : prix d'un ennemi, d'un boss, du boss final (Ganon).
+    #[serde(default)]
+    pub figurines: (u64, u64, u64),
 }
 
 impl Meta {
@@ -101,6 +154,23 @@ impl Meta {
                 log::warn!("{} illisible : pas de progression", p.display());
                 Meta::default()
             }
+        }
+    }
+
+    /// Tenue de la garde-robe pas encore achetee (sprite d'une couleur de personnage).
+    pub fn skin_locked(&self, profile: &Profile, sprite: &str) -> bool {
+        self.wardrobe.iter().any(|w| w.sprite == sprite) && !profile.wardrobe.contains(sprite)
+    }
+
+    /// Prix de la figurine d'un ennemi.
+    pub fn figurine_cost(&self, enemy: &sim::defs::EnemyDef, id: &str) -> u64 {
+        let (normal, boss, last) = self.figurines;
+        if id == "ganon" {
+            last
+        } else if enemy.boss {
+            boss
+        } else {
+            normal
         }
     }
 
@@ -130,6 +200,12 @@ impl Meta {
             if let (Some(s), true) = (item.stat, lv > 0) {
                 m.stats.push((s, item.per_level * lv as f32));
             }
+            let n = (item.per_level * lv as f32).round() as u32;
+            match item.perk {
+                Some(Perk::Reroll) => m.rerolls += n,
+                Some(Perk::Skip) => m.skips += n,
+                None => {}
+            }
         }
         for b in &self.blessings {
             if !profile.blessings.contains(&b.id) {
@@ -139,11 +215,14 @@ impl Meta {
                 BlessingEffect::Revive => m.revives += 1,
                 BlessingEffect::Xp(x) => m.xp += x,
                 BlessingEffect::Heal(h) => m.heal += h,
+                BlessingEffect::Witch => m.witch = true,
             }
         }
         for r in &self.relics {
             if profile.equipped.contains(&r.id) && profile.relics.contains(&r.id) {
                 m.stats.extend(r.stats.iter().copied());
+                m.rerolls += r.rerolls;
+                m.skips += r.skips;
             }
         }
         if let Some(d) = self.difficulty(profile) {
@@ -168,7 +247,7 @@ impl Meta {
     pub fn bank_mult(&self, profile: &Profile) -> f32 {
         let d = self.difficulty(profile).map(|d| d.rupees).unwrap_or(1.0);
         let seals: f32 = self.seals.iter().filter(|s| profile.seals.contains(&s.id)).map(|s| s.bonus).sum();
-        let greed: f32 = self.shop.iter().filter(|i| i.stat.is_none()).map(|i| i.per_level * profile.shop_level(&i.id) as f32).sum();
+        let greed: f32 = self.shop.iter().filter(|i| i.stat.is_none() && i.perk.is_none()).map(|i| i.per_level * profile.shop_level(&i.id) as f32).sum();
         d * (1.0 + seals) * (1.0 + greed)
     }
 
@@ -183,6 +262,27 @@ impl Meta {
     pub fn relic_of(&self, stage: &str) -> Option<&Relic> {
         self.relics.iter().find(|r| !r.encounter && r.stage == stage)
     }
+}
+
+/// Effets d'une relique : statistiques, puis relances et passes.
+pub fn relic_fx(lang: &crate::lang::Lang, r: &Relic) -> Vec<String> {
+    let mut fx: Vec<String> = r.stats.iter().map(|&(s, v)| stat_text(lang, s, v)).collect();
+    if r.rerolls > 0 {
+        fx.push(perk_text(lang, Perk::Reroll, r.rerolls));
+    }
+    if r.skips > 0 {
+        fx.push(perk_text(lang, Perk::Skip, r.skips));
+    }
+    fx
+}
+
+/// « +1 Relance », « +1 Passe ».
+pub fn perk_text(lang: &crate::lang::Lang, p: Perk, n: u32) -> String {
+    let key = match p {
+        Perk::Reroll => "stat.rerolls",
+        Perk::Skip => "stat.skips",
+    };
+    format!("+{n} {}", lang.get(key))
 }
 
 /// Texte court d'un bonus de statistique (« +10 % Puissance »), noms `stat.<nom>`.
@@ -231,6 +331,18 @@ mod tests {
         assert!(m.stats.iter().any(|&(s, v)| s == Stat::MaxHp && v == 20.0));
         assert!((m.enemy_hp - 3.0).abs() < 1e-4);
         assert!(meta.bank_mult(&p) > 2.0);
+        // relances / passes : 2 de base, plus la boutique et les reliques equipees
+        assert_eq!((base.rerolls, base.skips), (2, 2));
+        let g = meta.bank_mult(&p);
+        p.shop.insert("reroll".into(), 2);
+        p.shop.insert("skip".into(), 1);
+        for id in ["lens_of_truth", "kinstone"] {
+            p.relics.insert(id.into());
+            p.equipped.push(id.into());
+        }
+        let m = meta.run_mods(&p);
+        assert_eq!((m.rerolls, m.skips), (5, 4));
+        assert_eq!(meta.bank_mult(&p), g, "les relances ne comptent pas comme Avarice");
         assert_eq!(meta.shop_cost(&meta.shop[0], 0), Some(150));
         assert_eq!(meta.shop_cost(&meta.shop[0], 5), None);
         for r in meta.relics.iter().filter(|r| !r.encounter) {

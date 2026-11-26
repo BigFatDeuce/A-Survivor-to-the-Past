@@ -1,0 +1,37 @@
+// Version 0.6.3 : sols des quatre nouveaux stages (tuiles 16x16 des rendus d'overworld).
+// 0 tuile de base, 1-3 variantes discretes, 4-5 details, 6 detail rare (voir stages::ground_index).
+// Seules les tuiles dont le bord a la couleur de la tuile de base sont gardees (pas de carres visibles) :
+// verifie par research/tools/check_tiles.py.
+(
+    sheets: [],
+    tilesets: [
+        (
+            // Chateau d'Hyrule : paves verts de la cour du chateau
+            name: "castle",
+            source: "Overworld - Light World.png",
+            size: 16,
+            tiles: [(2007, 2873), (2007, 2873), (2007, 2873), (2007, 2873), (2007, 2873), (2007, 2873), (2007, 2873)],
+        ),
+        (
+            // Palais des Tenebres : herbe pale et ronces du labyrinthe
+            name: "dark_palace",
+            source: "Overworld - Dark World.png",
+            size: 16,
+            tiles: [(3280, 1712), (3280, 1728), (3600, 1744), (3280, 1712), (3280, 1728), (3600, 1744), (3280, 1728)],
+        ),
+        (
+            // Grand Marais : vase verte, fleurs et pierres
+            name: "swamp",
+            source: "Overworld - Dark World.png",
+            size: 16,
+            tiles: [(192, 3280), (656, 3328), (624, 3296), (592, 3328), (224, 3296), (624, 3312), (224, 3296)],
+        ),
+        (
+            // Village des Voleurs : terre olive, paves et fleurs fanees
+            name: "village",
+            source: "Overworld - Dark World.png",
+            size: 16,
+            tiles: [(304, 1760), (304, 1760), (304, 1760), (304, 1760), (656, 1824), (656, 1792), (656, 1824)],
+        ),
+    ],
+)

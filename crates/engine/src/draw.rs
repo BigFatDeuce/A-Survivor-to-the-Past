@@ -119,10 +119,10 @@ impl DrawList {
             Align::Center => (pos.x - w * 0.5).round(),
             Align::Right => pos.x - w,
         };
-        if self.probe.is_some() && self.space() == crate::gfx::Space::Ui {
+        let ui = self.space() == crate::gfx::Space::Ui;
+        if let (Some(probe), true) = (self.probe.as_mut(), ui) {
             let size = Vec2::new(w, font.line_height as f32 * scale);
-            let missing: Vec<char> = s.chars().filter(|&c| c != ' ' && font.glyph(c).is_none()).collect();
-            let probe = self.probe.as_mut().unwrap();
+            let missing: Vec<char> = s.chars().filter(|&c| c != ' ' && !c.is_control() && font.glyph(c).is_none()).collect();
             probe.push(crate::gfx::Probe::Text { pos: Vec2::new(x0, pos.y), size, text: s.to_string() });
             for ch in missing {
                 probe.push(crate::gfx::Probe::MissingGlyph { ch, text: s.to_string() });
@@ -134,7 +134,8 @@ impl DrawList {
             let p = Params { color: col, scale: Vec2::splat(scale), ..Default::default() };
             let mut x = x0 + off;
             let mut first = true;
-            for c in s.chars() {
+            // balises de mise en valeur (caracteres de controle) : invisibles ici
+            for c in s.chars().filter(|c| !c.is_control()) {
                 if !first {
                     x += font.spacing as f32 * scale;
                 }

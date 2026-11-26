@@ -3,7 +3,6 @@
 (
     name: "Shadow Link",
     sprite: "shadow_link",
-    side_faces_left: true,
     max_hp: 50.0,
     speed: 92.0,
     radius: 5.0,
@@ -14,4 +13,10 @@
     stats: [(Might, 0.25), (Cooldown, -0.1), (Luck, -0.2), (Growth, -0.15)],
     order: 12,
     unlock: Some(Slain("ganon")),
+    // 0.6.5 : sprite du Randomizer (Dark Link), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Dark Link), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Dark Link), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Dark Link), couleurs de ses palettes : gen_zspr_chars.py
+    skins: [("shadow_link", "black"), ("shadow_link_p2", "p2"), ("shadow_link_p3", "p3"), ("shadow_link_bunny", "dark")],
+    credit: "iBazly",
 )

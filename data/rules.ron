@@ -45,7 +45,7 @@
     // 0.6 : tirs ennemis un peu plus lents (lisibles), et zone de contact 10 % plus petite que le sprite
     shot_speed: 0.78,
     shot_hitbox: 0.9,
-    // 0.6 : Pikit voleur de rubis, 2 a 3 fois par partie ; vaincu, tous les rubis au sol viennent au joueur.
+    // 0.6 : voleur de rubis (Boo depuis la 0.6.4), 2 a 3 fois par partie ; vaincu, tous les rubis au sol viennent au joueur.
     // Il repart au bout de `life` secondes ; pas pendant un boss (il attend la fin).
-    thief: (enemy: "pikit", first: 110.0, every: (150.0, 190.0), life: 45.0, hp: 1.0, flee: 130.0),
+    thief: (enemy: "boo", first: 110.0, every: (150.0, 190.0), life: 45.0, hp: 1.0, flee: 130.0),
 )

@@ -1,0 +1,16 @@
+// Version 0.6.2 : decors du Lac gele, tires du vrai Lac de Glace (monde des tenebres) et du bloc du
+// Palais de Glace. Genere par research/tools/gen_ice_props_v062.py. Voir CREDITS.md.
+(
+    sheets: [
+        (
+            source: "Derived - ice_props_v062.png",
+            sprites: {
+                "prop_ice_floe": { "0": (frames: [(0, 0, 48, 32)], pivot: (0, -2), align: Bottom) },
+                "prop_ice_floe_big": { "0": (frames: [(49, 0, 48, 48)], pivot: (0, -2), align: Bottom) },
+                "prop_ice_floe_small": { "0": (frames: [(98, 0, 32, 32)], pivot: (0, -2), align: Bottom) },
+                "prop_stake": { "0": (frames: [(131, 0, 16, 16)], pivot: (0, -2), align: Bottom) },
+                "prop_ice_block": { "0": (frames: [(148, 0, 16, 16)], pivot: (0, -2), align: Bottom) },
+            },
+        ),
+    ],
+)

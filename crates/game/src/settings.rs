@@ -77,7 +77,9 @@ impl Settings {
     pub fn load(root: &Path) -> Settings {
         let mut s = match crate::storage::read(root, "settings.ron") {
             Some(t) => ron::from_str(&t).unwrap_or_else(|e| {
-                log::warn!("settings.ron illisible ({e}) : reglages par defaut");
+                // copie de secours (touches, options) : le prochain enregistrement l'ecrasera
+                log::warn!("settings.ron illisible ({e}) : reglages par defaut, copie dans settings.broken.ron");
+                let _ = crate::storage::write(root, "settings.broken.ron", &t);
                 Settings::default()
             }),
             None => Settings::default(),
@@ -120,5 +122,24 @@ impl Settings {
         audio.volumes.sfx = self.sfx;
         audio.apply_volumes();
         audio.set_filter(self.filter);
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use super::Settings;
+
+    /// Reglages illisibles : reglages par defaut, et le fichier abime est garde a cote.
+    #[test]
+    fn broken_settings_are_kept_aside() {
+        let dir = std::env::temp_dir().join(format!("astp_settings_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("settings.ron"), "(lang: \"fr\", oups").unwrap();
+        let s = Settings::load(&dir);
+        assert_eq!(s.lang, Settings::default().lang);
+        let kept = std::fs::read_to_string(dir.join("settings.broken.ron")).unwrap();
+        assert!(kept.contains("oups"));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

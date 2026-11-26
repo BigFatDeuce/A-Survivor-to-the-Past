@@ -5,7 +5,8 @@
 // Familles : Swing (epee), Projectile, Boomerang, Lob (bombes), Slam (frappe au sol),
 //            Orbit, Pillars (colonnes sur l'ecran), Storm (tout l'ecran),
 //            Aura (nuage autour du joueur), Somaria (bloc qui eclate en rayons : beam + rays),
-//            Bees (projectiles qui poursuivent les ennemis).
+//            Bees (projectiles qui poursuivent les ennemis), Jump (saut invincible + onde de choc),
+//            Tornado (tornades qui errent). fan: true = projectiles en eventail ; tint = teinte de l'effet.
 // chain: true dessine une chaine entre le joueur et le projectile (grappin).
 // Evolution : arme au niveau max + objet passif possede -> l'arme evoluee, dans un coffre.
 //
@@ -29,14 +30,27 @@
             [Amount(1)],
             [Damage(4.0), Area(0.15), Pierce(2)],
         ],
-        evolution: Some((passive: "heart_container", into: "master_sword")),
+        evolution: Some((passive: "heart_container", into: "combat_sword")),
+        // 0.6.3 : fusion ultime, une fois Ganon vaincu (unlock de master_sword)
+        ultimate: Some((passive: "mirror_shield", into: "master_sword")),
     ),
+    // Epee de combat (epee + receptacle) : l'ancienne Master Sword, 15 % moins forte.
+    "combat_sword": (
+        kind: Swing, icon: "icon_combat_sword", sfx: "swing_master", evolved: true,
+        base: (damage: 20.0, cooldown: 0.5, amount: 2, area: 28.0, duration: 0.15, pierce: 0,
+               knockback: 140.0, crit_chance: 0.13, crit_mult: 2.0),
+        arc: 140.0, range: 38.0,
+        beam: Some((sprite: "beam_master", damage: 0.7, speed: 250.0, life: 0.6)),
+    ),
+    // Master Sword : fusion ultime (epee + bouclier miroir), debloquee en battant Ganon une premiere fois.
+    // Coups : 32 x 2 / 0,45 s = 142 degats/s, environ 25 % de plus que les meilleures fusions (arc
+    // d'argent 116, lance-pierre 112), plus le faisceau a pleine puissance, la portee et les critiques.
     "master_sword": (
-        kind: Swing, icon: "icon_master_sword", sfx: "swing_master", evolved: true,
-        base: (damage: 24.0, cooldown: 0.5, amount: 2, area: 30.0, duration: 0.15, pierce: 0,
-               knockback: 150.0, crit_chance: 0.15, crit_mult: 2.0),
-        arc: 140.0, range: 40.0,
-        beam: Some((sprite: "beam_master", damage: 0.8, speed: 260.0, life: 0.65)),
+        kind: Swing, icon: "icon_master_sword", sfx: "swing_master", evolved: true, unlock: Some("ganon"),
+        base: (damage: 32.0, cooldown: 0.45, amount: 2, area: 34.0, duration: 0.15, pierce: 0,
+               knockback: 170.0, crit_chance: 0.2, crit_mult: 2.25),
+        arc: 150.0, range: 44.0,
+        beam: Some((sprite: "beam_master", damage: 1.0, speed: 300.0, life: 0.75)),
     ),
     "bow": (
         kind: Projectile, icon: "icon_bow", sprite: "proj_arrow", sfx: "bow",
@@ -264,5 +278,137 @@
         base: (damage: 14.0, cooldown: 1.5, amount: 6, area: 6.0, speed: 155.0, duration: 4.0,
                pierce: 0, knockback: 20.0, hit_interval: 0.35, crit_chance: 0.15, crit_mult: 2.0),
         range: 190.0,
+    ),
+    // 0.6.2 : lance-pierre, plume de Roc, fanal, jarre magique, ocarina, Feu de Din. unlock : le mini-boss
+    // (4:30) a vaincre une premiere fois pour que l'arme puisse etre proposee, dans toutes les parties.
+    "slingshot": (
+        unlock: Some("hinox"),
+        kind: Projectile, icon: "icon_slingshot", sprite: "proj_seed", sfx: "slingshot", fan: true,
+        // fan : toutes les graines en eventail vers l'ennemi le plus proche ; arc = ecart entre deux graines
+        base: (damage: 6.0, cooldown: 1.4, amount: 3, area: 4.0, speed: 230.0, duration: 0.7,
+               pierce: 1, knockback: 50.0, hit_interval: 0.4),
+        arc: 16.0, range: 150.0, spin: 12.0,
+        levels: [
+            [Amount(1)],
+            [Damage(3.0)],
+            [Cooldown(-0.12)],
+            [Amount(1)],
+            [Damage(4.0), Pierce(1)],
+        ],
+        evolution: Some((passive: "quiver", into: "hyper_slingshot")),
+    ),
+    "hyper_slingshot": (
+        kind: Projectile, icon: "icon_hyper_slingshot", sprite: "proj_seed", sfx: "slingshot", fan: true, evolved: true,
+        base: (damage: 16.0, cooldown: 1.0, amount: 7, area: 5.0, speed: 280.0, duration: 0.8,
+               pierce: 2, knockback: 80.0, hit_interval: 0.35, crit_chance: 0.1, crit_mult: 2.0),
+        arc: 13.0, range: 170.0, spin: 14.0,
+    ),
+    "roc_feather": (
+        unlock: Some("lanmola"),
+        kind: Jump, icon: "icon_roc_feather", sfx: "roc_feather",
+        // duration = duree du saut (invincible) ; range = distance d'un ennemi qui declenche le saut ;
+        // area = rayon de l'onde de choc a l'atterrissage
+        base: (damage: 18.0, cooldown: 2.8, area: 48.0, duration: 0.45, knockback: 220.0),
+        range: 70.0,
+        status: Some(Stun(time: 0.6)),
+        levels: [
+            [Area(0.15)],
+            [Damage(6.0)],
+            [Cooldown(-0.12)],
+            [Area(0.2)],
+            [Damage(10.0), Knockback(0.3)],
+        ],
+        evolution: Some((passive: "pegasus_boots", into: "roc_cape")),
+    ),
+    "roc_cape": (
+        kind: Jump, icon: "icon_roc_cape", sfx: "roc_feather", evolved: true,
+        base: (damage: 42.0, cooldown: 2.0, area: 90.0, duration: 0.55, knockback: 320.0,
+               crit_chance: 0.1, crit_mult: 2.0),
+        range: 90.0,
+        status: Some(Stun(time: 1.2)),
+    ),
+    "lantern": (
+        unlock: Some("helmasaur_king"),
+        kind: Aura, icon: "icon_lantern", sprite: "fx_flame", tint: Some((1.0, 0.65, 0.3)),
+        // halo de feu autour du joueur ; cooldown = rythme des touches
+        base: (damage: 3.0, cooldown: 0.6, area: 26.0, knockback: 0.0, hit_interval: 0.6),
+        status: Some(Burn(dps: 4.0, time: 1.5)),
+        levels: [
+            [Area(0.15)],
+            [Damage(2.0)],
+            [Area(0.15), Cooldown(-0.1)],
+            [Damage(2.0)],
+            [Area(0.2), Damage(2.0)],
+        ],
+        evolution: Some((passive: "half_magic", into: "blue_lantern")),
+    ),
+    "blue_lantern": (
+        kind: Aura, icon: "icon_blue_lantern", sprite: "fx_flame", tint: Some((0.45, 0.7, 1.0)), evolved: true,
+        base: (damage: 10.0, cooldown: 0.4, area: 46.0, knockback: 0.0, hit_interval: 0.4,
+               crit_chance: 0.1, crit_mult: 2.0),
+        status: Some(Burn(dps: 10.0, time: 2.0)),
+    ),
+    "gust_jar": (
+        unlock: Some("arrghus"),
+        kind: Aura, icon: "icon_gust_jar", sprite: "fx_dust", tint: Some((0.85, 0.95, 1.0)),
+        // souffle autour du joueur : peu de degats, repousse fort
+        base: (damage: 2.0, cooldown: 0.4, area: 34.0, knockback: 120.0, hit_interval: 0.4),
+        levels: [
+            [Knockback(0.2)],
+            [Area(0.15)],
+            [Damage(2.0)],
+            [Area(0.15), Knockback(0.2)],
+            [Damage(3.0), Area(0.2)],
+        ],
+        evolution: Some((passive: "magic_cape", into: "vaati_jar")),
+    ),
+    "vaati_jar": (
+        kind: Aura, icon: "icon_vaati_jar", sprite: "fx_dust", tint: Some((0.8, 0.6, 1.0)), evolved: true,
+        base: (damage: 9.0, cooldown: 0.3, area: 56.0, knockback: 200.0, hit_interval: 0.3),
+        status: Some(Stun(time: 0.3)),
+    ),
+    "ocarina": (
+        unlock: Some("moldorm"),
+        kind: Tornado, icon: "icon_ocarina", sprite: "fx_dust", sfx: "ocarina",
+        // tornades lentes qui errent et traversent tout ; area = rayon, duration = vie
+        base: (damage: 6.0, cooldown: 3.5, amount: 1, area: 14.0, speed: 45.0, duration: 4.0,
+               pierce: 0, knockback: 60.0, hit_interval: 0.5),
+        range: 200.0,
+        levels: [
+            [Amount(1)],
+            [Duration(0.25)],
+            [Damage(3.0)],
+            [Amount(1), Area(0.15)],
+            [Damage(4.0), Speed(0.2)],
+        ],
+        evolution: Some((passive: "book_of_mudora", into: "ocarina_of_time")),
+    ),
+    "ocarina_of_time": (
+        kind: Tornado, icon: "icon_ocarina_of_time", sprite: "fx_dust", sfx: "ocarina", evolved: true,
+        tint: Some((0.7, 0.85, 1.0)),
+        base: (damage: 16.0, cooldown: 2.6, amount: 4, area: 20.0, speed: 55.0, duration: 5.0,
+               pierce: 0, knockback: 90.0, hit_interval: 0.4, crit_chance: 0.1, crit_mult: 2.0),
+        range: 220.0,
+    ),
+    "din_fire": (
+        unlock: Some("agahnim"),
+        kind: Slam, icon: "icon_din_fire", sfx: "din_fire",
+        // explosion de feu autour du joueur (meme declenchement que le marteau)
+        base: (damage: 16.0, cooldown: 3.0, area: 60.0, knockback: 120.0),
+        status: Some(Burn(dps: 6.0, time: 2.0)),
+        levels: [
+            [Area(0.15)],
+            [Damage(6.0)],
+            [Cooldown(-0.12)],
+            [Area(0.2)],
+            [Damage(10.0)],
+        ],
+        evolution: Some((passive: "lamp", into: "din_wrath")),
+    ),
+    "din_wrath": (
+        kind: Slam, icon: "icon_din_wrath", sfx: "din_fire", evolved: true,
+        base: (damage: 40.0, cooldown: 2.6, area: 120.0, knockback: 200.0, crit_chance: 0.1, crit_mult: 2.0),
+        status: Some(Burn(dps: 12.0, time: 3.0)),
+        zone: Some((radius: 14.0, time: 1.5, dps: 10.0)),
     ),
 }

@@ -1,10 +1,10 @@
 // Lac gele
-// Stage 4 : glace, neige et blizzard autour du Palais de Glace
+// Stage 9 : Vitreous (Palais des Marais de la Desolation) puis Kholdstare du Palais de Glace
 // Le boss final apparait a 9:00 ; sa defaite ouvre la porte de sortie (victoire en la franchissant).
 // props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde).
 (
     name: "Lac gele",
-    order: 4,
+    order: 9,
     music: "dungeon_of_shadows",
     boss_music: "anger_of_the_guardians",
     final_music: "anger_of_the_guardians",
@@ -14,7 +14,10 @@
     tint: Some((0.4, 0.6, 1.0, 0.08)),
     max_enemies: 4000,
     duration: 540.0,
+    // difficulte du stage : vie et degats des ennemis ordinaires
+    power: 2.15,
     waves: [
+        (enemy: "pengator", from: 60.0, to: 900.0, rate: (0.2, 2.2), cap: 150),
         (enemy: "popo", from: 0.0, to: 900.0, rate: (0.9, 5.0), cap: 400),
         (enemy: "keese", from: 20.0, to: 900.0, rate: (0.4, 3.5), cap: 250),
         (enemy: "stalfos", from: 50.0, to: 900.0, rate: (0.3, 3.0), cap: 250),
@@ -27,6 +30,7 @@
         (enemy: "crow", from: 350.0, to: 900.0, rate: (0.25, 2.5), cap: 150),
     ],
     bursts: [
+        (at: 150.0, enemy: "pengator", count: 40, pattern: Pack),
         (at: 30.0, enemy: "popo", count: 60, pattern: Ring),
         (at: 75.0, enemy: "keese", count: 80, pattern: Pack),
         (at: 130.0, enemy: "stalfos", count: 80, pattern: Ring),
@@ -42,12 +46,16 @@
         (at: 300.0, enemy: "hardhat"),
         (at: 420.0, enemy: "soldier_blue"),
     ],
-    boss: Some((at: 270.0, enemy: "lanmola")),
-    final_boss: Some((at: 540.0, enemy: "kholdstare")),
+    boss: Some((at: 270.0, enemy: "vitreous", hp: Some(10000.0))),
+    final_boss: Some((at: 540.0, enemy: "kholdstare", hp: Some(18000.0))),
+    // 0.6.2 : decor du vrai Lac de Glace (blocs de glace flottants, pieux, blocs du Palais de Glace)
+    // a la place des arbres, souches et buissons, qui n'avaient rien a faire sur un lac gele
     props: [
-        (sprite: "prop_boulder", density: 0.05, radius: 12.0, solid: true, tint: Some((0.75, 0.9, 1.0, 0.35))),
-        (sprite: "prop_tree", density: 0.04, radius: 13.0, solid: true, tint: Some((0.85, 0.95, 1.0, 0.3))),
-        (sprite: "prop_stump", density: 0.03, radius: 9.0, solid: true, tint: Some((0.8, 0.9, 1.0, 0.3))),
-        (sprite: "prop_bush", density: 0.04, radius: 6.0, solid: false, tint: Some((0.8, 0.92, 1.0, 0.45)), breakable: true, break_fx: "fx_bush_break"),
+        (sprite: "prop_boulder", density: 0.04, radius: 12.0, solid: true, tint: Some((0.75, 0.9, 1.0, 0.35))),
+        (sprite: "prop_ice_floe", density: 0.025, radius: 15.0, solid: true),
+        (sprite: "prop_ice_floe_big", density: 0.012, radius: 19.0, solid: true),
+        (sprite: "prop_ice_floe_small", density: 0.02, radius: 11.0, solid: true),
+        (sprite: "prop_stake", density: 0.03, radius: 5.0, solid: true),
+        (sprite: "prop_ice_block", density: 0.04, radius: 6.0, solid: false, breakable: true, break_fx: "fx_ice_shatter"),
     ],
 )

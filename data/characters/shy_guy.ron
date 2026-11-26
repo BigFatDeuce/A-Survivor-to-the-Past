@@ -12,5 +12,13 @@
     weapon_sprite: "sword1",
     stats: [(Luck, 0.25), (Growth, -0.1), (Might, -0.05)],
     order: 11,
+
+    group: "nintendo",
     unlock: Some(Kills(15000)),
+    // 0.6.5 : sprite du Randomizer (Shy Guy), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Shy Guy), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Shy Guy), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Shy Guy), couleurs de ses palettes : gen_zspr_chars.py
+    skins: [("shy_guy", "red"), ("shy_guy_blue", "blue"), ("shy_guy_gray", "gray"), ("shy_guy_bunny", "dark")],
+    credit: "skovacs1",
 )

@@ -1,0 +1,53 @@
+// Village des Voleurs
+// Stage 8 : le village maudit, Gibdos, Zazaks et Snapdragons, le Roi Helmasaure revient, puis Blind
+// Le boss final apparait a 9:00 ; sa defaite ouvre la porte de sortie (victoire en la franchissant).
+// props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde).
+(
+    name: "Village des Voleurs",
+    order: 8,
+    music: "soldiers_of_kakariko_village",
+    boss_music: "anger_of_the_guardians",
+    final_music: "anger_of_the_guardians",
+    ground: "village",
+    weather: Fog,
+    ambience: None,
+    tint: Some((0.2, 0.1, 0.25, 0.1)),
+    max_enemies: 4800,
+    duration: 540.0,
+    // difficulte du stage : vie et degats des ennemis ordinaires
+    power: 2.0,
+    waves: [
+        (enemy: "stalfos", from: 0.0, to: 900.0, rate: (1.0, 5.0), cap: 400),
+        (enemy: "crow", from: 15.0, to: 900.0, rate: (0.4, 3.5), cap: 250),
+        (enemy: "zazak", from: 40.0, to: 900.0, rate: (0.3, 2.5), cap: 150),
+        (enemy: "snapdragon", from: 80.0, to: 900.0, rate: (0.3, 2.5), cap: 150),
+        (enemy: "gibdo", from: 140.0, to: 900.0, rate: (0.2, 1.8), cap: 100),
+        (enemy: "keese", from: 200.0, to: 900.0, rate: (0.4, 3.5), cap: 250),
+        (enemy: "moblin", from: 260.0, to: 900.0, rate: (0.25, 2.0), cap: 120),
+        (enemy: "eyegore", from: 330.0, to: 900.0, rate: (0.1, 1.0), cap: 50),
+    ],
+    bursts: [
+        (at: 30.0, enemy: "stalfos", count: 120, pattern: Ring),
+        (at: 75.0, enemy: "crow", count: 100, pattern: Pack),
+        (at: 130.0, enemy: "zazak", count: 50, pattern: Ring),
+        (at: 190.0, enemy: "snapdragon", count: 80, pattern: Pack),
+        (at: 250.0, enemy: "gibdo", count: 40, pattern: Ring),
+        (at: 330.0, enemy: "stalfos", count: 240, pattern: Ring),
+        (at: 410.0, enemy: "keese", count: 220, pattern: Pack),
+        (at: 490.0, enemy: "zazak", count: 90, pattern: Ring),
+    ],
+    elites: [
+        (at: 60.0, enemy: "zazak"),
+        (at: 150.0, enemy: "gibdo"),
+        (at: 240.0, enemy: "snapdragon"),
+        (at: 360.0, enemy: "eyegore"),
+        (at: 450.0, enemy: "gibdo"),
+    ],
+    boss: Some((at: 270.0, enemy: "helmasaur_king", hp: Some(9000.0))),
+    final_boss: Some((at: 540.0, enemy: "blind", hp: Some(15500.0))),
+    props: [
+        (sprite: "prop_stump_dark", density: 0.03, radius: 9.0, solid: true),
+        (sprite: "prop_skull", density: 0.02, radius: 10.0, solid: true),
+        (sprite: "prop_bush", density: 0.05, radius: 6.0, solid: false, tint: Some((0.45, 0.3, 0.55, 0.4)), breakable: true, break_fx: "fx_bush_break"),
+    ],
+)

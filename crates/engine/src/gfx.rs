@@ -327,7 +327,8 @@ impl Gfx {
         #[cfg(target_arch = "wasm32")]
         let instance = wgpu::util::new_instance_with_webgpu_detection(wgpu::InstanceDescriptor::new_without_display_handle()).await;
         #[cfg(not(target_arch = "wasm32"))]
-        let instance = wgpu::Instance::default();
+        // WGPU_BACKEND=gl / vulkan... (consoles portables : OpenGL ES) ; l'affichage sert a EGL
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_with_display_handle_from_env(Box::new(window.clone())));
         let surface = instance.create_surface(window.clone()).expect("surface");
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {

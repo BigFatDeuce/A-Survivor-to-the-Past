@@ -3,7 +3,6 @@
 (
     name: "Zelda",
     sprite: "zelda",
-    side_faces_left: true,
     max_hp: 50.0,
     speed: 80.0,
     radius: 5.0,
@@ -15,4 +14,10 @@
     stats: [(Duration, 0.15), (Growth, 0.1), (Cooldown, -0.08), (Might, -0.1)],
     order: 4,
     unlock: Some(Bosses(5)),
+    // 0.6.5 : sprite du Randomizer (Zelda), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Zelda), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Zelda), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Zelda), couleurs de ses palettes : gen_zspr_chars.py
+    skins: [("zelda", "cyan"), ("zelda_blue", "blue"), ("zelda_red", "red"), ("zelda_bunny", "dark")],
+    credit: "Myriachan",
 )

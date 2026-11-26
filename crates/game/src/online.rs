@@ -31,6 +31,8 @@ pub struct Entry {
     pub won: bool,
     #[serde(default)]
     pub difficulty: usize,
+    #[serde(default)]
+    pub title: u32,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -58,6 +60,8 @@ pub struct Submission {
     pub character: String,
     pub difficulty: usize,
     pub mult: f32,
+    /// 0.6.3 : titre offert a la Grande Fee (0 : aucun).
+    pub title: u32,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -78,10 +82,12 @@ pub enum Status<T> {
     Failed(String),
 }
 
+/// Dernier classement demande : (stage, version demandee) et son etat.
+type BoardSlot = Mutex<((String, String), Status<Board>)>;
+
 #[derive(Clone)]
 pub struct Online {
-    /// Dernier classement demande : (stage, version demandee) et son etat.
-    board: Arc<Mutex<((String, String), Status<Board>)>>,
+    board: Arc<BoardSlot>,
     submit: Arc<Mutex<Status<SubmitReply>>>,
 }
 
@@ -275,6 +281,7 @@ mod tests {
             character: "link".into(),
             difficulty: 1,
             mult: 1.0,
+            title: 0,
         };
         o.submit(s);
         let wait = |f: &dyn Fn() -> bool| {

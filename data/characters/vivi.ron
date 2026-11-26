@@ -1,0 +1,25 @@
+// Vivi (Final Fantasy IX, sprites de Final Fantasy Record Keeper) : mage noir, sorts larges et frequents,
+// tres fragile. Part avec la baguette de feu. Debloque en vainquant Kholdstare (Lac gele).
+(
+    name: "Vivi",
+    sprite: "vivi",
+    max_hp: 40.0,
+    speed: 84.0,
+    radius: 5.0,
+    magnet: 36.0,
+    dash: (speed: 320.0, duration: 0.15, cooldown: 1.9),
+    weapon: "fire_rod",
+    weapon_sprite: "sword1",
+    // avantages : zone +15 %, recharge -10 % ; defaut : 4 coeurs
+    stats: [(Area, 0.15), (Cooldown, -0.1)],
+    order: 21,
+
+    group: "rpg",
+    unlock: Some(Slain("kholdstare")),
+    // 0.6.5 : sprite du Randomizer (Vivi), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Vivi), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Vivi), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Vivi), couleurs de ses palettes : gen_zspr_chars.py
+    skins: [("vivi", "yellow"), ("vivi_purple", "purple"), ("vivi_red", "red"), ("vivi_bunny", "dark")],
+    credit: "RyuTech",
+)

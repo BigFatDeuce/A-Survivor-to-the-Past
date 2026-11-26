@@ -1,20 +1,22 @@
 // Montagne de la Mort
-// Stage 6 (bonus, ouvert par la victoire a la Pyramide) : vent des sommets, Lynels et Tektites,
+// Stage 3 : Lynel geant sur les pentes, Moldorm au sommet de la Tour d'Hera
 // puis les combats de la Tour de Ganon (Lanmola en mi-parcours, Agahnim au sommet).
 // Le boss final apparait a 9:00 ; sa defaite ouvre la porte de sortie (victoire en la franchissant).
 // props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde).
 (
     name: "Montagne de la Mort",
-    order: 6,
+    order: 3,
     music: "lost_ancient_ruins",
     boss_music: "anger_of_the_guardians",
-    final_music: "priest_of_the_dark_order",
+    final_music: "anger_of_the_guardians",
     ground: "mountain",
     weather: Clear,
     ambience: Some("howling_wind"),
     tint: Some((0.9, 0.7, 0.5, 0.05)),
     max_enemies: 4800,
     duration: 540.0,
+    // difficulte du stage : vie et degats des ennemis ordinaires
+    power: 1.25,
     waves: [
         (enemy: "tektite", from: 0.0, to: 900.0, rate: (1.0, 5.5), cap: 450),
         (enemy: "keese", from: 10.0, to: 900.0, rate: (0.5, 4.0), cap: 300),
@@ -44,8 +46,8 @@
         (at: 360.0, enemy: "lynel"),
         (at: 450.0, enemy: "stalfos"),
     ],
-    boss: Some((at: 270.0, enemy: "lanmola")),
-    final_boss: Some((at: 540.0, enemy: "agahnim")),
+    boss: Some((at: 270.0, enemy: "lynel_king", hp: Some(3800.0))),
+    final_boss: Some((at: 540.0, enemy: "moldorm", hp: Some(7500.0))),
     props: [
         (sprite: "prop_rock_pile", density: 0.08, radius: 13.0, solid: true),
         (sprite: "prop_skull", density: 0.01, radius: 10.0, solid: true),

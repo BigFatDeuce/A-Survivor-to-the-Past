@@ -178,6 +178,237 @@ Chaque jalon se termine par un point avec toi (démo + questions éventuelles).
 - Traductions des 7 langues (`lang_v05.py`, `lang_v05b.py`) ; tests 10/10 ; vérification de l'interface :
   0 problème sur 2940 écrans.
 
+### Version 0.7.0 (26/11/2026) : tous les lots « 0.6.1 » à « 0.6.5 » + toutes les plateformes
+- La 0.7.0 regroupe les sept lots de retours sur la 0.6.0 ci-dessous (site, commit et release GitHub).
+- **Plateformes** : Windows x64 (compilé ici), **Linux x64**, **Linux ARM64**, **macOS** universel (Apple Silicon +
+  Intel, application `.app` signée ad hoc, non notariée : `xattr -cr` expliqué dans le lisez-moi) et **consoles
+  portables** par PortMaster (Anbernic RG40XX H et autres consoles Linux ARM64), **expérimental** : pas testé sur
+  une vraie console. Les exécutables Linux / macOS sont compilés par GitHub Actions (`.github/workflows/builds.yml`,
+  lancé à la main : `gh workflow run builds.yml` puis `gh run download <id> -D dist/bin`), les paquets sont faits ici
+  par `make_release.py --platform windows-x64|linux-x64|linux-arm64|macos|portmaster` (livrets PDF compris).
+- **Mise à jour automatique** sur Linux et macOS (archive de la plateforme, droit d'exécution gardé ; sur macOS la
+  racine du jeu est `.app/Contents/MacOS`). Désactivée par `ASTP_NO_UPDATE` (lanceur PortMaster).
+- **Consoles** : le lanceur monte le module Westonpack de PortMaster (Weston + Xwayland, EGL / OpenGL ES de Crusty) et
+  lance le jeu en X11 avec `WGPU_BACKEND=gl` (le moteur lit maintenant `WGPU_BACKEND`). Boutons -> clavier par
+  gptokeyb (`asurvivortothepast.gptk`). Risques : pilote GL de Crusty avec wgpu, 1 Go de mémoire, atlas 4096 px.
+
+### Retours sur la 0.6.0, septième lot « 0.6.5 » (26/11/2026) : en local seulement (rien de publié)
+- **350 personnages** (choix validés : tous jouables, remplacements, couleurs des palettes, stats automatiques, un
+  tiers en boutique) : 328 nouveaux venus des sprites du *A Link to the Past Randomizer* (`.zspr`, snesrev). Ils
+  sont dessinés avec les poses de marche de Link, retrouvées bloc par bloc dans les tuiles (`zspr_poses.py`, 0 pixel
+  manquant, lapin compris) ; `gen_zspr_chars.py` écrit les planches (`assets/source/zspr/`), le manifeste, les
+  personnages (`data/zspr_characters.ron`), les textes (`lang_zspr.py`) et les crédits (CREDITS.md, entre
+  marqueurs). Jusqu'à 4 couleurs chacun : cottes verte / bleue / rouge sans les doublons (nommées d'après la
+  teinte dominante) et forme du Monde des Ténèbres (« Ténèbres », propre à chaque sprite).
+- **Remplacés** (même identifiant, progression gardée) : Link Minish, Link NES, Maskass, Vivi, Sonic, Crewmate,
+  Ganondorf, Zelda, Link Four Swords, Shadow Link, Link's Awakening, Mario, Zora des mers. Les anciennes
+  planches et 7 tenues de la garde-robe 0.6.4 qui en dépendaient (Link NES vert / rouge, Luigi, Maskass x3, Super
+  Sonic) sont retirées ; Luigi est maintenant un personnage à part entière.
+- **Stats** tirées d'un hachage de l'identifiant (2 avantages, 1 défaut, arme d'après le nom quand il évoque
+  quelque chose). **Déblocages** : 105 en vente (onglet **Personnages** de la boutique, 1000 à 20000 rubis rouges),
+  les autres par exploits (ennemis, boss, niveau, ennemi vaincu - son propre sprite quand il existe -, stage
+  gagné). Ganondorf demande toujours la troupe d'origine seulement. Écran des déblocages : 16 au plus à la fois.
+- **Écran des personnages** : six univers (Zelda, Nintendo, RPG, Jeux vidéo, Séries et films, Communauté), choisis
+  au-dessus de la grille (gauche / droite, clic sur les flèches) ; la grille défile ; fiche avec l'auteur du sprite.
+- **Atlas** : images identiques rangées une seule fois, atlas rectangulaire coupé au contenu (4096 x 2924, PNG en
+  compression maximale : 3,8 Mo, contre 1,2 Mo avant). Trophée des personnages : 10 / 50 / tous.
+- Tests 26/26, vérification de l'interface : 0 problème sur 18942 écrans, Clippy sans avertissement. Risque : ces
+  sprites n'ont pas de licence (crédit de chaque auteur, retrait sur demande) et beaucoup ne sont pas de Nintendo.
+
+### Retours sur la 0.6.0, sixième lot « 0.6.4 » (26/11/2026) : en local seulement (rien de publié)
+- **Annonces** : bandeau centré sur l'encre des majuscules, lue dans la police (décalage `nudge` et hauteur de
+  la lettre A) : le texte touchait le bord du haut. Mesuré au pixel à quatre formats d'écran (5 px au-dessus et
+  au-dessous, 24 px à gauche et à droite) ; capture `--menu banner`.
+- **Rencontres** : le Bob-omb et le voleur de rubis ont trois fois la vie moyenne d'un ennemi ordinaire du stage
+  (avant : un tiers du boss de mi-parcours) et une barre de vie (orange pour le Bob-omb). Le voleur est maintenant
+  un **Boo** (planche Boo Buddy de JulioTanaka) ; profils migrés (version 4 : victoires et figurine du Pikit).
+- **Garde-robe** : 12 nouvelles tenues : Link lapin et l'anneau rouge du Link NES (couleurs des planches) et
+  10 recolorations (`research/tools/gen_wardrobe_v064.py` : tuniques Goron et Zora, Link NES vert, Toon Link rouge
+  et bleu, Luigi (Mario en vert), Maskass bleu / vert / jaune, Super Sonic). Les lignes sans icône montrent la tenue.
+- **Boutique** : la Grande Fée est le premier onglet, la sorcière en tête (portrait, nom en rose chatoyant).
+- **Menu** (choix validé) : Profil remplacé par **Recueil** (bestiaire, armes, objets, fusions) et **Exploits**
+  (trophées, statistiques) ; la sauvegarde passe dans les Options (depuis l'écran titre seulement).
+- **Trophées** (choix validé : bronze / argent / or) : 21 familles, 59 trophées calculés d'après le profil (les
+  parties déjà jouées comptent), `crates/game/src/trophies.rs` ; capture `--menu trophies`.
+- Tests 26/26 (dont trophées et vie du voleur), Worker 11/11, vérification de l'interface : 0 problème sur 4704
+  écrans, Clippy sans avertissement. Manuel (`manual_text.py`) et README : Boo et nouveau menu (PDF à régénérer
+  à la prochaine release).
+
+### Retours sur la 0.6.0, cinquième lot « 0.6.3 » (26/11/2026) : en test sur le site seulement (ni commit ni release, version 0.6.0)
+- **10 stages dans l'ordre du jeu** (plaine, désert, Montagne de la Mort, Château d'Hyrule, Palais des Ténèbres,
+  Grand Marais, Bois Perdus, Village des Voleurs, Lac gelé, Pyramide) : 4 nouveaux stages (sols, météo, musiques,
+  bestiaire de la zone), boss de mi-parcours et boss final fixés par stage (`SpawnAt.hp`), difficulté croissante
+  (`MapDef.power` : vie et dégâts des ennemis). Ganon est le dernier et le plus fort (test). 14 ennemis ajoutés
+  (soldat rouge, Kodongo, Eyegore, Zazak, Gibdo, Snapdragon, Zol, Ropa, Bari, Zora, Pengator, Stalfos Knight,
+  Lynel géant, chevalier au fléau). Un stage déjà gagné reste ouvert malgré le nouvel ordre ; les anciens scores
+  en ligne ne sont plus comparables. Tuiles de sol vérifiées sans coutures visibles (`check_tiles.py`).
+- **Master Sword, fusion ultime** : débloquée en battant Ganon (annonce et animation), Épée + Bouclier miroir au
+  maximum, environ 25 % au-dessus des meilleures fusions. L'ancienne fusion Épée + Réceptacle devient l'Épée de
+  combat ; profils migrés (version 3). Les fusions apparaissent aussi dans les choix de niveau quand les deux
+  objets sont au maximum (plus rares). Bestiaire du plus faible au plus fort ; armurerie en onglets Armes /
+  Objets / Fusions.
+- **Diseuse de bonne aventure** à la place du grand coffre du boss final (sprite recomposé à partir des morceaux
+  de la planche, `gen_npcs_v063.py`) : jeu des coffres (mise de banque, x3 / x1 / rien) et quitte ou double sur
+  la banque de la partie (x2 ou x1/2), une fois chacun ; partie et chrono en pause.
+- **Sorcière** (Grande Fée, 10 000 rubis) : passe une fois par partie entre 2:00 et 5:00, reste 30 s, bulle « ! »
+  et flèche ; trois potions (1 ou 2 bonus et un malus, valeurs tirées dans des fourchettes) pour toute la partie,
+  payées en rubis de la partie : prix selon la force du tirage, le stage, la difficulté et l'heure (x1,6 à 2:00).
+  Potion bue : animation et son.
+- **Rubis rouges après tout débloqué** (aucun effet en partie) : garde-robe (cottes de mailles bleue et rouge de
+  Link, palettes du jeu, `gen_wardrobe_v063.py`), juke-box (28 musiques, choix de la musique du titre), offrandes
+  à la Grande Fée (3 titres, pseudo en couleur au classement en ligne), figurines du bestiaire (socle doré).
+- **Classement en ligne** : champ `title` côté jeu et Worker, colonne en base. À la mise en ligne : exécuter
+  `worker/migrations/0063_title.sql` sur la base AVANT `npx wrangler deploy` (le nouveau Worker lit la colonne) ; fait le 26/11/2026.
+- **Interface** : fin de partie lisible (notes groupées, deux colonnes si besoin), choix des personnages en grille
+  (tous, verrouillés en gris, personnage animé au survol, couleur avec Q / E), nouveau contrôle `mal centre` dans
+  la vérification des écrans, annonces plus courtes et animées en douceur, Bob-omb et Pikit voleur plus gros avec
+  une aura et un tiers de la vie d'un boss de mi-parcours.
+- Tests 25/25, Worker 11/11, vérification de l'interface : 0 problème sur 4662 écrans ; compilation web vérifiée.
+  Clippy : 0 avertissement (`to_title` renommé `quit_to_title`, alias de type dans `online.rs`, `allow` habituel
+  sur les fonctions de dessin à nombreux paramètres).
+
+### Audit technique (26/11/2026) : en test sur le site seulement
+- **Fenêtre fermée en pleine partie** : la partie était perdue (rubis en banque, bestiaire, statistiques) ;
+  elle compte maintenant comme un abandon, comme « Écran titre » (`Game::exit`). Les sessions pilotées par
+  script (`--seconds`, captures) n'enregistrent rien (`Options::scripted`).
+- **Classement en ligne** : une partie qui ne resterait pas au classement (le pseudo a déjà 3 parties au moins
+  aussi bonnes) n'est plus écrite en base. Avant, elle était insérée puis effacée aussitôt, donc jamais comptée
+  par la limite d'envois : des envois sans fin faisaient autant d'écritures. La lecture refuse aussi les stages
+  inconnus (chaque nom inventé contournait le cache). Vérifié sur un serveur local (`wrangler dev --local`).
+- **Brûlure** : une brûlure terminée gardait sa force pour la suivante (remise à zéro seulement si elle finissait
+  sur un pas de dégâts) ; une brûlure faible héritait d'une forte. Test ajouté.
+- **Réglages illisibles** : copie dans `settings.broken.ron` avant le retour aux réglages par défaut.
+- **Mises à jour** : test de l'extraction (chemins `..` refusés, chemin absolu ramené dans le dossier).
+- Lint (clippy) nettoyé ; restent 4 avertissements de style assumés (fonctions de dessin à nombreux paramètres).
+- **Multiplicateur de score** : le serveur refuse au-delà du maximum réel du jeu (`MAX_MULT`, difficulté la plus
+  payante x tous les Sceaux = 4,05), recalculé depuis `data/meta.ron` par `make_site.py` à chaque mise en ligne.
+- **Onglet fermé en pleine partie** (navigateur, aucun événement de fermeture) : la partie est enregistrée comme
+  un abandon toutes les 10 s et quand la page perd le focus, sans toucher au profil en mémoire ; la vraie fin de
+  partie remplace ensuite cet enregistrement. Vérifié : une seule partie comptée.
+- **« Recommencer » depuis la pause** : l'écran des déblocages s'affiche avant la nouvelle partie.
+- `ui_check` (contrôle des écrans) sorti de `game.rs` dans `game/uicheck_screens.rs`.
+- Reste volontairement large : la borne de durée (2 h) et de nombre d'ennemis du classement.
+
+### Retours sur la 0.6.0, quatrième lot (26/11/2026) : en test sur le site seulement
+- **Fusion mise en scène** : quand un coffre fait évoluer une arme, le coffre tremble et s'ouvre, l'arme et son
+  objet partenaire en sortent en spirale, des éclairs les relient, puis flash, anneaux et gerbe d'étincelles :
+  l'arme évoluée apparaît en grand, avec son nom, « Fusion : arme + objet » et ses statistiques avant / après
+  (dégâts, projectiles, recharge, zone). De retour en jeu, l'arme éclate autour de Link et sa case du HUD brille en
+  rose quelques secondes. Un coffre qui contient une fusion tombe avec des anneaux roses.
+- **Noms mis en valeur dans les textes** : objets, armes et boss en or, fusions en rose qui chatoie, nouveautés en
+  vert, avec un reflet qui parcourt le mot et quelques étincelles (choix de la fusion, cartes de niveau, recueil,
+  conditions de déblocage, écran de victoire). Balises invisibles dans les chaînes (`hud::hl`, `hl_fusion`,
+  `hl_new`), refermées et rouvertes quand une ligne est coupée.
+- **Écran des déblocages** en fin de partie (victoire, défaite ou retour au titre) : **tous** les personnages et
+  armes débloqués apparaissent l'un après l'autre, avec gerbe, rayons et le personnage qui marche ; un appui
+  affiche tout d'un coup. Remplace l'ancienne bannière qui ne montrait que le premier personnage.
+- **Armes à mériter** : les six armes de la 0.6.2 ne sont proposées qu'après avoir vaincu une première fois un
+  mini-boss (lance-pierre : Chevalier Armos, fanal : Blind, plume de Roc : Lanmola, jarre magique : Arrghus,
+  ocarina : Moldorm, Feu de Din : Agahnim ; champ `unlock` de `data/weapons.ron`). Annonce en jeu « Nouvelle arme
+  débloquée ! Elle peut maintenant apparaître dans toutes les parties. », arme disponible dès la même partie,
+  enregistrée dans le profil (`weapons`) ; le recueil indique le mini-boss à vaincre.
+- **Personnages nouveaux** : nom en vert qui scintille dans le choix des personnages tant qu'on ne les a pas
+  joués (profil `new_chars`).
+- **Menu pause** : « Fusions possibles », une carte par arme en main qui peut évoluer (arme + objet partenaire,
+  arme évoluée en silhouette tant qu'elle n'a jamais été obtenue ; rose qui pulse = prête au prochain coffre,
+  partenaire déjà utilisé = barré), à la place de l'aide des commandes.
+- **Son de la fusion** : la fin du jingle *Unsealing the Master Sword* (piste 22, 5 s, `master_sword_fusion.ogg`).
+- Choix validés : armes des mini-boss telles quelles, déblocage non rétroactif, arme proposable dès la partie
+  où le mini-boss tombe.
+- **Vivi** : la marche de profil utilisait deux poses de combat (il glissait) ; remplacée par le vrai cycle de 5
+  images de la planche.
+
+### Retours sur la 0.6.0, troisième lot (26/11/2026) : en test sur le site seulement
+- **Personnages** (22 en tout) : Sheik (planche d'Oldskoolmario complétée : dos et profil dessinés pour le jeu,
+  copie ajoutée au dossier AdditionalChars ; débloquée par Vitreous), Mario façon *Link's Awakening* (avance
+  bouclier levé, part avec les bombes ; 15 boss), Skull Kid (Mothula), Simon Belmont (Agahnim), Vivi
+  (Kholdstare), Ganondorf (**toujours le dernier** : nouvelle condition « tous les autres personnages
+  débloqués », qui reste vraie quand on en ajoute). Planches : `research/tools/gen_chars_v062.py`.
+- **Link de Link's Awakening** : deuxième apparence « Game Boy » (planche de *Super Mario Bros. Crossover*).
+- **Canne de Somaria** : la statue Méduse (qui crache des boules de feu dans les donjons) remplace le bloc marron.
+- **Souris dans les menus** : survoler une ligne la choisit sans faire défiler la liste (avant, la liste se
+  recentrait et partait toute seule) ; la **molette** fait défiler le choix des personnages et des stages et les
+  listes du hub ; au clavier et à la manette, la liste ne bouge que pour garder la sélection visible.
+- Skul abandonné (planche de jeu de plateforme, profil seulement).
+- **Six nouvelles armes** (pas d'armes tirées des planches de personnages : fouet et lames jumelles écartés),
+  chacune avec son évolution : lance-pierre (graines en éventail ; + carquois = hyper lance-pierre), plume de Roc
+  (saut invincible et onde de choc à l'atterrissage, nouvelle famille `Jump` ; + bottes de Pégase = cape de Roc),
+  fanal (halo de feu ; + demi-magie = fanal bleu), jarre magique (souffle qui repousse ; + cape magique = jarre de
+  Vaati), ocarina des fées (tornades qui errent, nouvelle famille `Tornado` ; + livre de Mudora = ocarina du
+  temps), Feu de Din (explosion de feu ; + lanterne = courroux de Din, flammes au sol). Icônes : planche « Items
+  (The Minish Cap-Style) » de ChaosMiles07 (`research/tools/gen_items_v062.py`). Le fanal s'appelle ainsi pour ne
+  pas être confondu avec l'objet Lanterne.
+- **Une seule fusion par objet partenaire** : six objets servent maintenant à deux armes, mais chacun ne fait
+  évoluer qu'une arme par partie (la première prête ; si plusieurs sont prêtes en même temps, le coffre laisse le joueur choisir celle qui évolue) ;
+  les cartes n'affichent plus un partenaire déjà utilisé.
+- **Relancer / Passer** à la montée de niveau : 2 de chaque par partie (boutons sous les cartes, avec le nombre
+  restant). Relancer = trois nouveaux choix ; Passer = le niveau sans rien prendre. En plus : boutique (« Regard
+  neuf » et « Patience », 3 niveaux, +1 par niveau, hors Avarice) et deux reliques de rencontre (Monocle de
+  Vérité +1 relance, Fragment de Kinstone +1 passe).
+- **Lac gelé** : plus d'arbres, de souches ni de buissons ; à la place, le décor du vrai Lac de Glace (blocs de
+  glace flottants et pieux en bois découpés dans la carte du monde des ténèbres, blocs du Palais de Glace
+  cassables qui volent en éclats ; `research/tools/gen_ice_props_v062.py`). Icônes des nouvelles armes : la
+  grille de la planche est décalée d'un pixel en bas, d'où une barre sombre sur le fanal et la jarre (corrigé).
+
+### Retours sur la 0.6.0, deuxième lot (25/11/2026) : en test sur le site seulement
+Mis en ligne sur le site pour essai, **sans release GitHub** ; le numéro reste 0.6.0.
+- **Musique comme dans le jeu** (étude de `ZeldaAlttPSNESRecomp` : le pilote N-SPC joue l'intro une fois puis
+  boucle sans couture ; les pistes MSU-1 ont un point de boucle à l'échantillon près ; fondu de sortie d'environ
+  1,7 s ; volume baissé sur la carte ; même morceau demandé = pas de redémarrage). Une piste par contexte :
+  Plaine = monde de la lumière, Bois perdus = forêt mystérieuse, Désert = donjons du monde de la lumière, Lac gelé
+  = donjons du monde des ténèbres, Montagne = mont de la Mort, Pyramide = monde des ténèbres ; boss = colère des
+  gardiens, Agahnim et Ganon ont leur thème. Fichiers « prêts à boucler » (`research/tools/music_loopify.py`) :
+  le morceau s'arrête au point de boucle, ses 60 dernières ms sont fondues vers le début de la boucle, plus une
+  demi-seconde de marge ; `loop_start` / `loop_end` dans `data/audio.ron` à l'échantillon près (32 kHz). En natif
+  : région de boucle de kira ; dans le navigateur : `AudioBufferSourceNode` (loopStart / loopEnd) au lieu de
+  l'élément audio, dont le saut à l'image près faisait un accroc. Changement : fondu de sortie de 1,7 s, le
+  suivant démarre juste après ; musique baissée pendant la pause. Les flux vidéo (pochettes) des .ogg ont été retirés.
+- **Un boss différent par zone**, les 12 boss d'*A Link to the Past* : Plaine (Chevaliers Armos puis Roi
+  Helmasaur), Bois perdus (Blind puis Mothula), Désert (Lanmola puis Vitreous), Lac gelé (Arrghus puis
+  Kholdstare), Montagne (Moldorm puis Trinexx), Pyramide (Agahnim puis Ganon). Le Hinox n'est plus un boss de
+  stage (`bestiary: false` : absent du bestiaire tant qu'il n'a pas été vaincu).
+- **Quatre personnages** (16 en tout) : Toon Link façon *Mario & Luigi* (grappin, rapide, 5 cœurs ; vaincre
+  Blind), Link d'*Oracle of Ages* (baguette de feu, zone + ; gagner la Montagne), Zora des mers (canne de Byrna,
+  armure + mais lent ; vaincre Arrghus), Crewmate d'*Among Us* (bombes, chance + ; 8000 ennemis) en 8 couleurs
+  (échange de palette avec les couleurs du jeu d'origine). Planches : `research/tools/gen_chars_v061.py`.
+- **Sceaux** : icônes des médaillons des sages (façon *Ocarina of Time*) : Force = Esprit, Nuée = Forêt,
+  Fureur = Feu, Hâte = Eau, Famine = Ombre.
+- **Bestiaire** : A ou un clic sur un ennemi déjà vaincu ouvre sa fiche (sprite animé à sa taille réelle en
+  partie, qui se tourne dans les quatre directions, PV, dégâts, vitesse) ; gauche / droite passe au suivant.
+- **Reliques actives** affichées pendant la partie, sous les objets (cases dorées).
+- **Fusion** : seulement quand l'arme **et** son objet partenaire sont au niveau maximum ; la carte d'amélioration
+  indique le niveau du partenaire possédé (ex. « Abeilles 3/8 »).
+- **Mes parties** : les parties quittées et celles de moins de 30 s ne sont plus gardées (les anciennes sont
+  retirées au chargement).
+- **Clignotement rétro** des projectiles et des flammes qui vont disparaître.
+- **Boutique** : retour à la ligne avant « Reliques équipées : » dans la fiche d'une relique.
+
+### Retours sur la 0.6.0 (25/11/2026) : en test sur le site seulement
+Mis en ligne sur le site (version navigateur) pour essai, **sans release GitHub** ; le numéro reste 0.6.0.
+- **Musique** : listes de lecture par stage (fondus enchaînés de 5 s). **Remplacé** au lot suivant par une
+  musique par contexte, bouclée comme dans le jeu (voir ci-dessus).
+- **Flèches seules** au bord de l'écran (champion violet, Pikit vert, Bob-omb orange, coffres or) : plus de sprite
+  ni de distance.
+- **Menus à onglets** : gâchettes et boutons de tranche de la manette (Q / E ou Page préc. / suiv. au clavier)
+  changent d'onglet ; le curseur peut monter sur la rangée des onglets (gauche / droite pour choisir).
+- **Cadre de sélection** bien plus visible partout (double bordure dorée qui pulse, halo, coins).
+- « Auto » et l'icône de l'épée alignés ; **Select** de la manette = plein écran ; curseur de la souris = la
+  **fée** de l'écran de sélection d'*A Link to the Past* (curseur du système caché, la fée n'apparaît qu'à la souris).
+- **Sons des choix** : aucun son pour un choix ordinaire ; arpège joyeux (`heart_container_1`) pour un choix
+  important (fusion, niveau maximal, butin de champion).
+- **Rubis verts** (ramassés pendant la partie) et **rubis rouges** (en banque, monnaie de la boutique) nommés
+  partout dans les 7 langues (`lang_v061.py`) et dans le livret. **Écart** : les rubis bleus et rouges ramassés
+  en partie comptent toujours dans le compteur vert (valeurs 5 et 20) : à revoir si cela gêne.
+- **Reliques** : carte dorée, halo, reflet, quatre étincelles et bandeau « Gardée après la partie ».
+- **Fusion du Réceptacle de cœur** : non reproduit (la carte est bien rose avec l'Épée). La carte « Bénédiction de
+  fée » (soin) avait une icône de cœur : elle prend la fée, pour ne plus la confondre avec le Réceptacle.
+- **Filtres sonores** : dans le navigateur, la musique passait par le lecteur de la page **sans aucun filtre** ;
+  elle passe maintenant par un graphe Web Audio (passe-haut, passe-bas, réduction de résolution, mono). Réglages
+  beaucoup plus marqués (la musique SNES n'a presque rien au-dessus de 6 kHz) : Doux 4,2 kHz, Rétro 2,6 kHz,
+  GBA 7,5 kHz + grain, Game Boy 3 kHz, mono, 5 bits, petit haut-parleur.
+- **Classements** : nom en vert pour une partie gagnée, en rouge pour une partie perdue (légende sous le stage).
+- Capture `--menu reward` (butin de champion avec une relique).
+
 ### Version 0.6.0 : publiée le 25/11/2026
 - **Sons plus fidèles** : la fanfare d'objet bien connue (`item_get_4`, reconnue à la hauteur des notes) à
   l'ouverture des coffres, après le bruit du coffre ; sons d'origine pour les tirs d'Agahnim (et sa charge), des

@@ -1,0 +1,23 @@
+// Zora des mers (style A Link to the Past) : ecailles epaisses mais lent, part avec la canne de Byrna.
+// Debloque en vainquant Arrghus (Lac gele).
+(
+    name: "Zora des mers",
+    sprite: "sea_zora",
+    max_hp: 70.0,
+    speed: 86.0,
+    radius: 5.0,
+    magnet: 34.0,
+    dash: (speed: 320.0, duration: 0.15, cooldown: 2.0),
+    weapon: "byrna",
+    weapon_sprite: "sword1",
+    // avantages : armure +2, 7 coeurs ; defauts : vitesse -12 %
+    stats: [(Armor, 2.0), (MoveSpeed, -0.12)],
+    order: 15,
+    unlock: Some(Slain("arrghus")),
+    // 0.6.5 : sprite du Randomizer (Zora), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Zora), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Zora), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Zora), couleurs de ses palettes : gen_zspr_chars.py
+    skins: [("sea_zora", "green"), ("sea_zora_blue", "blue"), ("sea_zora_pink", "pink"), ("sea_zora_bunny", "dark")],
+    credit: "Zarby, InTheBeef",
+)

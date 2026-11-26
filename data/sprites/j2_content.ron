@@ -9,6 +9,7 @@
             sprites: {
                 "icon_sword":           { "0": (frames: [(81, 10, 6, 13)], pivot: (0, 0), align: Center) },
                 "icon_master_sword":    { "0": (frames: [(97, 8, 7, 16)], pivot: (0, 0), align: Center) },
+                "icon_combat_sword":    { "0": (frames: [(113, 8, 7, 16)], pivot: (0, 0), align: Center) },
                 "icon_bow":             { "0": (frames: [(69, 32, 7, 16)], pivot: (0, 0), align: Center) },
                 "icon_silver_bow":      { "0": (frames: [(196, 33, 15, 15)], pivot: (0, 0), align: Center) },
                 "icon_boomerang":       { "0": (frames: [(24, 98, 8, 12)], pivot: (0, 0), align: Center) },

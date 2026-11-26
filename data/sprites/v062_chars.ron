@@ -1,0 +1,47 @@
+// Version 0.6.2 : personnages ajoutes. Genere par research/tools/gen_chars_v062.py.
+// Credits : Sheik (Oldskoolmario, dos et profil ajoutes), Mario facon Link's Awakening (AquariusAlexx),
+// Link de Super Mario Bros. Crossover, Skull Kid (Bad Ass Bill), Simon Belmont (Konami Wai Wai Sokoban),
+// Ganondorf (bucketboy), Vivi (Final Fantasy Record Keeper). Voir CREDITS.md.
+(
+    sheets: [
+        (
+            source: "Derived - sheik.png",
+            sprites: {
+                "sheik": {
+                    "idle_down": (frames: [(0, 0, 14, 22)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(0, 0, 14, 22), (15, 0, 14, 22), (30, 0, 14, 22), (15, 0, 14, 22)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(45, 1, 14, 21)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(45, 1, 14, 21), (60, 1, 14, 21), (75, 1, 14, 21), (60, 1, 14, 21)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(90, 0, 14, 22)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(90, 0, 14, 22), (105, 0, 14, 22), (120, 0, 14, 22), (105, 0, 14, 22)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        (
+            source: "Derived - skull_kid.png",
+            sprites: {
+                "skull_kid": {
+                    "idle_down": (frames: [(0, 0, 18, 29)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(0, 0, 18, 29), (19, 0, 18, 29), (38, 0, 18, 29), (57, 0, 18, 29), (76, 0, 18, 29), (95, 0, 18, 29), (114, 0, 18, 29), (133, 0, 18, 29), (152, 0, 18, 29), (171, 0, 18, 29)], fps: 12, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(190, 0, 16, 29)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(190, 0, 16, 29), (207, 0, 16, 29), (224, 0, 16, 29), (241, 0, 16, 29), (258, 0, 16, 29), (275, 0, 16, 29), (292, 0, 16, 29), (309, 0, 16, 29)], fps: 12, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(326, 0, 18, 29)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(326, 0, 18, 29), (345, 0, 18, 29), (364, 0, 18, 29), (383, 0, 18, 29), (402, 0, 18, 29), (421, 0, 18, 29), (440, 0, 18, 29), (459, 0, 18, 29), (478, 0, 18, 29), (497, 0, 18, 29)], fps: 12, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        (
+            source: "Derived - simon.png",
+            sprites: {
+                "simon": {
+                    "idle_down": (frames: [(0, 0, 14, 19)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(0, 0, 14, 19), (15, 0, 14, 19)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(30, 1, 12, 18)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(30, 1, 12, 18), (43, 1, 12, 18), (56, 1, 12, 18), (69, 1, 12, 18)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(82, 0, 14, 19)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(82, 0, 14, 19), (97, 0, 14, 19)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+    ],
+)

@@ -113,14 +113,17 @@ function check(s, env) {
   if (!int(s.difficulty) || s.difficulty < 0 || s.difficulty > 3) return "bad_request";
   if (!num(s.time) || !int(s.kills) || !int(s.level) || !int(s.bosses) || !int(s.score) || !num(s.mult)) return "bad_request";
   if (typeof s.won !== "boolean") return "bad_request";
+  // 0.6.3 : titre offert a la Grande Fee (absent des versions precedentes)
+  if (s.title !== undefined && (!int(s.title) || s.title < 0 || s.title > 3)) return "bad_request";
   // limites larges : une partie dure au plus 2 h ; 60 ennemis par seconde en moyenne au plus
   if (s.time < 1 || s.time > 7200) return "implausible";
   if (s.kills < 0 || s.kills > s.time * 60) return "implausible";
   if (s.level < 1 || s.level > 5 + s.time / 2) return "implausible";
   if (s.bosses < 0 || s.bosses > 20 || s.bosses > 1 + s.time / 60) return "implausible";
   if (s.won && (s.bosses < 1 || s.time < 300)) return "implausible";
-  // difficulte (0,75 a 1,8) x (1 + Sceaux, 1,25 au plus) ; marge pour l'avenir
-  if (s.mult < 0.5 || s.mult > 6) return "implausible";
+  // difficulte x (1 + Sceaux) : MAX_MULT est recalcule depuis data/meta.ron a chaque mise en ligne
+  const maxMult = Number(env.MAX_MULT) || 6;
+  if (s.mult < 0.5 || s.mult > maxMult * 1.0001) return "implausible";
   const want = expectedScore(s);
   if (Math.abs(s.score - want) > Math.max(2, want * 1e-6)) return "implausible";
   return null;
@@ -130,6 +133,9 @@ async function board(request, env, url) {
   const map = url.searchParams.get("map") || "";
   let version = url.searchParams.get("version") || "";
   if (!ID_RE.test(map)) return refuse("bad_request");
+  // stages du jeu seulement : sinon chaque nom invente contourne le cache et interroge la base
+  const known = stages(env);
+  if (known.length && !known.includes(map)) return refuse("bad_request");
   const latest = env.LATEST;
   if (!version) version = latest;
   if (!versionAllowed(version, latest)) return refuse("bad_request");
@@ -139,7 +145,7 @@ async function board(request, env, url) {
   const hit = await cache.match(key);
   if (hit) return hit;
   const rows = await env.DB.prepare(
-    `SELECT name, score, character, time, kills, won, difficulty FROM (
+    `SELECT name, score, character, time, kills, won, difficulty, title FROM (
        SELECT *, ROW_NUMBER() OVER (PARTITION BY lower(name) ORDER BY score DESC, created ASC) AS rn
        FROM scores WHERE map = ?1 AND version = ?2
      ) WHERE rn = 1 ORDER BY score DESC, created ASC LIMIT 100`
@@ -157,6 +163,7 @@ async function board(request, env, url) {
     kills: r.kills,
     won: !!r.won,
     difficulty: r.difficulty,
+    title: r.title || 0,
   }));
   const res = json({ map, version, versions, scores }, 200, { "Cache-Control": "public, max-age=60" });
   await cache.put(key, res.clone());
@@ -189,13 +196,20 @@ async function submit(request, env) {
     .bind(s.map, s.version, name, s.score, s.kills, s.time)
     .first();
   if (dup) return refuse("duplicate", 409);
-  await db.batch([
+  // Partie qui ne resterait pas (le pseudo a deja KEEP_PER_NAME parties au moins aussi bonnes) :
+  // rien n'est ecrit. Avant, elle etait inseree puis effacee aussitot, donc jamais comptee par la
+  // limite d'envois : des envois sans fin de parties faibles faisaient autant d'ecritures en base.
+  const kept = await db
+    .prepare(`SELECT COUNT(*) AS n FROM scores WHERE map = ?1 AND version = ?2 AND lower(name) = lower(?3) AND score >= ?4`)
+    .bind(s.map, s.version, name, s.score)
+    .first();
+  if ((kept?.n || 0) < KEEP_PER_NAME) await db.batch([
     db
       .prepare(
-        `INSERT INTO scores (map, version, name, score, time, kills, level, bosses, won, character, difficulty, mult, ip, created)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)`
+        `INSERT INTO scores (map, version, name, score, time, kills, level, bosses, won, character, difficulty, mult, ip, created, title)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)`
       )
-      .bind(s.map, s.version, name, s.score, s.time, s.kills, s.level, s.bosses, s.won ? 1 : 0, s.character, s.difficulty, s.mult, ip, now),
+      .bind(s.map, s.version, name, s.score, s.time, s.kills, s.level, s.bosses, s.won ? 1 : 0, s.character, s.difficulty, s.mult, ip, now, s.title || 0),
     // seules les meilleures parties de chaque pseudo restent
     db
       .prepare(

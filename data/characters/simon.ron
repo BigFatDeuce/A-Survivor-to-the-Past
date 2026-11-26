@@ -1,0 +1,19 @@
+// Simon Belmont (Konami Wai Wai Sokoban) : chasseur de vampires costaud mais lent.
+// Part avec le boomerang (sa croix). Debloque en vainquant Agahnim (Pyramide).
+(
+    name: "Simon Belmont",
+    sprite: "simon",
+    side_faces_left: true,
+    max_hp: 70.0,
+    speed: 82.0,
+    radius: 5.0,
+    magnet: 34.0,
+    dash: (speed: 320.0, duration: 0.15, cooldown: 1.9),
+    weapon: "boomerang",
+    weapon_sprite: "sword1",
+    // avantages : 7 coeurs, degats +15 % ; defaut : vitesse -8 %
+    stats: [(Might, 0.15), (MoveSpeed, -0.08)],
+    order: 20,
+    group: "games",
+    unlock: Some(Slain("agahnim")),
+)

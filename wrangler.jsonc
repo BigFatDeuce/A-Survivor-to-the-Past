@@ -17,7 +17,8 @@
   ],
   "vars": {
     "LATEST": "0.6.0",
-    "STAGES": "hyrule_field,lost_woods,desert,ice_lake,pyramid,death_mountain"
+    "STAGES": "hyrule_field,desert,death_mountain,hyrule_castle,dark_palace,swamp,lost_woods,thieves_town,ice_lake,pyramid",
+    "MAX_MULT": "4.05"
   },
   "routes": [
     { "pattern": "a-survivor-to-the-past.holy-c.men", "custom_domain": true }

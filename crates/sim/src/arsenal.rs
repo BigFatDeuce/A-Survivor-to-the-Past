@@ -19,6 +19,8 @@ pub enum ProjKind {
     Block,
     /// Poursuit l'ennemi le plus proche en zigzaguant (abeilles) ; `flight` = vitesse.
     Homing,
+    /// Tornade : erre lentement en ondulant, traverse tout (Ocarina) ; `flight` = phase de l'ondulation.
+    Tornado,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -166,6 +168,7 @@ impl World {
             return;
         }
         self.update_swing();
+        self.update_jump();
         for slot in 0..self.weapons.len() {
             let w = self.weapons[slot];
             let kind = self.content.weapons[w.id as usize].kind;
@@ -193,6 +196,8 @@ impl World {
                 WeaponKind::Aura => self.fire_aura(slot),
                 WeaponKind::Somaria => self.fire_somaria(slot),
                 WeaponKind::Bees => self.fire_bees(slot),
+                WeaponKind::Jump => self.fire_jump(slot),
+                WeaponKind::Tornado => self.fire_tornadoes(slot),
             };
             if fired {
                 self.weapons[slot].cd = w.stats.cooldown;
@@ -389,15 +394,19 @@ impl World {
         let targets = self.nearest_enemies(self.player.pos, range, n);
         let Some(&first) = targets.first() else { return false };
         let base_dir = (self.horde.pos[first] - origin).normalize_or(self.player.facing);
+        let fan = def.fan;
         for k in 0..n {
-            let dir = match targets.get(k) {
+            // lance-pierre : tout l'eventail vers la cible la plus proche
+            let fan_dir = Vec2::from_angle(ang(base_dir) + (k as f32 - (n as f32 - 1.0) * 0.5) * spread);
+            let dir = if fan { Some(fan_dir) } else { None };
+            let dir = dir.unwrap_or_else(|| match targets.get(k) {
                 Some(&i) => (self.horde.pos[i] - Vec2::new(0.0, 4.0) - origin).normalize_or(base_dir),
                 None => {
                     let side = if k % 2 == 0 { 1.0 } else { -1.0 };
-                    let step = ((k + 1) / 2) as f32;
+                    let step = k.div_ceil(2) as f32;
                     Vec2::from_angle(ang(base_dir) + side * step * spread.max(0.15))
                 }
-            };
+            });
             let p = self.base_projectile(slot, origin + dir * 6.0, dir * w.stats.speed, ProjKind::Straight);
             self.projectiles.push(p);
         }
@@ -463,15 +472,93 @@ impl World {
         if hit.is_empty() {
             return false;
         }
-        let status = self.content.weapons[w.id as usize].status;
+        self.slam_at(slot, pp, hit);
+        true
+    }
+
+    /// Frappe au sol : degats pleins au centre, 60 % au bord ; flammes au sol si l'arme en laisse (Feu de Din).
+    fn slam_at(&mut self, slot: usize, pp: Vec2, hit: Vec<usize>) {
+        let w = self.weapons[slot];
+        let r = w.stats.area;
+        let (status, zone) = {
+            let def = &self.content.weapons[w.id as usize];
+            (def.status, def.zone)
+        };
+        let mut flames = 0;
         for i in hit {
             let d = self.horde.pos[i] - pp;
             let dir = d.normalize_or(Vec2::Y);
-            // degats pleins au centre, 60 % au bord
             let f = 1.0 - 0.4 * (d.length() / r).min(1.0);
-            self.strike(i, slot, w.id, w.stats.damage * f, (w.stats.crit_chance, w.stats.crit_mult), dir, w.stats.knockback * f, 0.1, status);
+            if self.strike(i, slot, w.id, w.stats.damage * f, (w.stats.crit_chance, w.stats.crit_mult), dir, w.stats.knockback * f, 0.1, status) {
+                // au plus 8 flammes par frappe (la foule en laisserait des dizaines)
+                if let Some(z) = zone.filter(|_| flames < 8) {
+                    flames += 1;
+                    self.add_flame(self.horde.pos[i], z.radius, z.time, z.dps, w.id);
+                }
+            }
         }
         self.events.push(Event::Slam { pos: pp, radius: r, weapon: w.id });
+    }
+
+    /// Plume de Roc : saute (invincible) quand un ennemi est proche.
+    fn fire_jump(&mut self, slot: usize) -> bool {
+        if self.player.jump > 0.0 {
+            return false;
+        }
+        let w = self.weapons[slot];
+        let range = self.content.weapons[w.id as usize].range;
+        if self.nearest_enemies(self.player.pos, range, 1).is_empty() {
+            return false;
+        }
+        let dur = w.stats.duration.max(0.2);
+        let p = &mut self.player;
+        p.jump = dur;
+        p.jump_dur = dur;
+        p.jump_slot = slot as u8;
+        p.invuln = p.invuln.max(dur + 0.05);
+        true
+    }
+
+    /// Saut en cours : a l'atterrissage, onde de choc autour du joueur.
+    fn update_jump(&mut self) {
+        if self.player.jump <= 0.0 {
+            return;
+        }
+        self.player.jump -= DT;
+        if self.player.jump > 0.0 {
+            return;
+        }
+        self.player.jump = 0.0;
+        let slot = self.player.jump_slot as usize;
+        if slot >= self.weapons.len() || self.content.weapons[self.weapons[slot].id as usize].kind != WeaponKind::Jump {
+            return;
+        }
+        let pp = self.player.pos;
+        let hit = self.enemies_in(pp, self.weapons[slot].stats.area);
+        self.slam_at(slot, pp, hit);
+    }
+
+    /// Ocarina : tornades lancees vers des ennemis a l'ecran, qui errent ensuite.
+    fn fire_tornadoes(&mut self, slot: usize) -> bool {
+        let w = self.weapons[slot];
+        let range = self.content.weapons[w.id as usize].range;
+        let n = w.stats.amount.max(1) as usize;
+        let targets = self.random_enemies(range, n);
+        if targets.is_empty() {
+            return false;
+        }
+        let origin = self.player.pos - Vec2::new(0.0, 6.0);
+        for k in 0..n {
+            let dir = match targets.get(k) {
+                Some(&i) => (self.horde.pos[i] - origin).normalize_or(self.player.facing),
+                None => self.rng.dir(),
+            };
+            let mut p = self.base_projectile(slot, origin + dir * 8.0, dir * w.stats.speed, ProjKind::Tornado);
+            p.pierce = u32::MAX;
+            p.flight = self.rng.f() * TAU;
+            p.rot = 0.0;
+            self.projectiles.push(p);
+        }
         true
     }
 
@@ -700,6 +787,16 @@ impl World {
                         self.somaria_burst(p);
                     }
                 }
+                ProjKind::Tornado => {
+                    // ondule autour de sa direction et tourne sur elle-meme
+                    let a = (p.age * 1.7 + p.flight).sin() * 1.4 * DT;
+                    p.vel = Vec2::from_angle(ang(p.vel) + a) * p.vel.length();
+                    p.pos += p.vel * DT;
+                    p.rot += 9.0 * DT;
+                    if p.age >= p.life {
+                        p.dead = true;
+                    }
+                }
                 ProjKind::Homing => {
                     let near = self.nearest_enemies(p.pos, 150.0, 1);
                     let fwd = p.vel.normalize_or(Vec2::X);
@@ -803,7 +900,7 @@ impl World {
 
     pub(crate) fn update_zones(&mut self) {
         let mut zones = std::mem::take(&mut self.zones);
-        let tick_burn = self.ticks % 15 == 0;
+        let tick_burn = self.ticks.is_multiple_of(15);
         for z in zones.iter_mut() {
             z.age += DT;
             if !z.fired && z.age >= z.delay {
@@ -836,7 +933,7 @@ impl World {
             h.stun[i] = (h.stun[i] - DT).max(0.0);
             if h.burn[i] > 0.0 {
                 h.burn[i] -= DT;
-                if (t + h.uid[i] as u64) % 30 == 0 && h.hp[i] > 0.0 {
+                if (t + h.uid[i] as u64).is_multiple_of(30) && h.hp[i] > 0.0 {
                     let dmg = h.burn_dps[i] * 0.5;
                     if h.burn[i] <= 0.0 {
                         h.burn_dps[i] = 0.0;

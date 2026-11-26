@@ -8,6 +8,7 @@ pub mod enemies;
 pub mod grid;
 pub mod horde;
 pub mod mods;
+pub mod npc;
 pub mod pickups;
 pub mod props;
 pub mod rng;

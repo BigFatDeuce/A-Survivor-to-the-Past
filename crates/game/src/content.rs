@@ -27,7 +27,14 @@ fn read_dir<T: for<'de> Deserialize<'de>>(dir: &Path) -> BTreeMap<String, T> {
 pub fn load_content(root: &Path) -> Content {
     let data = root.join("data");
     let rules: RulesDef = read(&data.join("rules.ron"));
-    let characters: BTreeMap<String, CharacterDef> = read_dir(&data.join("characters"));
+    let mut characters: BTreeMap<String, CharacterDef> = read_dir(&data.join("characters"));
+    // 0.6.5 : personnages du Randomizer, generes dans un seul fichier
+    if engine::vfs::read_string(&data.join("zspr_characters.ron")).is_some() {
+        characters.extend(read::<BTreeMap<String, CharacterDef>>(&data.join("zspr_characters.ron")));
+    }
+    for (id, c) in characters.iter_mut() {
+        c.id = id.clone();
+    }
     let (weapon_ids, weapons) = split(read::<BTreeMap<String, WeaponDef>>(&data.join("weapons.ron")));
     let (passive_ids, passives) = split(read::<BTreeMap<String, PassiveDef>>(&data.join("passives.ron")));
     let (enemy_ids, enemies) = split(read::<BTreeMap<String, EnemyDef>>(&data.join("enemies.ron")));
@@ -52,7 +59,7 @@ fn split<T>(m: BTreeMap<String, T>) -> (Vec<String>, Vec<T>) {
 /// Verifie les references croisees (evolutions, invocations, vagues) et le signale au journal.
 fn check(c: &Content) {
     for (id, w) in c.weapon_ids.iter().zip(&c.weapons) {
-        if let Some(e) = &w.evolution {
+        for e in w.recipes() {
             if c.passive_index(&e.passive).is_none() {
                 log::warn!("arme {id} : objet d'evolution inconnu {}", e.passive);
             }
@@ -101,9 +108,6 @@ pub struct MusicEntry {
     pub once: bool,
     #[serde(default = "one")]
     pub volume: f32,
-    /// Boucle en fondu enchaine : (instant de relance, duree du fondu) en secondes.
-    #[serde(default)]
-    pub crossfade: Option<(f64, f64)>,
 }
 
 #[derive(Deserialize, Clone, Copy, Debug)]
@@ -146,7 +150,37 @@ impl AudioConfig {
             loop_end: m.loop_end,
             looping: !m.once,
             volume: m.volume,
-            crossfade: m.crossfade,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AudioConfig;
+    use std::path::Path;
+
+    /// Chaque musique de stage et de boss existe, et chaque boucle tient dans son fichier.
+    #[test]
+    fn stage_music_loops() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let cfg = AudioConfig::load(&root);
+        for (id, m) in &cfg.music {
+            let path = root.join("assets/audio/music").join(&m.file);
+            assert!(path.is_file(), "{id} : {}", m.file);
+            if let Some(end) = m.loop_end {
+                assert!(end > m.loop_start + 3.0, "{id} : boucle trop courte");
+            }
+        }
+        for f in std::fs::read_dir(root.join("data/maps")).unwrap().flatten() {
+            let s = std::fs::read_to_string(f.path()).unwrap();
+            for key in ["music", "boss_music", "final_music"] {
+                let pat = format!("\n    {key}: \"");
+                if let Some(i) = s.find(&pat) {
+                    let rest = &s[i + pat.len()..];
+                    let id = &rest[..rest.find('"').unwrap()];
+                    assert!(cfg.music.contains_key(id), "{:?} : {key} {id}", f.path());
+                }
+            }
+        }
     }
 }

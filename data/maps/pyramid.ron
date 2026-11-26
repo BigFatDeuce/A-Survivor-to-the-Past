@@ -1,12 +1,12 @@
 // Pyramide de la Puissance
-// Stage 5 : le Monde des Tenebres, Agahnim puis Ganon
+// Stage 10 (dernier) : Trinexx (Tour de la Tortue), puis Ganon, le boss le plus fort du jeu
 // Le boss final apparait a 9:00 ; sa defaite ouvre la porte de sortie (victoire en la franchissant).
 // props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde).
 (
     name: "Pyramide de la Puissance",
-    order: 5,
+    order: 10,
     music: "dark_golden_land",
-    boss_music: "priest_of_the_dark_order",
+    boss_music: "anger_of_the_guardians",
     final_music: "the_prince_of_darkness",
     ground: "dark",
     weather: Dark,
@@ -14,6 +14,8 @@
     tint: Some((0.2, 0.0, 0.25, 0.10)),
     max_enemies: 4500,
     duration: 540.0,
+    // difficulte du stage : vie et degats des ennemis ordinaires
+    power: 2.35,
     waves: [
         (enemy: "stalfos", from: 0.0, to: 900.0, rate: (0.9, 5.0), cap: 400),
         (enemy: "keese", from: 15.0, to: 900.0, rate: (0.5, 4.0), cap: 300),
@@ -43,8 +45,8 @@
         (at: 360.0, enemy: "moblin"),
         (at: 450.0, enemy: "hardhat"),
     ],
-    boss: Some((at: 270.0, enemy: "agahnim")),
-    final_boss: Some((at: 540.0, enemy: "ganon")),
+    boss: Some((at: 270.0, enemy: "trinexx", hp: Some(13000.0))),
+    final_boss: Some((at: 540.0, enemy: "ganon", hp: Some(26000.0))),
     props: [
         (sprite: "prop_tree_dark", density: 0.06, radius: 13.0, solid: true),
         (sprite: "prop_stump_dark", density: 0.03, radius: 9.0, solid: true),

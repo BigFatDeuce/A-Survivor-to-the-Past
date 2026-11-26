@@ -14,4 +14,10 @@
     stats: [(Amount, 1.0), (Speed, 0.15), (Might, -0.1), (Area, -0.1)],
     order: 5,
     unlock: Some(Level(25)),
+    // 0.6.5 : sprite du Randomizer (NES Link), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (NES Link), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (NES Link), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (NES Link), couleurs de ses palettes : gen_zspr_chars.py
+    skins: [("link_nes", "yellow"), ("link_nes_blue", "blue"), ("link_nes_red", "red"), ("link_nes_bunny", "dark")],
+    credit: "Mike Trethewey/kan",
 )

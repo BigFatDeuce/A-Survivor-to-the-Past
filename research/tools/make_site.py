@@ -17,25 +17,25 @@ ROOT = rd.ROOT
 OUT = ROOT / "site"
 
 UI = {
-    "en": dict(download="Download for Windows", web="Play in your browser", soon=f"Alpha {rd.VERSION} for Windows and the browser — Linux, macOS and Android later",
+    "en": dict(download="Download", web="Play in your browser", soon=f"Alpha {rd.VERSION} for Windows, Linux, macOS, handhelds (PortMaster, experimental) and the browser",
                discord="Join the Discord", github="Source code", lang="Language", nav_what="The game",
                nav_shots="Screenshots", nav_evo="Evolutions", nav_road="Roadmap", horde="A horde at 3:30", manual="Instruction booklet (PDF)"),
-    "fr": dict(download="Télécharger pour Windows", web="Jouer dans le navigateur", soon=f"Alpha {rd.VERSION} pour Windows et le navigateur — Linux, macOS et Android plus tard",
+    "fr": dict(download="Télécharger", web="Jouer dans le navigateur", soon=f"Alpha {rd.VERSION} pour Windows, Linux, macOS, consoles portables (PortMaster, expérimental) et le navigateur",
                discord="Rejoindre le Discord", github="Code source", lang="Langue", nav_what="Le jeu",
                nav_shots="Captures", nav_evo="Évolutions", nav_road="Feuille de route", horde="Une horde à 3:30", manual="Livret d'instructions (PDF)"),
-    "de": dict(download="Für Windows herunterladen", web="Im Browser spielen", soon=f"Alpha {rd.VERSION} für Windows und den Browser — Linux, macOS und Android folgen",
+    "de": dict(download="Herunterladen", web="Im Browser spielen", soon=f"Alpha {rd.VERSION} für Windows, Linux, macOS, Handhelds (PortMaster, experimentell) und den Browser",
                discord="Zum Discord", github="Quellcode", lang="Sprache", nav_what="Das Spiel",
                nav_shots="Bilder", nav_evo="Entwicklungen", nav_road="Fahrplan", horde="Eine Horde bei 3:30", manual="Spielanleitung (PDF)"),
-    "es": dict(download="Descargar para Windows", web="Jugar en el navegador", soon=f"Alfa {rd.VERSION} para Windows y el navegador — Linux, macOS y Android más adelante",
+    "es": dict(download="Descargar", web="Jugar en el navegador", soon=f"Alfa {rd.VERSION} para Windows, Linux, macOS, portátiles (PortMaster, experimental) y el navegador",
                discord="Únete al Discord", github="Código fuente", lang="Idioma", nav_what="El juego",
                nav_shots="Capturas", nav_evo="Evoluciones", nav_road="Hoja de ruta", horde="Una horda a los 3:30", manual="Manual de instrucciones (PDF)"),
-    "it": dict(download="Scarica per Windows", web="Gioca nel browser", soon=f"Alfa {rd.VERSION} per Windows e il browser — Linux, macOS e Android più avanti",
+    "it": dict(download="Scarica", web="Gioca nel browser", soon=f"Alfa {rd.VERSION} per Windows, Linux, macOS, console portatili (PortMaster, sperimentale) e il browser",
                discord="Entra nel Discord", github="Codice sorgente", lang="Lingua", nav_what="Il gioco",
                nav_shots="Immagini", nav_evo="Evoluzioni", nav_road="Tabella di marcia", horde="Un'orda a 3:30", manual="Libretto di istruzioni (PDF)"),
-    "pt": dict(download="Baixar para Windows", web="Jogar no navegador", soon=f"Alfa {rd.VERSION} para Windows e o navegador — Linux, macOS e Android depois",
+    "pt": dict(download="Baixar", web="Jogar no navegador", soon=f"Alfa {rd.VERSION} para Windows, Linux, macOS, portáteis (PortMaster, experimental) e o navegador",
                discord="Entrar no Discord", github="Código-fonte", lang="Idioma", nav_what="O jogo",
                nav_shots="Imagens", nav_evo="Evoluções", nav_road="Próximos passos", horde="Uma horda aos 3:30", manual="Manual de instruções (PDF)"),
-    "ja": dict(download="Windows 版をダウンロード", web="ブラウザでプレイ", soon=f"Windows 版・ブラウザ版アルファ {rd.VERSION} — Linux・macOS・Android 版は今後",
+    "ja": dict(download="ダウンロード", web="ブラウザでプレイ", soon=f"アルファ {rd.VERSION}：Windows・Linux・macOS・携帯機（PortMaster、試験版）・ブラウザ",
                discord="Discord に参加", github="ソースコード", lang="言語", nav_what="ゲーム",
                nav_shots="スクリーンショット", nav_evo="進化", nav_road="今後の予定", horde="3:30 の大群", manual="取扱説明書（PDF）"),
 }
@@ -325,7 +325,8 @@ HEADERS = """/*
 
 
 def sync_worker():
-    """Classement en ligne : version du jeu (LATEST) et stages (STAGES) dans wrangler.jsonc."""
+    """Classement en ligne : version du jeu (LATEST), stages (STAGES) et multiplicateur de score
+    maximal (MAX_MULT : difficulte la plus payante x tous les Sceaux) dans wrangler.jsonc."""
     maps = []
     for f in sorted((ROOT / "data/maps").glob("*.ron")):
         m = re.search(r"\border:\s*(\d+)", f.read_text(encoding="utf-8"))
@@ -336,6 +337,10 @@ def sync_worker():
     t = cfg.read_text(encoding="utf-8")
     t = re.sub(r'"LATEST":\s*"[^"]*"', f'"LATEST": "{rd.VERSION}"', t)
     t = re.sub(r'"STAGES":\s*"[^"]*"', f'"STAGES": "{stages}"', t)
+    meta = (ROOT / "data/meta.ron").read_text(encoding="utf-8")
+    diff = max(float(v) for v in re.findall(r"\(id:\s*\"\w+\",[^)]*\brupees:\s*([\d.]+)", meta))
+    seals = sum(float(v) for v in re.findall(r"\(id:\s*\"seal_\w+\"[^)]*\bbonus:\s*([\d.]+)", meta))
+    t = re.sub(r'"MAX_MULT":\s*"[^"]*"', f'"MAX_MULT": "{round(diff * (1 + seals), 4)}"', t)
     cfg.write_text(t, encoding="utf-8", newline="\n")
 
 

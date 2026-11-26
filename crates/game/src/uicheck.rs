@@ -76,6 +76,15 @@ impl Report {
                 if end.x > p.x + s.x + 0.5 || end.y > p.y + s.y + 0.5 {
                     add("deborde du cadre", format!("{} ({name})", short(t)));
                 }
+                // bandeau d'une seule ligne (un seul texte dedans) : le texte doit y etre centre verticalement
+                let inside = |q: Vec2| q.x >= p.x && q.y >= p.y && q.x < p.x + s.x && q.y < p.y + s.y;
+                let alone = texts.iter().filter(|o| o.3 == tl && inside(o.0 + Vec2::new(1.0, 2.0))).count() == 1;
+                if alone && s.y < size.y * 2.0 {
+                    let off = (pos.y + size.y * 0.5) - (p.y + s.y * 0.5);
+                    if off.abs() > 2.0 {
+                        add("mal centre", format!("{} ({name}, {off:+.0} px)", short(t)));
+                    }
+                }
             }
             for c in t.chars() {
                 if c != ' ' && !t.starts_with('<') && !font.glyphs.contains_key(&c) {

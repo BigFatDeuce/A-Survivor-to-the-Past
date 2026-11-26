@@ -77,9 +77,7 @@ pub enum Orient {
 /// Choisit l'orientation d'apres la forme de l'image : allongee = suit sa direction.
 fn orient_of(atlas: &Atlas, id: AnimId, spin: bool) -> Orient {
     let f = atlas.frame(id, 0.0);
-    if spin {
-        Orient::Angle(false)
-    } else if f.w > f.h + 2 {
+    if spin || f.w > f.h + 2 {
         Orient::Angle(false)
     } else if f.h > f.w + 2 {
         Orient::Angle(true)
@@ -131,6 +129,14 @@ pub struct Vis {
     pub bomb_red: Option<AnimId>,
     /// Fleche d'indication (police d'A Link to the Past, pointe a droite).
     pub ui_arrow: AnimId,
+    /// PNJ de passage (0.6.3) : diseuse, sorciere, coffres du jeu (ferme, ouvert), potions (rouge,
+    /// verte, bleue, puis la bouteille vide).
+    pub npc_fortune: AnimId,
+    pub npc_witch: AnimId,
+    pub fortune_chest: [AnimId; 2],
+    pub potions: [AnimId; 4],
+    /// Curseur de la souris (fee).
+    pub cursor: AnimId,
     pub icon_heart: AnimId,
     pub icon_rupees: AnimId,
     pub hud_heart: [AnimId; 3],
@@ -213,6 +219,11 @@ impl Vis {
             prop_break: map.props.iter().map(|p| (!p.break_fx.is_empty()).then(|| atlas.get(&p.break_fx, "0"))).collect(),
             bomb_red: atlas.find("bobomb", "red"),
             ui_arrow: atlas.get("ui_arrow", "0"),
+            npc_fortune: atlas.get("npc_fortune", "0"),
+            npc_witch: atlas.get("npc_witch", "0"),
+            fortune_chest: [atlas.get("fortune_chest", "closed"), atlas.get("fortune_chest", "open")],
+            potions: [atlas.get("icon_red_potion", "0"), atlas.get("icon_green_potion", "0"), atlas.get("icon_blue_potion", "0"), atlas.get("icon_bottle", "0")],
+            cursor: atlas.get("fairy", "0"),
             icon_heart: atlas.get("icon_heart", "0"),
             icon_rupees: atlas.get("icon_rupees", "0"),
             hud_heart: [atlas.get("hud_heart", "full"), atlas.get("hud_heart", "half"), atlas.get("hud_heart", "empty")],

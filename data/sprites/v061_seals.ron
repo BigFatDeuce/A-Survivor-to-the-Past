@@ -1,0 +1,17 @@
+// Version 0.6.1 : icones des sceaux (defis), medaillons des sages facon Ocarina of Time, version 15x15.
+// Planche « Sage Medallions » (The Spriters Resource, customs). Voir CREDITS.md.
+(
+    sheets: [
+        (
+            source: "Custom _ Edited - The Legend of Zelda Customs - Items - Sage Medallions.png",
+            transparent: ["#7092be"],
+            sprites: {
+                "icon_sage_shadow": { "0": (frames: [(1, 459, 15, 15)], pivot: (0, 0), align: Center) },
+                "icon_sage_fire":   { "0": (frames: [(1, 476, 15, 15)], pivot: (0, 0), align: Center) },
+                "icon_sage_forest": { "0": (frames: [(1, 493, 15, 15)], pivot: (0, 0), align: Center) },
+                "icon_sage_spirit": { "0": (frames: [(1, 527, 15, 15)], pivot: (0, 0), align: Center) },
+                "icon_sage_water":  { "0": (frames: [(1, 544, 15, 15)], pivot: (0, 0), align: Center) },
+            },
+        ),
+    ],
+)

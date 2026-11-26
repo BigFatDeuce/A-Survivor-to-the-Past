@@ -4,6 +4,7 @@
 //! - un delai minimal entre deux ralentis (par type de moment) ;
 //! - un budget : au plus `BUDGET` secondes de ralenti par fenetre glissante d'environ 30 s ;
 //! - des ralentis tres courts (0,1 a 0,3 s) qui reviennent en douceur a la vitesse normale.
+//!
 //! Quand un ralenti est refuse, les effets visuels et sonores restent : seul le temps n'est pas touche.
 use std::collections::VecDeque;
 

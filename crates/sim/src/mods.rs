@@ -20,6 +20,11 @@ pub struct RunMods {
     pub xp: f32,
     /// Fees en bouteille : Link se releve avec la moitie de sa vie.
     pub revives: u32,
+    /// Montee de niveau : relances (nouveaux choix) et passes (niveau sans recompense) restantes.
+    pub rerolls: u32,
+    pub skips: u32,
+    /// Sorciere achetee a la Grande Fee : elle passe une fois par partie.
+    pub witch: bool,
 }
 
 impl Default for RunMods {
@@ -34,6 +39,10 @@ impl Default for RunMods {
             heal: 1.0,
             xp: 1.0,
             revives: 0,
+            // 2 de chaque par partie, plus la boutique et les reliques
+            rerolls: 2,
+            skips: 2,
+            witch: false,
         }
     }
 }

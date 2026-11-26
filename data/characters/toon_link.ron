@@ -1,0 +1,20 @@
+// Toon Link (facon Mario & Luigi Superstar Saga) : rapide mais fragile, part avec le grappin.
+// Debloque en vainquant Blind (Bois Perdus).
+(
+    name: "Toon Link",
+    sprite: "toon_link",
+    side_faces_left: true,
+    max_hp: 50.0,
+    speed: 86.0,
+    radius: 5.0,
+    magnet: 36.0,
+    dash: (speed: 340.0, duration: 0.15, cooldown: 1.6),
+    weapon: "hookshot",
+    weapon_sprite: "sword1",
+    // avantages : vitesse +12 %, recharge du dash -15 % ; defauts : 5 coeurs
+    stats: [(MoveSpeed, 0.12), (DashCooldown, -0.15)],
+    order: 13,
+    unlock: Some(Slain("blind")),
+    // 0.6.4 : tenues de la garde-robe (boutique), recolorations : research/tools/gen_wardrobe_v064.py
+    skins: [("toon_link", "green"), ("toon_link_red", "red"), ("toon_link_blue", "blue")],
+)

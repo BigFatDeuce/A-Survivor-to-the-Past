@@ -1,0 +1,76 @@
+// 0.6.4 : tenues de la garde-robe. Genere par research/tools/gen_wardrobe_v064.py, ne pas modifier.
+(
+    sheets: [
+        // Link lapin (Monde des Tenebres sans la Perle de Lune) : planche de Link, rangee des lapins
+        (
+            source: "SNES - The Legend of Zelda_ A Link to the Past - Playable Characters - Link.png",
+            transparent: ["#008080", "#004040"],
+            sprites: {
+                "link_bunny": {
+                    "idle_down": (frames: [(361, 194, 16, 23)], pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(412, 193, 17, 24)], pivot: (0, -1), align: Bottom),
+                    "idle_up":   (frames: [(448, 194, 16, 23)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(361, 194, 16, 23), (378, 193, 16, 24), (395, 194, 16, 23), (378, 193, 16, 24)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(412, 193, 17, 24), (430, 194, 17, 23)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(448, 194, 16, 23), (465, 193, 16, 24), (482, 194, 16, 23), (465, 193, 16, 24)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        // link_adult_goron : link_adult recolorie (gen_wardrobe_v064.py)
+        (
+            source: "Derived - link_adult_goron.png",
+            sprites: {
+                "link_adult_goron": {
+                    "idle_down": (frames: [(0, 0, 18, 31)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(19, 0, 18, 31), (38, 0, 18, 31), (57, 0, 18, 31), (76, 0, 18, 31), (95, 0, 18, 31), (114, 0, 18, 31)], fps: 10, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(133, 1, 28, 30)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(191, 1, 28, 30), (220, 1, 28, 30), (249, 1, 28, 30), (278, 1, 28, 30), (307, 1, 28, 30)], fps: 10, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(336, 0, 18, 31)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(355, 0, 18, 31), (374, 0, 18, 31), (393, 0, 18, 31), (412, 0, 18, 31), (431, 0, 18, 31), (450, 0, 18, 31)], fps: 10, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        // link_adult_zora : link_adult recolorie (gen_wardrobe_v064.py)
+        (
+            source: "Derived - link_adult_zora.png",
+            sprites: {
+                "link_adult_zora": {
+                    "idle_down": (frames: [(0, 0, 18, 31)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(19, 0, 18, 31), (38, 0, 18, 31), (57, 0, 18, 31), (76, 0, 18, 31), (95, 0, 18, 31), (114, 0, 18, 31)], fps: 10, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(133, 1, 28, 30)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(191, 1, 28, 30), (220, 1, 28, 30), (249, 1, 28, 30), (278, 1, 28, 30), (307, 1, 28, 30)], fps: 10, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(336, 0, 18, 31)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(355, 0, 18, 31), (374, 0, 18, 31), (393, 0, 18, 31), (412, 0, 18, 31), (431, 0, 18, 31), (450, 0, 18, 31)], fps: 10, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        // toon_link_red : toon_link recolorie (gen_wardrobe_v064.py)
+        (
+            source: "Derived - toon_link_red.png",
+            sprites: {
+                "toon_link_red": {
+                    "idle_down": (frames: [(0, 0, 24, 33)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(0, 0, 24, 33), (25, 0, 24, 33), (50, 0, 24, 33), (75, 0, 24, 33), (100, 0, 24, 33), (125, 0, 24, 33), (150, 0, 24, 33), (175, 0, 24, 33)], fps: 12, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(200, 0, 26, 33)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(200, 0, 26, 33), (227, 0, 26, 33), (254, 0, 26, 33), (281, 0, 26, 33), (308, 0, 26, 33), (335, 0, 26, 33), (362, 0, 26, 33), (389, 0, 26, 33)], fps: 12, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(416, 0, 24, 33)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(416, 0, 24, 33), (441, 0, 24, 33), (466, 0, 24, 33), (491, 0, 24, 33), (516, 0, 24, 33), (541, 0, 24, 33), (566, 0, 24, 33), (591, 0, 24, 33)], fps: 12, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        // toon_link_blue : toon_link recolorie (gen_wardrobe_v064.py)
+        (
+            source: "Derived - toon_link_blue.png",
+            sprites: {
+                "toon_link_blue": {
+                    "idle_down": (frames: [(0, 0, 24, 33)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(0, 0, 24, 33), (25, 0, 24, 33), (50, 0, 24, 33), (75, 0, 24, 33), (100, 0, 24, 33), (125, 0, 24, 33), (150, 0, 24, 33), (175, 0, 24, 33)], fps: 12, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(200, 0, 26, 33)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(200, 0, 26, 33), (227, 0, 26, 33), (254, 0, 26, 33), (281, 0, 26, 33), (308, 0, 26, 33), (335, 0, 26, 33), (362, 0, 26, 33), (389, 0, 26, 33)], fps: 12, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(416, 0, 24, 33)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(416, 0, 24, 33), (441, 0, 24, 33), (466, 0, 24, 33), (491, 0, 24, 33), (516, 0, 24, 33), (541, 0, 24, 33), (566, 0, 24, 33), (591, 0, 24, 33)], fps: 12, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+    ],
+)

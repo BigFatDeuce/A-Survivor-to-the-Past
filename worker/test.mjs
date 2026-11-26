@@ -22,6 +22,13 @@ test("score du jeu (f32) accepte", () => {
   s.score = Math.round((2400 * 10 + 600 * 10 + 2000 + 5000) * 1.3500000238418579);
   assert.equal(check(s, env), null);
 });
+test("multiplicateur au-dela du maximum du jeu refuse", () => {
+  const e = { ...env, MAX_MULT: "4.05" };
+  assert.equal(check(run({ mult: 4.05 }), e), null);
+  // le jeu envoie un f32 : 4.05f32 = 4.0500001907...
+  assert.equal(check(run({ mult: 4.050000190734863 }), e), null);
+  assert.equal(check(run({ mult: 5.5 }), e), "implausible");
+});
 test("trop d'ennemis refuse", () => assert.equal(check(run({ kills: 600 * 61 }), env), "implausible"));
 test("victoire trop rapide refusee", () => assert.equal(check(run({ time: 120 }), env), "implausible"));
 test("pseudo invalide refuse", () => {
@@ -34,6 +41,11 @@ test("noms ordinaires acceptes", () => {
   for (const n of ["Grape", "Computer", "Peacock", "Conor", "Essex", "Unique", "Torpedo", "Montenegro"]) {
     assert.equal(blockedName(n), false, n);
   }
+});
+test("titre de la Grande Fee", () => {
+  assert.equal(check(run({ title: 3 }), env), null);
+  assert.equal(check(run({ title: 4 }), env), "bad_request");
+  assert.equal(check(run({ title: "or" }), env), "bad_request");
 });
 test("stage inconnu refuse", () => assert.equal(check(run({ map: "arena_test" }), env), "bad_request"));
 test("versions", () => {

@@ -27,7 +27,10 @@ pub enum TitleItem {
     /// Joueur actif (nom et avatar) : ouvre l'ecran Joueurs.
     Players,
     Shop,
-    Profile,
+    /// Recueil : bestiaire, armes, objets, fusions.
+    Collection,
+    /// Exploits : trophees et statistiques.
+    Exploits,
     /// Classements (meilleurs scores locaux et mondiaux).
     Scores,
     Options,
@@ -261,6 +264,7 @@ pub fn draw_backdrop(list: &mut DrawList, ctx: &Ctx, v: &TitleVis, t: f32) {
 }
 
 /// `items` : entrees et libelles deja traduits.
+#[allow(clippy::too_many_arguments)]
 pub fn draw_title(
     list: &mut DrawList,
     ctx: &Ctx,
@@ -304,7 +308,7 @@ pub fn draw_title(
         let is = if main.measure(label) as f32 * is > room { 1.0 } else { is };
         let ty = (p.y + (s.y - main.line_height as f32 * is) * 0.5 + is).round();
         if k == sel {
-            list.rect(white, p, s, [1.0, 1.0, 1.0, 0.07]);
+            crate::hub::focus_frame(list, ctx, p, s);
             let blink = (t * 3.0).fract() < 0.75;
             text(list, main, "▶", Vec2::new(p.x + 4.0, ty), is, with_alpha(GOLD, if blink { 1.0 } else { 0.6 }), Align::Left);
         }
@@ -401,7 +405,7 @@ pub fn draw_about(
         let (p, s) = l.items[k];
         let c = if k == sel { GOLD } else { SOFT };
         if k == sel {
-            list.rect(white, p, s, [1.0, 1.0, 1.0, 0.07]);
+            crate::hub::focus_frame(list, ctx, p, s);
             text(list, main, "▶", Vec2::new(p.x - 10.0, p.y + 3.0), 1.0, GOLD, Align::Left);
         }
         text(list, main, lang.get(key), Vec2::new(p.x + 4.0, p.y + 3.0), 1.0, c, Align::Left);

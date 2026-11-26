@@ -195,6 +195,8 @@ impl<G: Game> Runner<G> {
     /// Fin du lancement : atlas, audio, jeu.
     fn finish(&mut self, mut gfx: Gfx) {
         gfx.set_video(self.cfg.video, self.cfg.aspect);
+        // curseur du systeme cache : le jeu dessine le sien (sprite)
+        gfx.window.set_cursor_visible(false);
         let root = find_root();
         log::info!("racine du jeu : {}", root.display());
         let (atlas, img) = Atlas::load(&root);
@@ -345,10 +347,23 @@ impl<G: Game> ApplicationHandler for Runner<G> {
                 };
                 s.ctx.input.mouse_event(b, state == ElementState::Pressed);
             }
+            WindowEvent::MouseWheel { delta, .. } => {
+                // un cran de molette = 1 ; pave tactile : environ 40 pixels par cran
+                let n = match delta {
+                    winit::event::MouseScrollDelta::LineDelta(_, y) => y,
+                    winit::event::MouseScrollDelta::PixelDelta(p) => p.y as f32 / 40.0,
+                };
+                s.ctx.input.wheel_event(n);
+            }
+            WindowEvent::CursorLeft { .. } => s.ctx.input.mouse_inside = false,
+            WindowEvent::CursorEntered { .. } => s.ctx.input.mouse_inside = true,
             WindowEvent::CursorMoved { position, .. } => {
+                s.ctx.input.mouse_inside = true;
                 // coordonnees relatives a l'image de jeu (bandes noires du 4:3 exclues)
                 s.ctx.input.mouse_moved(Vec2::new(position.x as f32, position.y as f32) - s.gfx.origin);
             }
+            // une image entiere est calculee ici : pas dans une garde de `match` (lisibilite)
+            #[allow(clippy::collapsible_match)]
             WindowEvent::RedrawRequested => {
                 if s.frame(&self.cfg) {
                     s.game.exit(&mut s.ctx);

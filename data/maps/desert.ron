@@ -1,11 +1,11 @@
 // Desert du Mystere
-// Stage 3 : sable, ossements et tempete
+// Stage 2 : Stalfos Knight a mi-parcours, les Lanmolas du Palais du Desert au bout
 // Le boss final apparait a 9:00 ; sa defaite ouvre la porte de sortie (victoire en la franchissant).
 // props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde).
 (
     name: "Desert du Mystere",
-    order: 3,
-    music: "lost_ancient_ruins",
+    order: 2,
+    music: "dank_dungeons",
     boss_music: "anger_of_the_guardians",
     final_music: "anger_of_the_guardians",
     ground: "desert",
@@ -14,6 +14,8 @@
     tint: Some((0.25, 0.15, 0.0, 0.10)),
     max_enemies: 4000,
     duration: 540.0,
+    // difficulte du stage : vie et degats des ennemis ordinaires
+    power: 1.12,
     waves: [
         (enemy: "vulture", from: 0.0, to: 900.0, rate: (0.6, 4.0), cap: 250),
         (enemy: "tektite", from: 20.0, to: 900.0, rate: (0.4, 3.5), cap: 200),
@@ -42,8 +44,8 @@
         (at: 300.0, enemy: "archer"),
         (at: 420.0, enemy: "moblin"),
     ],
-    boss: Some((at: 270.0, enemy: "mothula")),
-    final_boss: Some((at: 540.0, enemy: "lanmola")),
+    boss: Some((at: 270.0, enemy: "stalfos_knight", hp: Some(3000.0))),
+    final_boss: Some((at: 540.0, enemy: "lanmola", hp: Some(6000.0))),
     props: [
         (sprite: "prop_skull", density: 0.03, radius: 10.0, solid: true),
         (sprite: "prop_cactus", density: 0.06, radius: 6.0, solid: true),

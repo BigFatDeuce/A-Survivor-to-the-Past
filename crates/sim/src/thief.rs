@@ -51,6 +51,7 @@ impl World {
         let edge = self.view_half.length();
         let at = self.player.pos + self.rng.dir() * (edge + self.rng.range(20.0, 90.0));
         let i = self.spawn_enemy(kind, at);
+        self.toughen_encounter(i);
         self.horde.hp[i] *= r.hp;
         self.horde.max_hp[i] = self.horde.hp[i];
         self.thief = Some(Thief { uid: self.horde.uid[i], t: r.life });

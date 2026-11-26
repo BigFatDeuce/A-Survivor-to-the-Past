@@ -88,6 +88,10 @@ pub enum Event {
     ThiefSpawned { pos: Vec2 },
     ThiefFled { pos: Vec2 },
     ThiefLooted { pos: Vec2, count: u32 },
+    /// PNJ de passage (diseuse de bonne aventure, sorciere) : arrive, touche par le joueur, repart.
+    NpcArrived { kind: crate::npc::NpcKind, pos: Vec2 },
+    NpcMet { kind: crate::npc::NpcKind },
+    NpcLeft { kind: crate::npc::NpcKind, pos: Vec2 },
 }
 
 /// Coup d'epee en cours.
@@ -159,6 +163,10 @@ pub struct Player {
     pub walk_t: f32,
     pub moving: bool,
     pub stats: Stats,
+    /// Saut (Plume de Roc) : temps restant, duree totale et arme qui le donne.
+    pub jump: f32,
+    pub jump_dur: f32,
+    pub(crate) jump_slot: u8,
 }
 
 impl Player {
@@ -198,6 +206,9 @@ impl Player {
             walk_t: 0.0,
             moving: false,
             stats: Stats::default(),
+            jump: 0.0,
+            jump_dur: 0.0,
+            jump_slot: 0,
         }
     }
 
@@ -241,6 +252,10 @@ pub struct World {
     pub shot_hit: Vec<f32>,
     /// Niveaux gagnes en attente de choix.
     pub pending_levels: u32,
+    /// Objets partenaires deja utilises par une fusion : chacun ne sert qu'a une seule par partie.
+    pub used_partners: Vec<u16>,
+    /// Armes pas encore debloquees par le joueur : jamais proposees (rempli par le jeu).
+    pub locked_weapons: Vec<u16>,
     /// Progression du joueur appliquee a la partie (voir `set_mods`).
     pub mods: crate::mods::RunMods,
     /// Coffres ramasses en attente d'ouverture (vrai = grand coffre).
@@ -276,6 +291,9 @@ pub struct World {
     pub thief_kind: Option<u16>,
     pub thief: Option<crate::thief::Thief>,
     pub thief_t: f32,
+    /// PNJ presents, et heure d'arrivee de la sorciere (si elle doit passer).
+    pub npcs: Vec<crate::npc::Npc>,
+    pub witch_at: Option<f32>,
     /// Premier evenement du pas en cours.
     ev0: usize,
     wave_acc: Vec<f32>,
@@ -331,6 +349,8 @@ impl World {
             shot_sprites,
             shot_hit: Vec::new(),
             pending_levels: 0,
+            used_partners: Vec::new(),
+            locked_weapons: Vec::new(),
             mods: crate::mods::RunMods::default(),
             pending_chests: Vec::new(),
             boss_uid: None,
@@ -352,6 +372,8 @@ impl World {
             thief_kind: None,
             thief: None,
             thief_t: 0.0,
+            npcs: Vec::new(),
+            witch_at: None,
             ev0: 0,
             accel: Vec::new(),
             content,
@@ -408,13 +430,27 @@ impl World {
         let def = &self.content.enemies[kind as usize];
         let grow = if def.boss { self.mods.boss_hp } else { 1.0 + self.time / 60.0 * self.content.rules.hp_growth };
         let seed = self.rng.next_u32();
-        let i = self.horde.spawn(kind, pos, def.hp * grow * self.mods.enemy_hp, def.radius, seed);
-        self.horde.power[i] = self.mods.enemy_damage;
+        // difficulte du stage : ennemis ordinaires plus resistants et plus dangereux
+        let stage = if def.boss { 1.0 } else { self.map.power };
+        let i = self.horde.spawn(kind, pos, def.hp * grow * self.mods.enemy_hp * stage, def.radius, seed);
+        self.horde.power[i] = self.mods.enemy_damage * stage;
+        i
+    }
+
+    /// Boss du stage : vie de base fixee par la carte (sinon celle de la fiche).
+    fn spawn_boss(&mut self, b: &crate::defs::SpawnAt, kind: u16, pos: Vec2) -> usize {
+        let i = self.spawn_enemy(kind, pos);
+        if let Some(hp) = b.hp {
+            self.horde.hp[i] = hp * self.mods.boss_hp * self.mods.enemy_hp;
+            self.horde.max_hp[i] = self.horde.hp[i];
+        }
         i
     }
 
     /// Applique la progression du joueur (a faire juste apres `World::new`).
     pub fn set_mods(&mut self, m: crate::mods::RunMods) {
+        let (a, b) = crate::npc::WITCH_WINDOW;
+        self.witch_at = m.witch.then(|| self.rng.range(a, b));
         self.mods = m;
         self.recompute_stats();
         self.player.hp = self.player.max_hp;
@@ -495,6 +531,7 @@ impl World {
             self.update_encounter();
             self.update_thief();
         }
+        self.update_npcs();
         self.update_portal();
         self.recycle_far();
         self.remove_dead();
@@ -606,7 +643,7 @@ impl World {
         true
     }
 
-    pub(crate) fn apply_status(&mut self, i: usize, st: StatusDef) {
+    pub fn apply_status(&mut self, i: usize, st: StatusDef) {
         let boss = self.content.enemies[self.horde.kind[i] as usize].boss;
         let resist = if boss {
             0.25
@@ -618,8 +655,12 @@ impl World {
         let dur = self.player.stats.duration;
         match st {
             StatusDef::Burn { dps, time } => {
-                self.horde.burn[i] = self.horde.burn[i].max(time * dur);
-                self.horde.burn_dps[i] = self.horde.burn_dps[i].max(dps * self.player.stats.might);
+                // en cours : la plus forte reste ; terminee : la nouvelle remplace l'ancienne (la
+                // force n'etait remise a zero que si la brulure finissait sur un pas de degats)
+                let dps = dps * self.player.stats.might;
+                let h = &mut self.horde;
+                h.burn_dps[i] = if h.burn[i] > 0.0 { h.burn_dps[i].max(dps) } else { dps };
+                h.burn[i] = h.burn[i].max(time * dur);
             }
             StatusDef::Freeze { time } => {
                 if self.horde.freeze[i] <= 0.0 {
@@ -670,11 +711,14 @@ impl World {
                 }
                 self.boss_defeated = true;
                 if last {
+                    // boss final : la diseuse de bonne aventure remplace le grand coffre
                     self.final_uid = None;
                     self.open_portal(pos + Vec2::new(0.0, 24.0));
+                    self.add_npc(crate::npc::NpcKind::Fortune, pos - Vec2::new(0.0, 20.0));
+                } else {
+                    self.pickups.spawn(PickupKind::BigChest, 0, pos, Vec2::ZERO, 120.0);
+                    self.events.push(Event::ChestDropped { pos, big: true });
                 }
-                self.pickups.spawn(PickupKind::BigChest, 0, pos, Vec2::ZERO, 120.0);
-                self.events.push(Event::ChestDropped { pos, big: true });
                 // pluie de rubis
                 for _ in 0..12 {
                     let v = self.rng.dir() * self.rng.range(40.0, 110.0);
@@ -1059,7 +1103,8 @@ impl World {
                 if self.horde.alive[bk as usize] == 0 && self.horde.len() < max {
                     let bias = Some(self.player.vel);
                     let p = self.offscreen_point(bias);
-                    self.spawn_enemy(bk, p);
+                    let i = self.spawn_enemy(bk, p);
+                    self.toughen_encounter(i);
                     self.events.push(Event::BombSpawned { pos: p });
                 }
             }
@@ -1091,7 +1136,7 @@ impl World {
                 self.horde.elite[i] = true;
                 self.horde.hp[i] *= r.elite_hp;
                 self.horde.max_hp[i] = self.horde.hp[i];
-                self.horde.power[i] = r.elite_damage * self.mods.enemy_damage;
+                self.horde.power[i] = r.elite_damage * self.mods.enemy_damage * self.map.power;
                 self.events.push(Event::EliteSpawned { pos: p });
             }
         }
@@ -1102,7 +1147,7 @@ impl World {
                     if let Some(k) = self.content.enemy_index(&b.enemy) {
                         let dir = if self.player.facing.length_squared() > 0.1 { self.player.facing } else { Vec2::Y };
                         let p = self.player.pos + dir * 150.0;
-                        let i = self.spawn_enemy(k, p);
+                        let i = self.spawn_boss(&b, k, p);
                         self.boss_uid = Some(self.horde.uid[i]);
                         self.events.push(Event::BossSpawned { pos: p, kind: k, last: false });
                     }
@@ -1116,7 +1161,7 @@ impl World {
                     if let Some(k) = self.content.enemy_index(&b.enemy) {
                         let dir = if self.player.facing.length_squared() > 0.1 { self.player.facing } else { Vec2::Y };
                         let p = self.player.pos + dir * 160.0;
-                        let i = self.spawn_enemy(k, p);
+                        let i = self.spawn_boss(&b, k, p);
                         let uid = self.horde.uid[i];
                         self.boss_uid = Some(uid);
                         self.final_uid = Some(uid);
@@ -1125,6 +1170,16 @@ impl World {
                 }
             }
         }
+    }
+
+    /// Rencontre (Bob-omb, voleur) : trois fois la vie d'un ennemi ordinaire du stage (moyenne des
+    /// vagues), avec la meme progression (temps, difficulte, puissance du stage).
+    pub(crate) fn toughen_encounter(&mut self, i: usize) {
+        let base = self.content.enemies[self.horde.kind[i] as usize].hp;
+        let hps: Vec<f32> = self.map.waves.iter().filter_map(|w| self.content.enemy_index(&w.enemy)).map(|k| self.content.enemies[k as usize].hp).collect();
+        let mob = if hps.is_empty() { base } else { hps.iter().sum::<f32>() / hps.len() as f32 };
+        self.horde.hp[i] *= 3.0 * mob / base.max(0.1);
+        self.horde.max_hp[i] = self.horde.hp[i];
     }
 
     /// Les ennemis distances sont replaces devant le joueur (la pression reste constante).

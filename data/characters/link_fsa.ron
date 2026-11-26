@@ -2,8 +2,7 @@
 // Quatre couleurs au choix (gauche / droite dans l'ecran des personnages). Debloque aux Bois Perdus.
 (
     name: "Link (Four Swords)",
-    sprite: "link_fsa_green",
-    side_faces_left: true,
+    sprite: "link_fsa",
     max_hp: 60.0,
     speed: 86.0,
     radius: 5.0,
@@ -14,5 +13,10 @@
     stats: [(Amount, 1.0), (Might, -0.15)],
     order: 6,
     unlock: Some(Win("lost_woods")),
-    skins: [("link_fsa_green", "green"), ("link_fsa_red", "red"), ("link_fsa_blue", "blue"), ("link_fsa_purple", "purple")],
+    // 0.6.5 : sprite du Randomizer (Four Swords Link), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Four Swords Link), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Four Swords Link), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Four Swords Link), couleurs de ses palettes : gen_zspr_chars.py
+    skins: [("link_fsa", "green"), ("link_fsa_blue", "blue"), ("link_fsa_orange", "orange"), ("link_fsa_bunny", "dark")],
+    credit: "Mike Trethewey",
 )

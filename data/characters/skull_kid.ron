@@ -1,0 +1,18 @@
+// Skull Kid (facon A Link to the Past, masque de Majora) : farceur chanceux, effets prolonges, fragile.
+// Part avec la poudre magique. Debloque en vainquant Mothula (Bois Perdus).
+(
+    name: "Skull Kid",
+    sprite: "skull_kid",
+    side_faces_left: true,
+    max_hp: 50.0,
+    speed: 88.0,
+    radius: 5.0,
+    magnet: 38.0,
+    dash: (speed: 330.0, duration: 0.15, cooldown: 1.7),
+    weapon: "magic_powder",
+    weapon_sprite: "sword1",
+    // avantages : chance +20 %, duree +15 % ; defauts : 5 coeurs, degats -5 %
+    stats: [(Luck, 0.2), (Duration, 0.15), (Might, -0.05)],
+    order: 19,
+    unlock: Some(Slain("mothula")),
+)

@@ -116,6 +116,9 @@ pub struct PassiveSlot {
     pub level: u32,
 }
 
+/// Poids d'une fusion parmi les choix de niveau (x poids de l'arme) : plus rare qu'une amelioration.
+pub const EVOLVE_WEIGHT: f32 = 0.35;
+
 /// Une proposition de niveau.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Offer {
@@ -127,6 +130,8 @@ pub enum Offer {
     Heal,
     /// Tout est au maximum : rubis.
     Rupees,
+    /// Fusion prete (arme et objet partenaire au maximum) : l'arme evoluee (proposee plus rarement).
+    Evolve(u16),
 }
 
 /// Contenu d'un coffre ouvert.
@@ -246,11 +251,11 @@ impl World {
         if self.weapons.len() < c.rules.max_weapons {
             for (i, def) in c.weapons.iter().enumerate() {
                 let id = i as u16;
-                if def.evolved || self.weapons.iter().any(|w| w.id == id) {
+                if def.evolved || self.locked_weapons.contains(&id) || self.weapons.iter().any(|w| w.id == id) {
                     continue;
                 }
                 // une arme dont l'evolution est deja possedee n'est plus proposee
-                if self.weapons.iter().any(|w| def.evolution.as_ref().is_some_and(|e| c.weapon_ids[w.id as usize] == e.into)) {
+                if self.weapons.iter().any(|w| def.recipes().any(|e| c.weapon_ids[w.id as usize] == e.into)) {
                     continue;
                 }
                 out.push((Offer::NewWeapon(id), def.weight));
@@ -268,6 +273,13 @@ impl World {
                 if !self.passives.iter().any(|p| p.id == id) {
                     out.push((Offer::NewPassive(id), def.weight * 0.9));
                 }
+            }
+        }
+        // fusions pretes : plus rares qu'une amelioration ; seules en lice quand tout est au maximum
+        // (elles passent donc avant les soins et les rubis)
+        for (slot, into, _) in self.evolutions_ready() {
+            if !out.iter().any(|(o, _)| *o == Offer::Evolve(into)) {
+                out.push((Offer::Evolve(into), c.weapons[self.weapons[slot].id as usize].weight * EVOLVE_WEIGHT));
             }
         }
         out
@@ -334,39 +346,106 @@ impl World {
                 let r = self.content.rules.fallback_rupees;
                 self.player.rupees += r;
             }
+            Offer::Evolve(into) => {
+                if let Some((slot, _, _)) = self.evolutions_ready().into_iter().find(|e| e.1 == into) {
+                    self.evolve_slot(slot, into);
+                }
+            }
         }
     }
 
-    /// Evolution possible : (emplacement, arme evoluee).
-    pub fn evolution_ready(&self) -> Option<(usize, u16)> {
+    /// Fait evoluer l'arme de l'emplacement `slot` en `into` (l'objet partenaire est alors utilise).
+    /// Rend l'arme d'origine.
+    fn evolve_slot(&mut self, slot: usize, into: u16) -> u16 {
+        let from = self.weapons[slot].id;
+        let boost = self.weapons[slot].boost;
+        let def = &self.content.weapons[into as usize];
+        let mut stats = resolve(def, 1, &self.player.stats);
+        boost.apply(&mut stats);
+        self.weapons[slot] = WeaponSlot { id: into, boost, level: 1, cd: 0.2, stats, active: 0.0, phase: 0.0 };
+        let into_id = &self.content.weapon_ids[into as usize];
+        let recipe = self.content.weapons[from as usize].recipes().find(|e| &e.into == into_id);
+        if let Some(pid) = recipe.and_then(|e| self.content.passive_index(&e.passive)) {
+            self.used_partners.push(pid);
+        }
+        from
+    }
+
+    /// Fusions possibles pour l'arme `k` dans cette partie : la normale, et l'ultime si elle est
+    /// debloquee.
+    pub fn recipes_of(&self, k: u16) -> Vec<&crate::defs::EvolutionDef> {
         let c = &self.content;
+        c.weapons[k as usize]
+            .recipes()
+            .filter(|e| c.weapon_index(&e.into).is_some_and(|i| !self.locked_weapons.contains(&i)))
+            .collect()
+    }
+
+    /// L'objet partenaire `pid` peut-il encore servir a une fusion (pas deja utilise dans cette partie) ?
+    pub fn partner_free(&self, pid: u16) -> bool {
+        !self.used_partners.contains(&pid)
+    }
+
+    /// Evolution possible : (emplacement, arme evoluee). Retour 0.6.1 : l'arme ET son objet
+    /// partenaire doivent etre tous deux au niveau maximal.
+    pub fn evolution_ready(&self) -> Option<(usize, u16)> {
+        self.evolutions_ready().first().map(|&(slot, into, _)| (slot, into))
+    }
+
+    /// Choix a proposer au joueur : les armes pretes qui partagent l'objet partenaire de la
+    /// premiere (un seul fusionnera). Moins de deux : rien a choisir.
+    pub fn evolution_choices(&self) -> Vec<(usize, u16)> {
+        let all = self.evolutions_ready();
+        let Some(&(_, _, pid)) = all.first() else { return Vec::new() };
+        all.into_iter().filter(|e| e.2 == pid).map(|(slot, into, _)| (slot, into)).collect()
+    }
+
+    /// Toutes les evolutions possibles : (emplacement, arme evoluee).
+    pub fn evolution_choices_all(&self) -> Vec<(usize, u16)> {
+        self.evolutions_ready().into_iter().map(|(slot, into, _)| (slot, into)).collect()
+    }
+
+    /// Toutes les evolutions possibles : (emplacement, arme evoluee, objet partenaire).
+    fn evolutions_ready(&self) -> Vec<(usize, u16, u16)> {
+        let c = &self.content;
+        let mut out = Vec::new();
         for (slot, w) in self.weapons.iter().enumerate() {
             let def = &c.weapons[w.id as usize];
-            let Some(evo) = &def.evolution else { continue };
             if w.level < def.max_level() {
                 continue;
             }
-            let Some(pid) = c.passive_index(&evo.passive) else { continue };
-            if self.passive_level(pid).is_none() {
-                continue;
-            }
-            if let Some(into) = c.weapon_index(&evo.into) {
-                return Some((slot, into));
+            // fusion ultime d'abord : elle passe avant la fusion normale quand les deux sont pretes
+            let mut recipes = self.recipes_of(w.id);
+            recipes.reverse();
+            for evo in recipes {
+                let Some(pid) = c.passive_index(&evo.passive) else { continue };
+                // un objet partenaire ne sert qu'a une seule fusion par partie
+                if self.used_partners.contains(&pid) {
+                    continue;
+                }
+                if self.passive_level(pid).is_none_or(|l| l < c.passives[pid as usize].max_level()) {
+                    continue;
+                }
+                if let Some(into) = c.weapon_index(&evo.into) {
+                    out.push((slot, into, pid));
+                }
             }
         }
-        None
+        out
     }
 
     /// Ouvre un coffre : evolution si possible, sinon des ameliorations.
     pub fn open_chest(&mut self, big: bool) -> ChestReward {
+        self.open_chest_choice(big, None)
+    }
+
+    /// Ouvre un coffre en faisant evoluer l'arme de l'emplacement `pick` (choisie par le joueur
+    /// parmi `evolution_choices`) ; sans choix, la premiere arme prete.
+    pub fn open_chest_choice(&mut self, big: bool, pick: Option<usize>) -> ChestReward {
         let mut r = ChestReward::default();
-        if let Some((slot, into)) = self.evolution_ready() {
-            let from = self.weapons[slot].id;
-            let boost = self.weapons[slot].boost;
-            let def = &self.content.weapons[into as usize];
-            let mut stats = resolve(def, 1, &self.player.stats);
-            boost.apply(&mut stats);
-            self.weapons[slot] = WeaponSlot { id: into, boost, level: 1, cd: 0.2, stats, active: 0.0, phase: 0.0 };
+        let chosen = pick.and_then(|s| self.evolution_choices().into_iter().find(|e| e.0 == s));
+        if let Some((slot, into)) = chosen.or_else(|| self.evolution_ready()) {
+            let from = self.evolve_slot(slot, into);
             r.evolution = Some((from, into));
         }
         let (lo, hi) = self.content.rules.chest_upgrades;

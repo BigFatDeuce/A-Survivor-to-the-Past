@@ -3,7 +3,6 @@
 (
     name: "Link (Minish)",
     sprite: "link_minish",
-    side_faces_left: true,
     max_hp: 50.0,
     speed: 90.0,
     radius: 5.0,
@@ -15,4 +14,10 @@
     stats: [(Luck, 0.2), (MoveSpeed, 0.05), (Might, -0.1)],
     order: 1,
     unlock: Some(Win("hyrule_field")),
+    // 0.6.5 : sprite du Randomizer (Minish Cap Link), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Minish Cap Link), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Minish Cap Link), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Minish Cap Link), couleurs de ses palettes : gen_zspr_chars.py
+    skins: [("link_minish", "green"), ("link_minish_blue", "blue"), ("link_minish_red", "red"), ("link_minish_bunny", "dark")],
+    credit: "InTheBeef",
 )

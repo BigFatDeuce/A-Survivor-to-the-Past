@@ -24,7 +24,8 @@ pub fn stage_ids(content: &Content) -> Vec<String> {
 
 /// Un stage est ouvert si c'est le premier ou si le precedent a ete gagne.
 pub fn unlocked(ids: &[String], profile: &Profile, k: usize) -> bool {
-    k == 0 || ids.get(k - 1).is_some_and(|p| profile.won(p))
+    // un stage deja gagne reste ouvert (l'ordre des stages a change en 0.6.3)
+    k == 0 || ids.get(k - 1).is_some_and(|p| profile.won(p)) || ids.get(k).is_some_and(|s| profile.won(s))
 }
 
 /// Premier stage ouvert et pas encore gagne (sinon le dernier ouvert).
@@ -79,13 +80,17 @@ impl SelectLayout {
 const ROW: f32 = 26.0;
 
 /// Liste a gauche (defilante quand elle est trop longue pour la vue), panneau de details a droite.
+/// Lignes de la liste visibles a la fois (place pour le bouton Retour, decale de 10, et la marge du bas).
+fn select_fit(view: Vec2) -> usize {
+    (((view.y - 50.0 - 14.0 - 32.0) / ROW).floor() as usize).max(3)
+}
+
 pub fn select_layout(view: Vec2, n: usize, sel: usize) -> SelectLayout {
     let m = 14.0;
     let lw = (view.x * 0.34).clamp(150.0, 210.0).round();
     let y0 = 50.0;
-    // place pour le bouton Retour (decale de 10) et la marge du bas
-    let fit = (((view.y - y0 - 14.0 - 32.0) / ROW).floor() as usize).max(3);
-    let first = if n <= fit { 0 } else { sel.min(n - 1).saturating_sub(fit / 2).min(n - fit) };
+    let fit = select_fit(view);
+    let first = crate::menus::first_row(crate::menus::List::Select, n, fit, sel);
     let shown = n.min(fit);
     let mut items: Vec<(Vec2, Vec2)> = (0..n)
         .map(|k| {
@@ -102,7 +107,7 @@ pub fn select_layout(view: Vec2, n: usize, sel: usize) -> SelectLayout {
 /// Petits triangles au-dessus et au-dessous de la liste quand elle defile.
 pub fn draw_scroll_marks(list: &mut DrawList, white: &assetkit::meta::Frame, l: &SelectLayout, n: usize, t: f32) {
     let Some(&(p0, s0)) = l.items.iter().take(n).find(|(p, _)| p.y >= 0.0) else { return };
-    let last = l.items.iter().take(n).filter(|(p, _)| p.y >= 0.0).last().copied().unwrap_or((p0, s0));
+    let last = l.items.iter().take(n).rfind(|(p, _)| p.y >= 0.0).copied().unwrap_or((p0, s0));
     let bob = ((t * 4.0).sin() * 1.5).round();
     let cx = (p0.x + s0.x * 0.5).round();
     let c = with_alpha(GOLD, 0.9);
@@ -121,12 +126,18 @@ pub fn draw_scroll_marks(list: &mut DrawList, white: &assetkit::meta::Frame, l: 
     }
 }
 
+/// Liste du choix des personnages et des stages : clavier, manette, souris (survol sans defilement) et molette.
 pub fn input_select(nav: &NavIn, view: Vec2, n: usize, sel: &mut usize) -> (Option<usize>, bool) {
-    input_rects(nav, &select_layout(view, n, *sel).items, sel)
+    use crate::menus::{keep_scroll, wheel_scroll, List};
+    let fit = select_fit(view);
+    let wheeled = wheel_scroll(List::Select, nav.wheel, n, fit, sel);
+    let (pick, moved) = input_rects(nav, &select_layout(view, n, *sel).items, sel);
+    keep_scroll(List::Select, n, fit, *sel);
+    (pick, moved || wheeled)
 }
 
 /// Petit cadenas (pixel art) : stage verrouille.
-fn padlock(list: &mut DrawList, white: &assetkit::meta::Frame, p: Vec2, c: Color) {
+pub(crate) fn padlock(list: &mut DrawList, white: &assetkit::meta::Frame, p: Vec2, c: Color) {
     list.rect(white, p + Vec2::new(1.0, 0.0), Vec2::new(5.0, 1.0), c);
     list.rect(white, p + Vec2::new(1.0, 0.0), Vec2::new(1.0, 4.0), c);
     list.rect(white, p + Vec2::new(5.0, 0.0), Vec2::new(1.0, 4.0), c);
@@ -142,6 +153,7 @@ fn pendant(list: &mut DrawList, white: &assetkit::meta::Frame, p: Vec2, c: Color
 }
 
 /// Apercu d'un stage : son sol et quelques elements du decor.
+#[allow(clippy::too_many_arguments)]
 fn preview(list: &mut DrawList, atlas: &Atlas, map: &MapDef, pos: Vec2, cols: i32, rows: i32, seed: i32, locked: bool) {
     list.set(Space::Ui, Blend::Alpha);
     let tiles = atlas.tiles(&map.ground);
@@ -214,7 +226,7 @@ pub fn draw_select(
         let won = !back && profile.won(&ids[k]);
         list.rect(white, p, s, with_alpha(BACK, if k == sel { 0.95 } else { 0.8 }));
         if k == sel {
-            frame_rect(list, white, p, s, with_alpha(GOLD, 0.9));
+            crate::hub::focus_frame(list, ctx, p, s);
         }
         list.probe_panel(p, s, "ligne de stage");
         let ty = p.y + 7.0;
@@ -396,10 +408,25 @@ pub fn draw_victory(
         text(list, main, lang.get("ui.new_record"), Vec2::new(view.x * 0.5, y), 1.0, with_alpha(GOLD, if blink { a } else { a * 0.6 }), Align::Center);
         y += 14.0;
     }
-    for s in notes {
-        for line in wrap(main, s, view.x - 40.0, 1.0) {
-            text(list, main, &line, Vec2::new(view.x * 0.5, y), 1.0, with_alpha(rgb(150, 240, 150), if blink { a } else { a * 0.7 }), Align::Center);
+    // notes entre le bilan et le menu : une colonne, deux si elles ne tiennent pas, puis coupees
+    let bottom = victory_y(view, items.len(), 0) - 10.0;
+    let note_c = with_alpha(rgb(150, 240, 150), if blink { a } else { a * 0.7 });
+    let one: Vec<String> = notes.iter().flat_map(|s| wrap(main, s, view.x - 40.0, 1.0)).collect();
+    let rows_fit = (((bottom - y) / 13.0).floor().max(0.0)) as usize;
+    if one.len() <= rows_fit {
+        for line in &one {
+            text(list, main, line, Vec2::new(view.x * 0.5, y), 1.0, note_c, Align::Center);
             y += 13.0;
+        }
+    } else {
+        let cw = ((view.x - 48.0) * 0.5).floor();
+        let two: Vec<String> = notes.iter().flat_map(|s| wrap(main, s, cw, 1.0)).collect();
+        let per = two.len().div_ceil(2).min(rows_fit);
+        for (k, line) in two.iter().enumerate().take(per * 2) {
+            let cut = k + 1 == per * 2 && two.len() > per * 2;
+            let s = if cut { "…".to_string() } else { line.clone() };
+            let x = if k < per { 20.0 + cw * 0.5 } else { view.x - 20.0 - cw * 0.5 };
+            text(list, main, &s, Vec2::new(x.round(), y + (k % per) as f32 * 13.0), 1.0, note_c, Align::Center);
         }
     }
     if t > VICTORY_LOCK {
@@ -421,14 +448,15 @@ mod tests {
     use sim::{Event, PlayerInput, World};
     use std::path::Path;
 
-    /// Pikit voleur vaincu : tous les rubis au sol reviennent au joueur.
+    /// Voleur de rubis (Boo) : trois fois la vie d'un ennemi ordinaire ; vaincu, tous les rubis au sol
+    /// reviennent au joueur.
     #[test]
-    fn pikit_brings_back_rupees() {
+    fn thief_brings_back_rupees() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let content = crate::content::load_content(&root);
         let mut w = World::new(content, "link", "hyrule_field", 11);
         w.player.god = true;
-        assert!(w.thief_kind.is_some(), "Pikit absent des ennemis");
+        assert!(w.thief_kind.is_some(), "voleur absent des ennemis");
         let start = w.player.pos;
         for k in 0..6 {
             let at = start + Vec2::from_angle(k as f32) * 260.0;
@@ -437,8 +465,11 @@ mod tests {
         w.thief_t = 0.0;
         let input = PlayerInput::default();
         w.tick(&input);
-        let pos = w.thief_pos().expect("Pikit apparu");
+        let pos = w.thief_pos().expect("voleur apparu");
         let i = w.horde.pos.iter().position(|&p| p == pos).unwrap();
+        let mobs: Vec<f32> = w.map.waves.iter().filter_map(|v| w.content.enemy_index(&v.enemy)).map(|k| w.content.enemies[k as usize].hp).collect();
+        let want = 3.0 * mobs.iter().sum::<f32>() / mobs.len() as f32 * w.map.power;
+        assert!((w.horde.max_hp[i] / want - 1.0).abs() < 0.05, "vie du voleur {} pour {want}", w.horde.max_hp[i]);
         let before = w.player.rupees;
         w.damage_enemy(i, 1.0e6, false, Vec2::X, 0.0, 0);
         let mut looted = None;
@@ -461,7 +492,21 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let content = crate::content::load_content(&root);
         let ids = super::stage_ids(&content);
-        assert_eq!(ids.len(), 6, "6 stages attendus : {ids:?}");
+        assert_eq!(ids.len(), 10, "10 stages attendus : {ids:?}");
+        assert_eq!(ids.last().map(|s| s.as_str()), Some("pyramid"), "la Pyramide est le dernier stage");
+        let last = &content.maps["pyramid"];
+        assert_eq!(last.final_boss.as_ref().map(|b| b.enemy.as_str()), Some("ganon"), "Ganon est le dernier boss");
+        // Ganon est le boss le plus fort : plus de vie que tout autre boss de stage
+        let hp = |b: &sim::defs::SpawnAt| b.hp.unwrap_or_else(|| content.enemies[content.enemy_index(&b.enemy).unwrap() as usize].hp);
+        let ganon = hp(last.final_boss.as_ref().unwrap());
+        for m in content.maps.values().filter(|m| m.order > 0) {
+            for b in m.boss.iter().chain(m.final_boss.iter()) {
+                assert!(b.enemy == "ganon" || hp(b) < ganon, "{} plus fort que Ganon", b.enemy);
+            }
+        }
+        // difficulte croissante d'un stage a l'autre
+        let powers: Vec<f32> = ids.iter().map(|id| content.maps[id].power).collect();
+        assert!(powers.windows(2).all(|p| p[0] < p[1]), "{powers:?}");
         for id in &ids {
             let mut w = World::new(content.clone(), "link", id, 7);
             w.player.god = true;

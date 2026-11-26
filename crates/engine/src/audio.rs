@@ -42,7 +42,9 @@ struct Sfx {
     last: f64,
 }
 
-/// Musique : fichier + boucle (secondes).
+/// Musique : fichier + boucle (secondes, au sample pres). Comme le pilote son de la SNES :
+/// l'introduction est jouee une fois, puis la piste repart de `loop_start` en arrivant a
+/// `loop_end`, sans coupure (fichiers prepares par research/tools/music_loopify.py).
 #[derive(Clone, Debug)]
 pub struct MusicDef {
     pub file: String,
@@ -51,18 +53,18 @@ pub struct MusicDef {
     /// Faux = jingle joue une seule fois.
     pub looping: bool,
     pub volume: f32,
-    /// Boucle en fondu enchaine (a, f) : arrivee a `a` secondes, la piste repart de `loop_start`
-    /// en fondu de `f` secondes pendant que l'ancienne s'eteint. Pour les longues pistes dont la
-    /// fin est un fondu : aucune coupure audible, meme sans point de boucle exact.
-    pub crossfade: Option<(f64, f64)>,
 }
 
-/// Une piste en cours (musique ou ambiance) et de quoi la relancer.
+/// Enchainement de deux musiques, facon SNES : l'ancienne s'eteint en fondu, la nouvelle part du
+/// debut quand l'extinction est presque finie (part de la duree du fondu), avec un fondu
+/// d'entree tres court (pas de claquement).
+const SEQUENCE_AT: f32 = 0.8;
+const SEQUENCE_FADE_IN: f32 = 0.15;
+
+/// Une piste en cours (musique ou ambiance).
 #[cfg(not(target_arch = "wasm32"))]
 struct Voice {
     id: String,
-    def: MusicDef,
-    path: PathBuf,
     handle: StreamingSoundHandle<FromFileError>,
 }
 
@@ -98,20 +100,27 @@ impl AudioFilter {
     pub const ALL: [AudioFilter; 5] =
         [AudioFilter::Off, AudioFilter::Soft, AudioFilter::Retro, AudioFilter::Gba, AudioFilter::GameBoy];
     /// Frequence de coupure du passe-bas (Hz), None = desactive.
+    /// Valeurs revues en 0.6.1 (retour : les filtres s'entendaient a peine) : la musique de la
+    /// SNES n'a presque rien au-dessus de 6 kHz, les coupures sont donc bien plus basses.
     fn cutoff(self) -> Option<f64> {
         match self {
             AudioFilter::Off => None,
-            AudioFilter::Soft => Some(9500.0),
-            AudioFilter::Retro => Some(6200.0),
-            AudioFilter::Gba => Some(7000.0),
-            AudioFilter::GameBoy => Some(4200.0),
+            // aigus adoucis, son plus rond
+            AudioFilter::Soft => Some(4200.0),
+            // televiseur cathodique : etouffe, chaleureux
+            AudioFilter::Retro => Some(2600.0),
+            // haut-parleur de console portable 32 bits : grain, peu de graves
+            AudioFilter::Gba => Some(7500.0),
+            // premiere console portable : tout petit haut-parleur, mono, tres granuleux
+            AudioFilter::GameBoy => Some(3000.0),
         }
     }
     /// (frequence simulee, bits, mono, passe-haut) de l'effet lo-fi.
     fn lofi(self) -> (f32, f32, bool, f32) {
         match self {
-            AudioFilter::Gba => (18157.0, 9.0, false, 0.0),
-            AudioFilter::GameBoy => (11025.0, 6.0, true, 160.0),
+            AudioFilter::Retro => (0.0, 0.0, false, 90.0),
+            AudioFilter::Gba => (13379.0, 7.0, false, 220.0),
+            AudioFilter::GameBoy => (8192.0, 5.0, true, 420.0),
             _ => (0.0, 0.0, false, 0.0),
         }
     }
@@ -143,6 +152,18 @@ pub struct Audio {
     clock: f64,
     rng: u32,
     pub volumes: Volumes,
+}
+
+/// (delai, fondu d'entree) d'une nouvelle piste. Musique qui en remplace une autre : facon SNES,
+/// elle part quand l'ancienne a presque fini de s'eteindre. Ambiance : fondu enchaine.
+fn transition(music: bool, replacing: bool, fade: f32) -> (f32, f32) {
+    if !music {
+        (0.0, fade)
+    } else if replacing && fade > 0.0 {
+        (fade * SEQUENCE_AT, SEQUENCE_FADE_IN)
+    } else {
+        (0.0, fade.min(SEQUENCE_FADE_IN))
+    }
 }
 
 fn amp_to_db(a: f32) -> Decibels {
@@ -269,24 +290,36 @@ impl Audio {
         self.web_fading.retain_mut(|(f, music)| f.update(dt, if *music { gm } else { ga }));
     }
 
+    /// Musique : enchainement facon SNES ; ambiance : fondu enchaine.
     #[cfg(target_arch = "wasm32")]
     fn web_start(&mut self, music: bool, id: &str, def: &MusicDef, fade: f32) {
         let slot = if music { &mut self.web_music } else { &mut self.web_amb };
         if slot.as_ref().is_some_and(|v| v.id == id) {
             return;
         }
+        let (wait, fade_in) = transition(music, slot.is_some(), fade);
         self.web_stop(music, fade);
         let slot = if music { &mut self.web_music } else { &mut self.web_amb };
-        *slot = crate::webmusic::Voice::start(id, def, crate::webmusic::url_of(&def.file), fade);
+        *slot = Some(crate::webmusic::Voice::start(id, def, crate::webmusic::url_of(&def.file), wait, fade_in));
     }
 
     #[cfg(target_arch = "wasm32")]
     fn web_stop(&mut self, music: bool, fade: f32) {
         let slot = if music { &mut self.web_music } else { &mut self.web_amb };
         if let Some(old) = slot.take() {
-            self.web_fading.extend(old.stop(fade).into_iter().map(|f| (f, music)));
+            self.web_fading.push((old.stop(fade), music));
         }
     }
+
+    /// Prepare une piste a l'avance (navigateur : telechargement et decodage), pour qu'elle
+    /// demarre a l'heure (musiques des boss).
+    #[cfg(target_arch = "wasm32")]
+    pub fn prefetch(&mut self, def: &MusicDef) {
+        crate::webmusic::prefetch(&crate::webmusic::url_of(&def.file));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn prefetch(&mut self, _def: &MusicDef) {}
 
     #[cfg(target_arch = "wasm32")]
     pub fn play_ambience(&mut self, id: &str, def: &MusicDef, _root: &Path, fade: f32) {
@@ -314,60 +347,34 @@ impl Audio {
         self.duck.2 = (self.duck.0 - level).abs() / time.max(0.01);
     }
 
-    /// Avance l'horloge interne (temps reel, secondes) et relance les boucles en fondu enchaine.
+    /// Avance l'horloge interne (temps reel, secondes) ; les boucles sont gerees par kira.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn update(&mut self, dt: f32) {
         self.clock += dt as f64;
-        let (music, ambience) = (&mut self.music_track, &mut self.sfx_track);
-        Self::crossfade(&mut self.music, music.as_mut());
-        Self::crossfade(&mut self.ambience, ambience.as_mut());
     }
 
-#[cfg(not(target_arch = "wasm32"))]
-    fn crossfade(voice: &mut Option<Voice>, track: Option<&mut TrackHandle>) {
-        let (Some(v), Some(track)) = (voice.as_mut(), track) else { return };
-        let Some((at, fade)) = v.def.crossfade else { return };
-        if v.handle.position() < at {
-            return;
-        }
-        let tw = Tween { duration: Duration::from_secs_f64(fade.max(0.01)), ..Default::default() };
-        match Self::open(&v.path, &v.def, fade as f32, v.def.loop_start) {
-            Ok(data) => match track.play(data) {
-                Ok(h) => {
-                    let mut old = std::mem::replace(&mut v.handle, h);
-                    old.stop(tw);
-                }
-                Err(e) => log::error!("{} : {e}", v.id),
-            },
-            Err(e) => log::error!("{} : {e}", v.id),
-        }
-    }
-
-    /// Prepare une piste en streaming (volume, boucle, fondu d'entree, position de depart).
+    /// Prepare une piste en streaming (volume, boucle au sample pres, depart differe, fondu d'entree).
     #[cfg(not(target_arch = "wasm32"))]
-    fn open(
-        path: &Path,
-        def: &MusicDef,
-        fade: f32,
-        start: f64,
-    ) -> Result<StreamingSoundData<FromFileError>, FromFileError> {
+    fn open(path: &Path, def: &MusicDef, delay: f32, fade_in: f32) -> Result<StreamingSoundData<FromFileError>, FromFileError> {
         let mut data = StreamingSoundData::from_file(path)?.volume(amp_to_db(def.volume));
-        if def.looping && def.crossfade.is_none() {
+        if def.looping {
             data = match def.loop_end {
                 Some(end) => data.loop_region(def.loop_start..end),
                 None => data.loop_region(def.loop_start..),
             };
         }
-        if start > 0.0 {
-            data = data.start_position(start);
+        if delay > 0.0 {
+            data = data.start_time(kira::StartTime::Delayed(Duration::from_secs_f32(delay)));
         }
-        if fade > 0.0 {
-            data = data.fade_in_tween(Tween { duration: Duration::from_secs_f32(fade), ..Default::default() });
+        if fade_in > 0.0 {
+            data = data.fade_in_tween(Tween { duration: Duration::from_secs_f32(fade_in), ..Default::default() });
         }
         Ok(data)
     }
 
-#[cfg(not(target_arch = "wasm32"))]
+    /// `music` : enchainement facon SNES (l'ancienne piste s'eteint, puis la nouvelle part) ;
+    /// sinon fondu enchaine (ambiances).
+    #[cfg(not(target_arch = "wasm32"))]
     fn start_voice(
         slot: &mut Option<Voice>,
         track: Option<&mut TrackHandle>,
@@ -375,15 +382,17 @@ impl Audio {
         def: &MusicDef,
         path: PathBuf,
         fade: f32,
+        music: bool,
     ) {
         if slot.as_ref().is_some_and(|v| v.id == id) {
             return;
         }
+        let (delay, fade_in) = transition(music, slot.is_some(), fade);
         Self::stop_voice(slot, fade);
         let Some(track) = track else { return };
-        match Self::open(&path, def, fade, 0.0) {
+        match Self::open(&path, def, delay, fade_in) {
             Ok(data) => match track.play(data) {
-                Ok(handle) => *slot = Some(Voice { id: id.to_string(), def: def.clone(), path, handle }),
+                Ok(handle) => *slot = Some(Voice { id: id.to_string(), handle }),
                 Err(e) => log::error!("{id} : {e}"),
             },
             Err(e) => log::error!("{} : {e}", path.display()),
@@ -401,7 +410,7 @@ impl Audio {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn play_ambience(&mut self, id: &str, def: &MusicDef, root: &Path, fade: f32) {
         let path = root.join("assets/audio/music").join(&def.file);
-        Self::start_voice(&mut self.ambience, self.sfx_track.as_mut(), id, def, path, fade);
+        Self::start_voice(&mut self.ambience, self.sfx_track.as_mut(), id, def, path, fade, false);
     }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -438,11 +447,12 @@ impl Audio {
         }
     }
 
-    /// Lance une musique (fondu enchaine). Ne fait rien si elle joue deja.
+    /// Lance une musique : la precedente s'eteint en `fade` secondes, puis celle-ci part du debut
+    /// (comme dans le jeu d'origine). Ne fait rien si elle joue deja.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn play_music(&mut self, id: &str, def: &MusicDef, root: &Path, fade: f32) {
         let path = root.join("assets/audio/music").join(&def.file);
-        Self::start_voice(&mut self.music, self.music_track.as_mut(), id, def, path, fade);
+        Self::start_voice(&mut self.music, self.music_track.as_mut(), id, def, path, fade, true);
     }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -465,6 +475,9 @@ impl Audio {
         let tw = Tween { duration: Duration::from_millis(120), ..Default::default() };
         let (hold, bits, mono, hp) = f.lofi();
         self.lofi.set(hold, bits, mono, hp);
+        // navigateur : les musiques passent par le lecteur de la page et son propre graphe
+        #[cfg(target_arch = "wasm32")]
+        crate::webmusic::set_filter(f.cutoff(), hp, bits, mono);
         for h in &mut self.filters {
             match f.cutoff() {
                 Some(c) => {

@@ -6,7 +6,7 @@
 //! Les planches d'origine ne sont jamais modifiees.
 use assetkit::imageops::{apply_transparency, crop, opaque_bounds, parse_hex};
 use assetkit::manifest::{Align, Compose, FontSpec, Manifest};
-use assetkit::meta::{Anim, AtlasMeta, Font, Frame, Glyph};
+use assetkit::meta::{Anim, AtlasMeta, Frame, Glyph};
 use assetkit::pack::{blit, Packer};
 use image::{Rgba, RgbaImage};
 use std::collections::{BTreeMap, HashMap};
@@ -119,26 +119,38 @@ fn sprites() {
         }
     }
 
+    // images identiques (marche qui repete une image, couleurs qui ne changent rien) : une seule place
+    let mut first: HashMap<(u32, u32, &[u8]), usize> = HashMap::new();
+    let same: Vec<usize> = (0..items.len()).map(|i| *first.entry((items[i].img.width(), items[i].img.height(), items[i].img.as_raw().as_slice())).or_insert(i)).collect();
     // rangement : les plus hauts d'abord
-    let mut order: Vec<usize> = (0..items.len()).collect();
+    let mut order: Vec<usize> = (0..items.len()).filter(|&i| same[i] == i).collect();
     order.sort_by_key(|&i| (std::cmp::Reverse(items[i].img.height()), std::cmp::Reverse(items[i].img.width()), i));
-    let mut size = 512;
+    // carre, puis deux fois plus large, et ainsi de suite (4096 x 2048 avant 4096 x 4096)
+    let (mut w, mut h) = (512u32, 512u32);
     let placements = loop {
-        let mut p = Packer::new(size, size, 1);
+        let mut p = Packer::new(w, h, 1);
         let res: Option<Vec<(u32, u32)>> = order.iter().map(|&i| p.alloc(items[i].img.width(), items[i].img.height())).collect();
         if let Some(r) = res {
             break r;
         }
-        size *= 2;
-        assert!(size <= 8192, "atlas trop grand");
+        if w == h {
+            w *= 2;
+        } else {
+            h *= 2;
+        }
+        assert!(w <= 8192, "atlas trop grand");
     };
-    let mut atlas = RgbaImage::new(size, size);
-    let mut meta = AtlasMeta { image: "atlas.png".into(), width: size, height: size, ..Default::default() };
+    // hauteur coupee au contenu (le moteur lit les texels, la taille n'a pas a etre une puissance de 2)
+    let h = order.iter().zip(&placements).map(|(&i, p)| p.1 + items[i].img.height()).max().unwrap_or(1).div_ceil(4) * 4;
+    let place: HashMap<usize, (u32, u32)> = order.iter().copied().zip(placements).collect();
+    let mut atlas = RgbaImage::new(w, h);
+    let mut meta = AtlasMeta { image: "atlas.png".into(), width: w, height: h, ..Default::default() };
     let mut frames: BTreeMap<(String, String), Vec<(usize, Frame)>> = BTreeMap::new();
-    for (k, &i) in order.iter().enumerate() {
-        let (x, y) = placements[k];
-        let it = &items[i];
-        blit(&mut atlas, &it.img, x, y);
+    for (i, it) in items.iter().enumerate() {
+        let (x, y) = place[&same[i]];
+        if same[i] == i {
+            blit(&mut atlas, &it.img, x, y);
+        }
         let (w, h) = (it.img.width() as u16, it.img.height() as u16);
         match &it.kind {
             Kind::Sprite { sprite, anim, index, pivot } => {
@@ -165,7 +177,7 @@ fn sprites() {
         meta.sprites.entry(s).or_default().insert(a, Anim { frames: fr.into_iter().map(|f| f.1).collect(), fps, mode });
     }
     for (name, (lh, space, spacing, nudge)) in font_info {
-        let f = meta.fonts.entry(name).or_insert_with(Font::default);
+        let f = meta.fonts.entry(name).or_default();
         f.line_height = lh;
         f.space = space;
         f.spacing = spacing;
@@ -173,13 +185,17 @@ fn sprites() {
     }
     let out = root.join("assets/gen");
     std::fs::create_dir_all(&out).unwrap();
-    atlas.save(out.join("atlas.png")).unwrap();
+    // compression maximale : l'atlas est telecharge par la version web
+    let file = std::io::BufWriter::new(std::fs::File::create(out.join("atlas.png")).unwrap());
+    let enc = image::codecs::png::PngEncoder::new_with_quality(file, image::codecs::png::CompressionType::Best, image::codecs::png::FilterType::Adaptive);
+    atlas.write_with_encoder(enc).unwrap();
     let ron_text = ron::ser::to_string_pretty(&meta, ron::ser::PrettyConfig::default().depth_limit(3)).unwrap();
     std::fs::write(out.join("atlas.ron"), ron_text).unwrap();
     let nsprites: usize = meta.sprites.values().map(|a| a.len()).sum();
     println!(
-        "atlas {size}x{size} : {} images, {} animations, {} polices, {} jeux de tuiles",
+        "atlas {w}x{h} : {} images ({} distinctes), {} animations, {} polices, {} jeux de tuiles",
         items.len(),
+        order.len(),
         nsprites,
         meta.fonts.len(),
         meta.tilesets.len()

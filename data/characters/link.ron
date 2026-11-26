@@ -13,4 +13,7 @@
     // avantages : degats +10 %, armure +1 ; defaut : chance -10 %
     stats: [(Might, 0.1), (Armor, 1.0), (Luck, -0.1)],
     order: 0,
+    // 0.6.3 : cottes de mailles bleue et rouge, achetees a la garde-robe (boutique)
+    // 0.6.4 : Link lapin (Monde des Tenebres)
+    skins: [("link", "green"), ("link_blue", "blue"), ("link_red", "red"), ("link_bunny", "bunny")],
 )

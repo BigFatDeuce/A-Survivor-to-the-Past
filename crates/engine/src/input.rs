@@ -29,6 +29,8 @@ pub struct Input {
     mouse_pressed: [HashSet<MouseButton>; 2],
     /// Position de la souris en pixels ecran.
     pub mouse_px: Vec2,
+    /// Souris au-dessus de la fenetre (curseur dessine par le jeu).
+    pub mouse_inside: bool,
     pad_buttons: HashSet<Button>,
     pad_pressed: [HashSet<Button>; 2],
     /// 0 = lecture par image (menus), 1 = lecture par pas de simulation.
@@ -41,6 +43,8 @@ pub struct Input {
     key_labels: HashMap<KeyCode, String>,
     /// Caracteres tapes depuis la derniere image (saisie d'un nom).
     pub typed: Vec<char>,
+    /// Molette depuis la derniere lecture (en crans ; positif = vers le haut), par phase.
+    wheel: [f32; 2],
 }
 
 impl Default for Input {
@@ -65,6 +69,7 @@ impl Input {
             mouse: HashSet::new(),
             mouse_pressed: Default::default(),
             mouse_px: Vec2::ZERO,
+            mouse_inside: false,
             pad_buttons: HashSet::new(),
             pad_pressed: Default::default(),
             phase: 0,
@@ -74,6 +79,7 @@ impl Input {
             focused: true,
             key_labels: HashMap::new(),
             typed: Vec::new(),
+            wheel: [0.0; 2],
         }
     }
 
@@ -101,6 +107,16 @@ impl Input {
         } else {
             self.mouse.remove(&b);
         }
+    }
+
+    pub(crate) fn wheel_event(&mut self, notches: f32) {
+        self.wheel.iter_mut().for_each(|w| *w += notches);
+        self.last_device = Device::Mouse;
+    }
+
+    /// Molette depuis la derniere image (crans ; positif = vers le haut).
+    pub fn wheel(&self) -> f32 {
+        self.wheel[self.phase]
     }
 
     pub(crate) fn mouse_moved(&mut self, p: Vec2) {
@@ -145,11 +161,22 @@ impl Input {
                         self.pad_buttons.remove(&b);
                     }
                 }
-                EventType::AxisChanged(_, v, _) => {
-                    if v.abs() > 0.5 {
+                // gachettes analogiques : certains pilotes n'envoient que des valeurs, pas d'appui
+                EventType::ButtonChanged(b @ (Button::LeftTrigger2 | Button::RightTrigger2), v, _) => {
+                    if v > 0.5 && !self.pad_buttons.contains(&b) {
                         self.pad = Some(ev.id);
+                        self.pad_buttons.insert(b);
+                        self.pad_pressed.iter_mut().for_each(|s| {
+                            s.insert(b);
+                        });
                         self.last_device = Device::Gamepad;
+                    } else if v < 0.3 && self.pad == Some(ev.id) {
+                        self.pad_buttons.remove(&b);
                     }
+                }
+                EventType::AxisChanged(_, v, _) if v.abs() > 0.5 => {
+                    self.pad = Some(ev.id);
+                    self.last_device = Device::Gamepad;
                 }
                 _ => {}
             }
@@ -163,6 +190,7 @@ impl Input {
     /// Oublie les appuis vus par le pas de simulation qui vient de s'executer.
     pub(crate) fn consume_tick(&mut self) {
         self.keys_pressed[1].clear();
+        self.wheel[1] = 0.0;
         self.mouse_pressed[1].clear();
         self.pad_pressed[1].clear();
     }
@@ -170,6 +198,7 @@ impl Input {
     /// Oublie les appuis vus par l'image qui vient d'etre affichee.
     pub(crate) fn end_frame(&mut self) {
         self.keys_pressed[0].clear();
+        self.wheel[0] = 0.0;
         self.mouse_pressed[0].clear();
         self.pad_pressed[0].clear();
         self.typed.clear();

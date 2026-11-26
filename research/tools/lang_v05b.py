@@ -20,7 +20,7 @@ def table(ui, chars):
 EXTRA = {
     "fr": table(
         ["Couleur", "Vainquez {s} pour le débloquer.", "Vert", "Rouge", "Bleu", "Violet"],
-        [("Link (Four Swords)", "Un coup d'épée de plus, mais chaque coup frappe moins fort. Quatre couleurs au choix."),
+        [("Link (Four Swords)", "Un coup d'épée de plus, mais chaque coup frappe moins fort."),
          ("Link (Link's Awakening)", "Chanceux, attire les objets de loin, mais moins de dégâts. Part avec la poudre magique."),
          ("Link adulte", "Plus de dégâts et de zone, mais plus lent et son dash revient moins vite. Part avec le marteau."),
          ("Link Mojo", "Léger, effets plus longs, attire les objets. Mais fragile et moins puissant. Part avec les abeilles."),
@@ -29,7 +29,7 @@ EXTRA = {
     ),
     "en": table(
         ["Color", "Defeat {s} to unlock.", "Green", "Red", "Blue", "Purple"],
-        [("Four Swords Link", "One more sword strike, but each one hits softer. Four colors to choose from."),
+        [("Four Swords Link", "One more sword strike, but each one hits softer."),
          ("Link's Awakening Link", "Lucky and pulls items from afar, but deals less damage. Starts with magic powder."),
          ("Adult Link", "More damage and area, but slower, and his dash comes back slower. Starts with the hammer."),
          ("Deku Link", "Light, longer effects, pulls items. But frail and weaker. Starts with the bees."),
@@ -38,7 +38,7 @@ EXTRA = {
     ),
     "de": table(
         ["Farbe", "Besiege {s} zum Freischalten.", "Grün", "Rot", "Blau", "Lila"],
-        [("Four-Swords-Link", "Ein Schwertschlag mehr, aber jeder trifft schwächer. Vier Farben zur Wahl."),
+        [("Four-Swords-Link", "Ein Schwertschlag mehr, aber jeder trifft schwächer."),
          ("Link (Link's Awakening)", "Glücklich und zieht Gegenstände von weit her an, aber weniger Schaden. Startet mit Zauberpulver."),
          ("Erwachsener Link", "Mehr Schaden und Fläche, aber langsamer, und sein Sprint lädt langsamer. Startet mit dem Hammer."),
          ("Deku-Link", "Leicht, längere Effekte, zieht Gegenstände an. Aber zerbrechlich und schwächer. Startet mit Bienen."),
@@ -47,7 +47,7 @@ EXTRA = {
     ),
     "es": table(
         ["Color", "Derrota a {s} para desbloquearlo.", "Verde", "Rojo", "Azul", "Morado"],
-        [("Link (Four Swords)", "Un espadazo más, pero cada uno golpea más flojo. Cuatro colores a elegir."),
+        [("Link (Four Swords)", "Un espadazo más, pero cada uno golpea más flojo."),
          ("Link (Link's Awakening)", "Afortunado y atrae objetos de lejos, pero hace menos daño. Empieza con los polvos mágicos."),
          ("Link adulto", "Más daño y área, pero más lento y su carrera tarda más en volver. Empieza con el martillo."),
          ("Link Deku", "Ligero, efectos más largos, atrae objetos. Pero frágil y más débil. Empieza con las abejas."),
@@ -56,7 +56,7 @@ EXTRA = {
     ),
     "it": table(
         ["Colore", "Sconfiggi {s} per sbloccarlo.", "Verde", "Rosso", "Blu", "Viola"],
-        [("Link (Four Swords)", "Un fendente in più, ma ogni colpo è più debole. Quattro colori a scelta."),
+        [("Link (Four Swords)", "Un fendente in più, ma ogni colpo è più debole."),
          ("Link (Link's Awakening)", "Fortunato e attira gli oggetti da lontano, ma fa meno danni. Parte con la polvere magica."),
          ("Link adulto", "Più danni e area, ma più lento e lo scatto torna più tardi. Parte con il martello."),
          ("Link Deku", "Leggero, effetti più lunghi, attira gli oggetti. Ma fragile e più debole. Parte con le api."),
@@ -65,7 +65,7 @@ EXTRA = {
     ),
     "pt": table(
         ["Cor", "Derrote {s} para desbloquear.", "Verde", "Vermelho", "Azul", "Roxo"],
-        [("Link (Four Swords)", "Um golpe de espada a mais, mas cada um acerta mais fraco. Quatro cores à escolha."),
+        [("Link (Four Swords)", "Um golpe de espada a mais, mas cada um acerta mais fraco."),
          ("Link (Link's Awakening)", "Sortudo e atrai itens de longe, mas causa menos dano. Começa com o pó mágico."),
          ("Link adulto", "Mais dano e área, mas mais lento, e a investida demora a voltar. Começa com o martelo."),
          ("Link Deku", "Leve, efeitos mais longos, atrai itens. Mas frágil e mais fraco. Começa com as abelhas."),
@@ -74,7 +74,7 @@ EXTRA = {
     ),
     "ja": table(
         ["カラー", "{s}を たおすと つかえる", "みどり", "あか", "あお", "むらさき"],
-        [("4つの けんの リンク", "けんの こうげきが 1かい ふえるが いちげきが よわい。 カラーを 4しょくから えらべる。"),
+        [("4つの けんの リンク", "けんの こうげきが 1かい ふえるが いちげきが よわい。"),
          ("ゆめをみる しまの リンク", "ラッキーで とおくの アイテムも ひきよせるが ダメージが ひくい。 まほうの こなで はじまる。"),
          ("おとなの リンク", "ダメージと はんいが あがるが おそくて ダッシュの じゅうてんも おそい。 ハンマーで はじまる。"),
          ("デクリンク", "かるくて こうかが ながく アイテムを ひきよせる。 でも もろくて ちからが よわい。 ハチで はじまる。"),

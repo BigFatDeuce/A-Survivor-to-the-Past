@@ -25,6 +25,7 @@ mod chars;
 mod content;
 mod controls;
 mod director;
+mod fortune;
 mod game;
 mod clipboard;
 mod hub;
@@ -45,11 +46,13 @@ mod stages;
 mod storage;
 mod weather;
 mod title;
+mod trophies;
 mod uicheck;
 // version web : rien a mettre a jour (le site sert la derniere version)
 #[cfg_attr(target_arch = "wasm32", path = "update_web.rs")]
 mod update;
 mod visuals;
+mod witch;
 
 #[cfg(not(target_arch = "wasm32"))]
 use std::path::{Path, PathBuf};
@@ -71,6 +74,7 @@ fn default_options() -> game::Options {
         uicheck: false,
         update_source: None,
         video: None,
+        scripted: false,
     }
 }
 
@@ -178,6 +182,7 @@ fn main() {
             }
             "--seconds" => {
                 cfg.exit_after = Some(num(args.get(i + 1)));
+                opts.scripted = true;
                 i += 1;
             }
             "--shot" => {

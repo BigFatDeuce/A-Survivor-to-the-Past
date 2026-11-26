@@ -87,11 +87,12 @@ pub struct Font {
 }
 
 impl Font {
-    /// Largeur en pixels d'un texte sur une ligne.
+    /// Largeur en pixels d'un texte sur une ligne. Les caracteres de controle (balises de mise en
+    /// valeur du jeu) n'occupent aucune place.
     pub fn measure(&self, text: &str) -> i32 {
         let mut w = 0i32;
         let mut first = true;
-        for c in text.chars() {
+        for c in text.chars().filter(|c| !c.is_control()) {
             if !first {
                 w += self.spacing as i32;
             }

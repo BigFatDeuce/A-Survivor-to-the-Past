@@ -1,0 +1,33 @@
+// Version 0.6.1 : personnages ajoutes. Genere par research/tools/gen_chars_v061.py.
+// Credits : Toon Link facon Mario & Luigi (Oldskoolmario), Link d'Oracle of Ages (rip de Mister Mike),
+// Zora des mers (Toni), Crewmate facon A Link to the Past (Spikira). Voir CREDITS.md.
+(
+    sheets: [
+        (
+            source: "Derived - toon_link.png",
+            sprites: {
+                "toon_link": {
+                    "idle_down": (frames: [(0, 0, 24, 33)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(0, 0, 24, 33), (25, 0, 24, 33), (50, 0, 24, 33), (75, 0, 24, 33), (100, 0, 24, 33), (125, 0, 24, 33), (150, 0, 24, 33), (175, 0, 24, 33)], fps: 12, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(200, 0, 26, 33)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(200, 0, 26, 33), (227, 0, 26, 33), (254, 0, 26, 33), (281, 0, 26, 33), (308, 0, 26, 33), (335, 0, 26, 33), (362, 0, 26, 33), (389, 0, 26, 33)], fps: 12, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(416, 0, 24, 33)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(416, 0, 24, 33), (441, 0, 24, 33), (466, 0, 24, 33), (491, 0, 24, 33), (516, 0, 24, 33), (541, 0, 24, 33), (566, 0, 24, 33), (591, 0, 24, 33)], fps: 12, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        (
+            source: "Derived - link_ooa.png",
+            sprites: {
+                "link_ooa": {
+                    "idle_down": (frames: [(0, 0, 14, 16)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(0, 0, 14, 16), (15, 0, 14, 16)], fps: 6, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(30, 0, 14, 16)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(30, 0, 14, 16), (45, 0, 14, 16)], fps: 6, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(60, 0, 14, 16)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(60, 0, 14, 16), (75, 0, 14, 16)], fps: 6, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+    ],
+)

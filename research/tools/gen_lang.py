@@ -446,6 +446,40 @@ import lang_v06  # noqa: E402  (joueurs, classements, score, Pikit voleur, fusio
 KEYS += lang_v06.KEYS
 for _code, _t in lang_v06.EXTRA.items():
     L[_code].update(_t)
+import lang_v061  # noqa: E402  (0.6.1 : rubis verts / rouges, legende des classements, reliques)
+KEYS += lang_v061.KEYS
+for _code, _t in lang_v061.EXTRA.items():
+    L[_code].update(_t)
+import lang_v061b  # noqa: E402  (0.6.1 suite : fiche du bestiaire, boss par zone, personnages, couleurs)
+KEYS += lang_v061b.KEYS
+for _code, _t in lang_v061b.EXTRA.items():
+    L[_code].update(_t)
+import lang_v062  # noqa: E402  (0.6.2 : personnages, deblocage de Ganondorf, apparences, statue de Somaria)
+KEYS += lang_v062.KEYS
+for _code, _t in lang_v062.EXTRA.items():
+    L[_code].update(_t)
+import lang_v062b  # noqa: E402  (0.6.2 suite : six armes, Relancer / Passer, boutique et reliques)
+KEYS += lang_v062b.KEYS
+for _code, _t in lang_v062b.EXTRA.items():
+    L[_code].update(_t)
+import lang_v062c  # noqa: E402  (0.6.2 fin : fusion, ecran des deblocages, armes des mini-boss)
+KEYS += lang_v062c.KEYS
+for _code, _t in lang_v062c.EXTRA.items():
+    L[_code].update(_t)
+import lang_v063  # noqa: E402  (0.6.3 : victoire, grille des personnages, dix stages, diseuse, sorciere...)
+KEYS += lang_v063.KEYS
+for _code, _t in lang_v063.EXTRA.items():
+    L[_code].update(_t)
+
+import lang_v064  # noqa: E402  (0.6.4 : Recueil / Exploits, trophees, tenues, Boo)
+KEYS += lang_v064.KEYS
+for _code, _t in lang_v064.EXTRA.items():
+    L[_code].update(_t)
+
+import lang_v065  # noqa: E402  (0.6.5 : personnages du Randomizer, univers, boutique)
+KEYS += lang_v065.KEYS
+for _code, _t in lang_v065.EXTRA.items():
+    L[_code].update(_t)
 
 
 def esc(s):

@@ -1,0 +1,63 @@
+// Version 0.6.3 : PNJ de passage. La diseuse de bonne aventure (apres le boss final) et ses coffres
+// du jeu de hasard, la sorciere et son chaudron (achetee a la Grande Fee).
+// Coordonnees (x, y, largeur, hauteur) dans les planches de assets/source/ (Spriters Resource).
+(
+    sheets: [
+        // diseuse recomposee (haut du corps + bas de la robe en deux moities symetriques) par
+        // research/tools/gen_npcs_v063.py
+        (
+            source: "Derived - fortune_teller.png",
+            transparent: ["#ff00ff"],
+            sprites: {
+                "npc_fortune": {
+                    "0": (frames: [(0, 0, 16, 23), (16, 0, 16, 23)], fps: 2, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        (
+            source: "Non-Playable Characters - Other Light World NPCs.png",
+            transparent: ["#ff00ff", "#f880f8", "#ffc0ff", "#ff80ff"],
+            sprites: {
+                "npc_witch": {
+                    "0": (frames: [(12, 281, 25, 35), (43, 281, 25, 35), (74, 281, 25, 35), (105, 281, 25, 35), (137, 281, 25, 35), (168, 281, 25, 35), (199, 281, 25, 35), (230, 281, 25, 35)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+                "fortune_chest": {
+                    "closed": (frames: [(448, 552, 16, 16)], pivot: (0, 0), align: Center),
+                    "open": (frames: [(472, 552, 16, 16)], pivot: (0, 0), align: Center),
+                },
+            },
+        ),
+        // garde-robe : cotte de mailles bleue (palette du jeu), research/tools/gen_wardrobe_v063.py
+        (
+            source: "Derived - link_blue.png",
+            transparent: ["#008080", "#004040"],
+            sprites: {
+                "link_blue": {
+                    // frame 0 = immobile, 1..7 = cycle de marche (ALttP : 8 frames)
+                    "idle_down": (frames: [(1, 3, 16, 24)], pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(1, 58, 17, 24)], pivot: (0, -1), align: Bottom),
+                    "idle_up":   (frames: [(1, 111, 16, 24)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(19, 3, 16, 24), (36, 2, 16, 25), (53, 1, 16, 26), (70, 3, 16, 24), (87, 3, 16, 24), (104, 2, 16, 25), (121, 1, 16, 26), (1, 3, 16, 24)], fps: 16, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(20, 57, 17, 25), (38, 57, 16, 25), (55, 58, 17, 24), (73, 58, 17, 24), (91, 57, 17, 25), (109, 57, 16, 25), (126, 58, 16, 24), (1, 58, 17, 24)], fps: 16, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(19, 111, 16, 24), (36, 110, 16, 25), (53, 110, 16, 25), (70, 111, 16, 24), (87, 111, 16, 24), (104, 110, 16, 25), (121, 110, 16, 25), (1, 111, 16, 24)], fps: 16, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        // garde-robe : cotte de mailles rouge (palette du jeu), research/tools/gen_wardrobe_v063.py
+        (
+            source: "Derived - link_red.png",
+            transparent: ["#008080", "#004040"],
+            sprites: {
+                "link_red": {
+                    // frame 0 = immobile, 1..7 = cycle de marche (ALttP : 8 frames)
+                    "idle_down": (frames: [(1, 3, 16, 24)], pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(1, 58, 17, 24)], pivot: (0, -1), align: Bottom),
+                    "idle_up":   (frames: [(1, 111, 16, 24)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(19, 3, 16, 24), (36, 2, 16, 25), (53, 1, 16, 26), (70, 3, 16, 24), (87, 3, 16, 24), (104, 2, 16, 25), (121, 1, 16, 26), (1, 3, 16, 24)], fps: 16, pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(20, 57, 17, 25), (38, 57, 16, 25), (55, 58, 17, 24), (73, 58, 17, 24), (91, 57, 17, 25), (109, 57, 16, 25), (126, 58, 16, 24), (1, 58, 17, 24)], fps: 16, pivot: (0, -1), align: Bottom),
+                    "walk_up":   (frames: [(19, 111, 16, 24), (36, 110, 16, 25), (53, 110, 16, 25), (70, 111, 16, 24), (87, 111, 16, 24), (104, 110, 16, 25), (121, 110, 16, 25), (1, 111, 16, 24)], fps: 16, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+    ],
+)

@@ -1,5 +1,5 @@
 // Plaine d'Hyrule sous l'orage
-// Stage 1 : la plaine, la pluie et les soldats du chateau
+// Stage 1 (Monde de la Lumiere) : Hinox a mi-parcours, les Armos Knights du Palais de l'Est au bout
 // Le boss final apparait a 9:00 ; sa defaite ouvre la porte de sortie (victoire en la franchissant).
 // props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde,
 //         breakable = se casse au moindre coup et peut laisser un objet, break_fx = animation).
@@ -15,6 +15,8 @@
     tint: None,
     max_enemies: 3500,
     duration: 540.0,
+    // difficulte du stage : vie et degats des ennemis ordinaires
+    power: 1.0,
     waves: [
         (enemy: "soldier_green", from: 0.0, to: 900.0, rate: (0.9, 6.0), cap: 600),
         (enemy: "rat", from: 15.0, to: 900.0, rate: (0.4, 3.5), cap: 250),
@@ -43,8 +45,8 @@
         (at: 330.0, enemy: "archer"),
         (at: 450.0, enemy: "moblin"),
     ],
-    boss: Some((at: 270.0, enemy: "hinox")),
-    final_boss: Some((at: 540.0, enemy: "armos_knight")),
+    boss: Some((at: 270.0, enemy: "hinox", hp: Some(2400.0))),
+    final_boss: Some((at: 540.0, enemy: "armos_knight", hp: Some(4500.0))),
     props: [
         (sprite: "prop_tree", density: 0.07, radius: 13.0, solid: true),
         (sprite: "prop_bush", density: 0.035, radius: 6.0, solid: false, breakable: true, break_fx: "fx_bush_break"),

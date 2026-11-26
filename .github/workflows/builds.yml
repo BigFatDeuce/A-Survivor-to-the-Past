@@ -1,0 +1,53 @@
+# Executables Linux (x64, arm64) et macOS (universel) pour make_release.py --platform.
+# Lance a la main (onglet Actions ou `gh workflow run builds.yml`), puis
+# `gh run download <id> -D dist/bin` : les paquets sont faits en local (livrets PDF).
+name: Builds
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            os: ubuntu-22.04
+          # glibc 2.35 : consoles portables (PortMaster) et distributions recentes
+          - name: linux-arm64
+            os: ubuntu-22.04-arm
+          - name: macos
+            os: macos-14
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.name == 'macos' && 'x86_64-apple-darwin' || '' }}
+      - name: Linux libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libasound2-dev libudev-dev
+      - name: Build and test (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cargo build --release -p game
+          cargo test --release -p game -p sim
+          mkdir out
+          cp target/release/a_survivor_to_the_past out/a-survivor-to-the-past
+      - name: Build and test (macOS universal)
+        if: runner.os == 'macOS'
+        run: |
+          cargo build --release -p game
+          cargo build --release -p game --target x86_64-apple-darwin
+          cargo test --release -p game -p sim
+          mkdir out
+          lipo -create target/release/a_survivor_to_the_past target/x86_64-apple-darwin/release/a_survivor_to_the_past -output out/a-survivor-to-the-past
+          codesign --force -s - out/a-survivor-to-the-past
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: out/

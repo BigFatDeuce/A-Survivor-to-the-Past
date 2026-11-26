@@ -40,7 +40,7 @@ pub const BLESSINGS: [(Stat, f32); 11] = [
 /// Ameliorations speciales : degats, zone, recharge ; un projectile de plus pour les armes qui tirent.
 fn roll_boost(world: &World, slot: usize, rng: &mut Rng) -> WeaponBoost {
     let kind = world.content.weapons[world.weapons[slot].id as usize].kind;
-    let shoots = matches!(kind, WeaponKind::Projectile | WeaponKind::Boomerang | WeaponKind::Lob | WeaponKind::Orbit | WeaponKind::Pillars | WeaponKind::Bees);
+    let shoots = matches!(kind, WeaponKind::Projectile | WeaponKind::Boomerang | WeaponKind::Lob | WeaponKind::Orbit | WeaponKind::Pillars | WeaponKind::Bees | WeaponKind::Tornado);
     let n = if shoots { 4 } else { 3 };
     match rng.below(n) {
         0 => WeaponBoost { damage: 0.3, ..Default::default() },
@@ -89,6 +89,8 @@ pub fn apply(world: &mut World, meta: &Meta, r: Reward) -> Option<String> {
         Reward::Relic(k) => {
             let rel = &meta.relics[k];
             world.add_run_stats(&rel.stats);
+            world.mods.rerolls += rel.rerolls;
+            world.mods.skips += rel.skips;
             Some(rel.id.clone())
         }
     }
@@ -133,6 +135,7 @@ pub fn info(world: &World, vis: &Vis, atlas: &Atlas, lang: &Lang, meta: &Meta, r
         max: 0,
         evo: Vec::new(),
         evo_label: String::new(),
+        keep: false,
     };
     match r {
         Reward::Blessing(s, v) => blank(blessing_icon(world, vis, s), stat_text(lang, s, v), lang.get("ui.reward.blessing"), lang.get("ui.reward.blessing_desc").to_string()),
@@ -150,13 +153,15 @@ pub fn info(world: &World, vis: &Vis, atlas: &Atlas, lang: &Lang, meta: &Meta, r
         }
         Reward::Relic(k) => {
             let rel = &meta.relics[k];
-            let fx: Vec<String> = rel.stats.iter().map(|&(s, v)| stat_text(lang, s, v)).collect();
-            blank(
+            let fx = crate::meta::relic_fx(lang, rel);
+            let mut o = blank(
                 atlas.find(&rel.icon, "0").unwrap_or(vis.icon_heart),
                 lang.get(&format!("relic.{}.name", rel.id)).to_string(),
                 lang.get("ui.reward.relic"),
                 format!("{}. {}", fx.join(", "), lang.get("ui.reward.relic_desc")),
-            )
+            );
+            o.keep = true;
+            o
         }
     }
 }

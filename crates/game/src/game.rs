@@ -22,7 +22,7 @@ use crate::visuals::{Orient, Vis};
 use crate::weather::{self, WeatherVis};
 use engine::app::{Ctx, Frame, Game as GameTrait};
 use engine::audio::AudioFilter;
-use engine::draw::{rgb, with_alpha, Params, WHITE};
+use engine::draw::{rgb, with_alpha, Color, Params, WHITE};
 use engine::gfx::{Aspect, Blend, DrawList, Space, VideoFilter};
 use engine::input::{Bindings, Device, KeyCode};
 use engine::Vec2;
@@ -34,6 +34,10 @@ use sim::rng::Rng;
 use sim::upgrades::{ChestReward, Offer};
 use sim::{Event, PlayerInput, World, DT};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, TAU};
+
+// Outil de developpement (--uicheck) : a part, il a acces aux champs prives du jeu.
+mod npcs;
+mod uicheck_screens;
 
 #[derive(Clone, Debug)]
 pub struct Options {
@@ -62,6 +66,8 @@ pub struct Options {
     pub update_source: Option<std::path::PathBuf>,
     /// Filtre video impose pour cette session (essais, non enregistre).
     pub video: Option<VideoFilter>,
+    /// Session pilotee par un script (`--seconds`, captures) : la fermeture n'enregistre pas la partie.
+    pub scripted: bool,
 }
 
 enum State {
@@ -75,12 +81,21 @@ enum State {
     Options { sel: usize, from_title: bool },
     LevelUp { offers: Vec<Offer>, sel: usize, t: f32 },
     Chest { reward: ChestReward, big: bool, t: f32 },
+    /// Fin de partie : personnages et armes debloques, montres l'un apres l'autre, puis `next`.
+    Unlocks { items: Vec<menus::Unlock>, t: f32, next: menus::AfterUnlock },
+    /// Plusieurs armes pretes pour le meme objet partenaire : le joueur choisit celle qui evolue.
+    EvoChoice { options: Vec<(usize, u16)>, big: bool, sel: usize, t: f32 },
     /// Champion errant vaincu : recompense au choix.
     Reward { offers: Vec<Reward>, sel: usize, t: f32 },
+    /// Diseuse de bonne aventure (0.6.3, apres le boss final) : jeux de hasard, partie en pause.
+    Fortune { phase: crate::fortune::Phase, sel: usize, t: f32 },
+    /// Sorciere (0.6.3) : potions de `Game::witch_offer` a acheter, ou rien.
+    Witch { sel: usize, t: f32 },
     Dying(f32),
     Dead { t: f32, sel: usize },
     /// Choix du personnage, puis du stage (sur le decor du titre).
-    CharSelect { sel: usize },
+    /// `page` : univers (chars::GROUPS) ; `sel` : rang dans la page (n : Retour, n + 1 : univers).
+    CharSelect { page: usize, sel: usize },
     StageSelect { sel: usize },
     /// Porte franchie : stage gagne.
     Victory { t: f32, sel: usize },
@@ -201,9 +216,28 @@ pub struct Game {
     run_relics: Vec<String>,
     /// Personnages debloques par la derniere partie.
     last_chars: Vec<String>,
+    /// Armes debloquees pendant la partie en cours (mini-boss vaincus pour la premiere fois).
+    run_new_weapons: Vec<u16>,
+    /// 0.6.3 : potions de la sorciere en visite, jeux deja faits chez la diseuse (coffres, quitte ou
+    /// double), multiplicateur de banque du quitte ou double, PNJ touche (menu a ouvrir) et potion
+    /// bue (couleur, instant en temps reel).
+    witch_offer: Vec<crate::witch::Potion>,
+    fortune_played: [bool; 2],
+    run_bank_mult: f32,
+    npc_met: Option<sim::npc::NpcKind>,
+    drink: Option<(usize, f64)>,
+    /// Navigateur : prochain enregistrement de la partie en cours (temps reel) et focus precedent.
+    checkpoint_at: f64,
+    was_focused: bool,
+    /// Deblocages a montrer apres la partie (rempli a la fin d'une partie).
+    pending_unlocks: Vec<menus::Unlock>,
     meta: Meta,
     /// Message de la boutique / du profil et son temps restant (s).
     hub_toast: (String, f32),
+    /// Bestiaire : fiche ouverte (ennemi, instant d'ouverture en temps reel), et instant du dernier
+    /// achat de figurine (eclat dore).
+    beast: Option<(usize, f64)>,
+    beast_bought: f64,
     /// Demi-taille visible des sprites de tirs ennemis (zone de contact, voir `World::shot_hit`).
     shot_hit: Vec<f32>,
     /// Classement en ligne (requetes en arriere-plan).
@@ -219,12 +253,13 @@ pub struct Game {
 /// Position des entrees fixes du menu titre (retour depuis un sous-ecran).
 const TITLE_PLAYERS: usize = 1;
 const TITLE_SHOP: usize = 2;
-const TITLE_PROFILE: usize = 3;
-const TITLE_SCORES: usize = 4;
-const TITLE_OPTIONS: usize = 5;
-const TITLE_ABOUT: usize = 6;
-/// Entree de mise a jour (apres les 7 entrees fixes).
-const TITLE_UPDATE: usize = 7;
+const TITLE_COLLECTION: usize = 3;
+const TITLE_EXPLOITS: usize = 4;
+const TITLE_SCORES: usize = 5;
+const TITLE_OPTIONS: usize = 6;
+const TITLE_ABOUT: usize = 7;
+/// Entree de mise a jour (apres les 8 entrees fixes).
+const TITLE_UPDATE: usize = 8;
 /// Fichier de repli de l'export du profil (presse-papiers indisponible).
 const CODE_FILE: &str = "profile_code.txt";
 
@@ -235,7 +270,7 @@ const FIRE: [f32; 4] = [1.0, 0.6, 0.2, 1.0];
 const ICE: [f32; 4] = [0.7, 0.88, 1.0, 1.0];
 /// Couleur des champions errants (rencontres).
 const CHAMPION: [f32; 4] = [0.85, 0.5, 1.0, 1.0];
-/// Couleur du Pikit voleur de rubis.
+/// Couleur du voleur de rubis (Boo).
 const THIEF: [f32; 4] = [0.47, 1.0, 0.63, 1.0];
 
 impl Game {
@@ -317,8 +352,19 @@ impl Game {
             last_relics: Vec::new(),
             run_relics: Vec::new(),
             last_chars: Vec::new(),
+            run_new_weapons: Vec::new(),
+            witch_offer: Vec::new(),
+            fortune_played: [false; 2],
+            run_bank_mult: 1.0,
+            npc_met: None,
+            drink: None,
+            checkpoint_at: 0.0,
+            was_focused: true,
+            pending_unlocks: Vec::new(),
             meta: Meta::load(&ctx.root),
             hub_toast: (String::new(), 0.0),
+            beast: None,
+            beast_bought: f64::MIN,
             shot_hit: Vec::new(),
             online: Online::default(),
             last_score: None,
@@ -350,6 +396,11 @@ impl Game {
         chars::apply_skins(&mut g.content, &skins);
         let map = g.opts.map.clone();
         g.set_map(ctx, &map);
+        g.hud.relics = g.relic_icons(&ctx.atlas);
+        if g.opts.give.iter().any(|i| i == "relics") {
+            // captures : trois reliques dans le HUD, sans toucher au profil
+            g.hud.relics = g.meta.relics.iter().take(3).filter_map(|r| ctx.atlas.find(&r.icon, "0")).collect();
+        }
         let o = &g.opts;
         let direct = o.play || o.demo || o.bench.is_some() || o.start_time > 0.0 || !o.give.is_empty();
         g.state = match g.opts.menu.as_deref() {
@@ -360,15 +411,109 @@ impl Game {
             Some("title_options") => State::Options { sel: 1, from_title: true },
             Some("gameover") => State::Dead { t: 1.0, sel: 0 },
             Some("stages") => State::StageSelect { sel: 0 },
-            Some("chars") => State::CharSelect { sel: g.char_sel() },
+            Some("chars") => g.char_select(),
             Some("victory") => State::Victory { t: 3.0, sel: 0 },
             Some("levelup") => State::LevelUp { offers: g.world.roll_offers(), sel: 0, t: 1.0 },
+            // deblocages de fin de partie : 3 personnages et 2 armes (captures)
+            Some("unlocks") => {
+                let mut items: Vec<menus::Unlock> = ["sheik", "mario", "vivi"].iter().map(|s| menus::Unlock::Char(s.to_string())).collect();
+                items.extend(["slingshot", "ocarina"].iter().filter_map(|id| g.content.weapon_index(id)).map(menus::Unlock::Weapon));
+                State::Unlocks { items, t: 0.0, next: menus::AfterUnlock::Title }
+            }
+            // fusion : arc et carquois au maximum, le coffre fait evoluer l'arc (captures)
+            Some("evolution") => {
+                let c = g.world.content.clone();
+                if let (Some(bow), Some(q)) = (c.weapon_index("bow"), c.passive_index("quiver")) {
+                    g.world.add_weapon(bow);
+                    while g.world.weapon_level(bow).unwrap_or(99) < c.weapons[bow as usize].max_level() {
+                        g.world.apply_offer(Offer::UpgradeWeapon(bow));
+                    }
+                    g.world.apply_offer(Offer::NewPassive(q));
+                    while g.world.passive_level(q).unwrap_or(99) < c.passives[q as usize].max_level() {
+                        g.world.apply_offer(Offer::UpgradePassive(q));
+                    }
+                }
+                let reward = g.world.open_chest(false);
+                State::Chest { reward, big: false, t: 0.0 }
+            }
+            // choix d'evolution : arc et lance-pierre partagent le carquois (captures)
+            Some("evochoice") => {
+                let pairs: Vec<(u16, u16)> = [("bow", "silver_bow"), ("slingshot", "hyper_slingshot")]
+                    .iter()
+                    .filter_map(|(a, b)| Some((g.world.content.weapon_index(a)?, g.world.content.weapon_index(b)?)))
+                    .collect();
+                let mut options = Vec::new();
+                for (from, into) in pairs {
+                    g.world.add_weapon(from);
+                    options.push((g.world.weapons.len() - 1, into));
+                }
+                State::EvoChoice { options, big: false, sel: 0, t: 1.0 }
+            }
+            // PNJ de passage (captures) : diseuse, ses coffres, son quitte ou double, sorciere
+            Some("fortune") => State::Fortune { phase: crate::fortune::Phase::Menu, sel: 0, t: 0.0 },
+            Some("chests") => State::Fortune { phase: crate::fortune::Phase::Opened { stake: 500, mults: [1, 3, 0], pick: 1 }, sel: 1, t: 0.0 },
+            Some("double") => State::Fortune { phase: crate::fortune::Phase::Double { win: true }, sel: 0, t: 0.0 },
+            Some("witch") => {
+                g.world.player.rupees = 260;
+                g.witch_offer = crate::witch::roll(&mut g.rng, 1.0, 1.0, 200.0);
+                g.world.add_npc(sim::npc::NpcKind::Witch, g.world.player.pos + Vec2::new(40.0, 0.0));
+                State::Witch { sel: 0, t: 0.0 }
+            }
+            Some("npcs") => {
+                g.world.add_npc(sim::npc::NpcKind::Witch, g.world.player.pos + Vec2::new(-50.0, -10.0));
+                g.world.add_npc(sim::npc::NpcKind::Fortune, g.world.player.pos + Vec2::new(50.0, -10.0));
+                State::Playing
+            }
+            // butin de champion avec au moins une relique (captures)
+            Some("reward") => {
+                let mut offers = reward::roll(&g.world, &g.meta, &g.profile, &[], &mut g.rng);
+                if !offers.iter().any(|o| matches!(o, Reward::Relic(_))) && !g.meta.relics.is_empty() {
+                    offers[0] = Reward::Relic(0);
+                }
+                State::Reward { offers, sel: 1, t: 1.0 }
+            }
             Some("shop") => State::Shop { tab: 0, sel: 0 },
+            // onglets de la boutique et fiche du bestiaire (captures)
+            Some(m) if m.starts_with("shop") => State::Shop { tab: m[4..].parse().unwrap_or(0), sel: 1 },
+            Some(m) if m.starts_with("beast") => {
+                let k = m[5..].parse().unwrap_or(0);
+                g.beast = Some((k, 0.0));
+                State::Records { tab: 0, sel: 0, armed: false }
+            }
             Some("profile") => State::Records { tab: 0, sel: 0, armed: false },
+            Some("trophies") => State::Records { tab: records::TAB_TROPHIES, sel: 0, armed: false },
+            // fiche du bestiaire ouverte (captures) : le plus grand boss, pour tester le cadre
+            Some("beast") => {
+                g.beast = g.content.enemy_ids.iter().position(|e| e == "trinexx").map(|k| (k, 0.0));
+                State::Records { tab: 0, sel: 0, armed: false }
+            }
             Some("players") => State::Players { sel: 0, armed: false },
             Some("scores") => State::Scores { tab: 0, sel: 0, stage: 0, version: String::new() },
             Some("scores_world") => State::Scores { tab: scores::WORLD, sel: 0, stage: 0, version: String::new() },
             Some("controls") => State::Controls { tab: 0, sel: 0, wait: None, from_title: true },
+            // annonce d'arme debloquee et case d'arme evoluee qui brille, en jeu (captures)
+            Some("toast") => {
+                if let Some(k) = g.content.weapon_index("slingshot") {
+                    g.hud.toasts.push(crate::hud::Toast {
+                        icon: g.vis.weapons[k as usize].icon,
+                        title: g.lang.get("ui.weapon_unlocked").to_string(),
+                        name: g.lang.get("weapon.slingshot.name").to_string(),
+                        sub: g.lang.get("ui.weapon_unlocked_sub").to_string(),
+                        t: 0.0,
+                        life: 60.0,
+                    });
+                }
+                g.hud.evo_flash = g.world.weapons.first().map(|w| (w.id, 60.0));
+                State::Playing
+            }
+            // annonce en jeu (captures : centrage selon la taille de l'ecran)
+            Some("banner") => {
+                let s = g.lang.get("ui.thief_spawned").to_string();
+                g.hud.banner(&s, THIEF, 60.0);
+                State::Playing
+            }
+            // recueil, onglet des armes, sur le lance-pierre (indice du mini-boss s'il est verrouille)
+            Some("armory") => State::Records { tab: records::TAB_WEAPONS, sel: 0, armed: false },
             _ if direct => State::Playing,
             _ => State::Title { sel: 0 },
         };
@@ -377,7 +522,7 @@ impl Game {
         }
         if g.state.in_title() {
             g.menu_t = if g.opts.menu.is_some() { 1.0 } else { 0.0 };
-            let id = g.audio_cfg.menu_music.clone();
+            let id = g.menu_music();
             g.play_music(ctx, &id, 0.5);
         } else {
             g.start_music(ctx);
@@ -394,6 +539,87 @@ impl Game {
         }
         let m = self.meta.run_mods(&self.profile);
         self.world.set_mods(m);
+        // armes a debloquer (mini-boss) : pas proposees tant que le joueur ne les a pas gagnees
+        let p = &self.profile;
+        self.world.locked_weapons = (0..self.content.weapons.len())
+            .filter(|&k| self.content.weapons[k].unlock.is_some() && !p.weapons.contains(&self.content.weapon_ids[k]))
+            .map(|k| k as u16)
+            .collect();
+    }
+
+    /// Navigateur : aucun evenement de fermeture d'onglet n'arrive au jeu. Le profil est donc
+    /// enregistre comme si la partie etait abandonnee maintenant (toutes les 10 s et quand la page
+    /// perd le focus), sans toucher au profil en memoire : la vraie fin de partie l'ecrase ensuite.
+    fn save_run_checkpoint(&mut self, ctx: &Ctx) {
+        if !self.run_open || self.opts.scripted {
+            return;
+        }
+        let keep = (self.profile.clone(), self.last_score, std::mem::take(&mut self.last_chars));
+        self.commit_run(&ctx.root, false);
+        (self.profile, self.last_score, self.last_chars) = keep;
+        self.run_open = true;
+    }
+
+    /// Mini-boss vaincu : debloque les armes qui l'attendaient, pour cette partie et les suivantes.
+    fn unlock_weapons_from(&mut self, ctx: &mut Ctx, kind: u16) {
+        let eid = self.content.enemy_ids[kind as usize].clone();
+        let ids: Vec<u16> = self
+            .world
+            .locked_weapons
+            .iter()
+            .copied()
+            .filter(|&w| self.content.weapons[w as usize].unlock.as_deref() == Some(eid.as_str()))
+            .collect();
+        if ids.is_empty() {
+            return;
+        }
+        for w in ids {
+            self.world.locked_weapons.retain(|&x| x != w);
+            let wid = self.content.weapon_ids[w as usize].clone();
+            self.profile.weapons.insert(wid.clone());
+            self.run_new_weapons.push(w);
+            // Master Sword : fusion ultime (epee + bouclier), annoncee avec la fanfare de l'epee
+            let ultimate = self.content.weapons[w as usize].evolved;
+            let (title, sub) = if ultimate { ("ui.ultimate_unlocked", "ui.ultimate_unlocked_sub") } else { ("ui.weapon_unlocked", "ui.weapon_unlocked_sub") };
+            if ultimate {
+                self.sfx(ctx, "evo_merge");
+                self.juice.flash([1.0, 0.8, 1.0, 0.5], 0.4);
+            }
+            self.hud.toasts.push(crate::hud::Toast {
+                icon: self.vis.weapons[w as usize].icon,
+                title: self.lang.get(title).to_string(),
+                name: self.lang.get(&format!("weapon.{wid}.name")).to_string(),
+                sub: self.lang.get(sub).to_string(),
+                t: 0.0,
+                life: 6.5,
+            });
+        }
+        self.sfx(ctx, "weapon_unlock");
+        let root = ctx.root.clone();
+        self.profile.save(&root);
+    }
+
+    /// Deblocages de la partie qui vient de finir : personnages puis armes.
+    fn collect_unlocks(&mut self) {
+        // 0.6.5 : des centaines de personnages, plusieurs seuils parfois franchis d'un coup : l'ecran en
+        // montre 16 au plus (les autres sont debloques aussi, avec l'etincelle des nouveaux)
+        let mut items: Vec<menus::Unlock> = self.last_chars.iter().take(16).cloned().map(menus::Unlock::Char).collect();
+        items.extend(self.run_new_weapons.drain(..).map(menus::Unlock::Weapon));
+        self.pending_unlocks = items;
+    }
+
+    /// Icones des reliques actives (equipees et possedees) pour le HUD de la partie.
+    fn relic_icons(&self, atlas: &engine::assets::Atlas) -> Vec<engine::assets::AnimId> {
+        if self.opts.demo || self.opts.bench.is_some() {
+            return Vec::new();
+        }
+        let p = &self.profile;
+        self.meta
+            .relics
+            .iter()
+            .filter(|r| p.equipped.contains(&r.id) && p.relics.contains(&r.id))
+            .filter_map(|r| atlas.find(&r.icon, "0"))
+            .collect()
     }
 
     fn toast(&mut self, key: &str) {
@@ -436,7 +662,8 @@ impl Game {
             }
             rec.best_difficulty = rec.best_difficulty.max(p.difficulty as i32);
         }
-        let banked = bank_amount(w.player.rupees, won, self.meta.bank_mult(p));
+        // quitte ou double de la diseuse
+        let banked = (bank_amount(w.player.rupees, won, self.meta.bank_mult(p)) as f32 * self.run_bank_mult).round() as u64;
         p.rupees += banked;
         let t = &mut p.totals;
         t.runs += 1;
@@ -486,9 +713,16 @@ impl Game {
                 self.last_unlocked = self.stage_ids.get(k + 1).cloned();
             }
         }
-        // meilleurs scores du stage
-        let mult = self.meta.score_mult(&self.profile);
+        // meilleurs scores du stage : ni les parties quittees (le joueur est encore en vie), ni
+        // celles de moins de 30 s (retour 0.6.1)
         let w = &self.world;
+        if (!won && w.player.alive) || w.time < crate::profile::MIN_RUN_TIME {
+            self.last_chars = chars::newly_unlocked(&self.content, &before, &self.profile);
+        self.profile.new_chars.extend(self.last_chars.iter().cloned());
+            self.profile.save(root);
+            return banked;
+        }
+        let mult = self.meta.score_mult(&self.profile);
         let score = profiles::score(w.player.kills, w.time, self.run_bosses, won, mult);
         let rec = ScoreRecord {
             score,
@@ -507,251 +741,37 @@ impl Game {
         let place = self.profile.add_score(&w.map_id, rec);
         self.last_score = Some((score, had && place == Some(0)));
         self.last_chars = chars::newly_unlocked(&self.content, &before, &self.profile);
+        self.profile.new_chars.extend(self.last_chars.iter().cloned());
         self.profile.save(root);
         banked
     }
 
-    /// Annonce les personnages debloques par la partie qui vient de finir.
-    fn announce_chars(&mut self, ctx: &mut Ctx) {
-        if let Some(id) = self.last_chars.first().cloned() {
-            self.sfx(ctx, "char_unlock");
-            let s = self.lang.get("ui.new_character").replace("{s}", &chars::name(&self.lang, &id));
-            self.hud.banner(&s, GOLD, 4.5);
-        }
-    }
-
-    /// Verification des placements : tous les ecrans, toutes les langues, plusieurs formats de vue.
-    fn ui_check(&mut self, ctx: &mut Ctx) {
-        use crate::uicheck::{Report, VIEWS};
-        let real_view = ctx.view;
-        let c = self.content.clone();
-        // monde rempli au maximum : 6 armes, 6 objets, gros compteurs, boss
-        let mut picks = 0;
-        for k in 0..c.weapons.len() as u16 {
-            if !c.weapons[k as usize].evolved && picks < 6 {
-                self.world.apply_offer(Offer::NewWeapon(k));
-                for _ in 0..8 {
-                    self.world.apply_offer(Offer::UpgradeWeapon(k));
-                }
-                picks += 1;
-            }
-        }
-        for k in 0..c.passives.len().min(6) as u16 {
-            self.world.apply_offer(Offer::NewPassive(k));
-        }
-        let p = &mut self.world.player;
-        p.level = 99;
-        p.kills = 99_999;
-        p.rupees = 9_999;
-        self.world.time = 599.0;
-        if let Some(h) = c.enemy_index("hinox") {
-            let at = self.world.player.pos + Vec2::new(60.0, 0.0);
-            let i = self.world.spawn_enemy(h, at);
-            self.world.boss_uid = Some(self.world.horde.uid[i]);
-        }
-        let mut offers: Vec<Offer> = (0..c.weapons.len() as u16).map(Offer::NewWeapon).collect();
-        offers.extend((0..c.passives.len() as u16).map(Offer::NewPassive));
-        offers.extend((0..c.weapons.len() as u16).filter(|&k| self.world.weapon_level(k).is_some()).map(Offer::UpgradeWeapon));
-        offers.extend([Offer::Heal, Offer::Rupees]);
-        let evo = c.weapons.iter().enumerate().find_map(|(k, w)| {
-            let e = w.evolution.as_ref()?;
-            Some((k as u16, c.weapon_index(&e.into)?))
-        });
-        self.menu_t = 5.0;
-        // profil fictif : premier stage gagne, le suivant vient de s'ouvrir
-        if let Some(first) = self.stage_ids.first().cloned() {
-            let r = self.profile.stages.entry(first).or_default();
-            r.wins = 1;
-            r.runs = 3;
-            r.best_time = 512.0;
-        }
-        self.last_banked = 1234;
-        self.last_unlocked = self.stage_ids.get(1).cloned();
-        self.last_relics = self.meta.relics.iter().take(2).map(|r| r.id.clone()).collect();
-        // boutique : un peu de tout (niveaux, benediction, relique equipee, Sceau actif)
-        self.profile.rupees = 98765;
-        if let Some(it) = self.meta.shop.first() {
-            self.profile.shop.insert(it.id.clone(), it.max);
-        }
-        if let Some(it) = self.meta.shop.get(1) {
-            self.profile.shop.insert(it.id.clone(), 2);
-        }
-        if let Some(b) = self.meta.blessings.first() {
-            self.profile.blessings.insert(b.id.clone());
-        }
-        if let Some(r) = self.meta.relics.first() {
-            self.profile.relics.insert(r.id.clone());
-            self.profile.equipped.push(r.id.clone());
-        }
-        if let Some(s) = self.meta.seals.first() {
-            self.profile.seals.insert(s.id.clone());
-        }
-        for (k, id) in self.content.enemy_ids.iter().enumerate() {
-            if k % 2 == 0 {
-                self.profile.bestiary.insert(id.clone(), 123456);
-            }
-        }
-        for id in self.content.weapon_ids.iter().chain(&self.content.passive_ids).step_by(2) {
-            self.profile.armory.insert(id.clone(), 99);
-        }
-        self.profile.totals.kills = 9_876_543;
-        self.profile.totals.time = 360000.0;
-        // joueurs et classements : noms les plus larges, scores sur le premier stage, classement mondial plein
-        self.profile.name = "WWWWWWWWWWWW".into();
-        self.profile.avatar = 19;
-        let first = self.stage_ids.first().cloned().unwrap_or_default();
-        for k in 0..profiles::KEEP_SCORES {
-            let rec = ScoreRecord {
-                score: 9_876_543 - k as u64 * 1000,
-                time: 3599.0,
-                kills: 99_999,
-                level: 99,
-                bosses: 9,
-                won: k % 2 == 0,
-                character: self.opts.character.clone(),
-                difficulty: 3,
-                mult: 2.5,
-                version: "10.20.30".into(),
-                published: k == 1,
-            };
-            self.profile.add_score(&first, rec);
-        }
-        self.last_score = Some((9_876_543, true));
-        self.slots = (0..profiles::SLOTS)
-            .map(|k| {
-                let mut p = Profile::fresh(k, "WWWWWWWWWWWW", k * 3);
-                p.scores = self.profile.scores.clone();
-                p.totals.time = 360000.0;
-                p.totals.kills = 9_876_543;
-                Some(p)
-            })
-            .collect();
-        let entries = (1..=100)
-            .map(|r| online::Entry {
-                rank: r,
-                name: "WWWWWWWWWWWW".into(),
-                score: 99_999_999 - r as u64,
-                character: self.opts.character.clone(),
-                time: 3599.0,
-                kills: 99_999,
-                won: true,
-                difficulty: 3,
-            })
-            .collect();
-        let board = online::Board { version: "10.20.30".into(), versions: vec!["10.20.30".into(), "10.20.29".into()], scores: entries };
-        self.online.force(&first, "", NetStatus::Done(board));
-        let mut rep = Report::default();
-        for code in LANGS {
-            self.lang = Lang::load(&ctx.root, code);
-            let boss = self.lang.get("ui.boss").to_string();
-            for &(w, h) in &VIEWS {
-                let view = Vec2::new(w, h);
-                ctx.view = view;
-                self.world.view_half = view * 0.5;
-                self.hud.banner(&boss, GOLD, 5.0);
-                let mut screens: Vec<(String, State)> = vec![
-                    ("titre".into(), State::Title { sel: 0 }),
-                    ("titre_maj_dispo".into(), State::Title { sel: TITLE_UPDATE }),
-                    ("titre_maj_telechargement".into(), State::Title { sel: 0 }),
-                    ("titre_maj_prete".into(), State::Title { sel: TITLE_UPDATE }),
-                    ("titre_maj_echec".into(), State::Title { sel: 0 }),
-                    ("a_propos".into(), State::About { sel: 1, toast: 0.0 }),
-                    ("a_propos_lien_ouvert".into(), State::About { sel: 0, toast: 1.0 }),
-                    ("options_titre".into(), State::Options { sel: 0, from_title: true }),
-                    ("jeu".into(), State::Playing),
-                    ("pause".into(), State::Paused { sel: 0 }),
-                    ("options".into(), State::Options { sel: 3, from_title: false }),
-                    ("fin".into(), State::Dead { t: 2.0, sel: 0 }),
-                ];
-                for (k, chunk) in offers.chunks(3).enumerate() {
-                    screens.push((format!("niveau_{k}"), State::LevelUp { offers: chunk.to_vec(), sel: 0, t: 1.0 }));
-                }
-                let ups: Vec<Offer> = offers.iter().copied().filter(|o| matches!(o, Offer::UpgradeWeapon(_))).take(3).collect();
-                screens.push(("coffre".into(), State::Chest { reward: ChestReward { evolution: None, upgrades: ups }, big: false, t: 2.0 }));
-                // recompenses de rencontre : toutes les reliques, benedictions et ameliorations
-                let mut rw: Vec<Reward> = (0..self.meta.relics.len()).filter(|&k| self.meta.relics[k].encounter).map(Reward::Relic).collect();
-                rw.extend(reward::BLESSINGS.iter().map(|&(s, v)| Reward::Blessing(s, v)));
-                for slot in 0..self.world.weapons.len() {
-                    let boost = sim::upgrades::WeaponBoost { amount: 1, cooldown: 0.15, ..Default::default() };
-                    rw.push(Reward::Boost { slot, boost });
-                }
-                for (k, chunk) in rw.chunks(3).enumerate() {
-                    screens.push((format!("recompense_{k}"), State::Reward { offers: chunk.to_vec(), sel: 0, t: 1.0 }));
-                }
-                // choix du stage (gagne, ouvert, verrouille, retour) et victoire
-                for (k, name) in [(0usize, "stages_gagne"), (1, "stages_ouvert"), (2, "stages_verrouille")] {
-                    screens.push((name.into(), State::StageSelect { sel: k }));
-                }
-                screens.push(("stages_retour".into(), State::StageSelect { sel: self.stage_ids.len() }));
-                let nc = chars::roster(&self.content).len();
-                for k in 0..=nc {
-                    screens.push((format!("persos_{k}"), State::CharSelect { sel: k }));
-                }
-                screens.push(("persos_verrouille".into(), State::CharSelect { sel: nc.saturating_sub(1) }));
-                screens.push(("victoire".into(), State::Victory { t: 3.0, sel: 0 }));
-                for tab in 0..shop::TABS.len() {
-                    screens.push((format!("boutique_{tab}"), State::Shop { tab, sel: 1 }));
-                }
-                screens.push(("boutique_retour".into(), State::Shop { tab: 0, sel: 99 }));
-                for tab in 0..records::TABS.len() {
-                    screens.push((format!("profil_{tab}"), State::Records { tab, sel: 1, armed: tab == 3 }));
-                }
-                screens.push(("joueurs".into(), State::Players { sel: 1, armed: false }));
-                screens.push(("joueurs_supprimer".into(), State::Players { sel: players::DELETE, armed: true }));
-                screens.push(("nom".into(), State::NameEntry { purpose: NamePurpose::Rename, text: "WWWWWWWWWWWW".into(), sel: players::DONE }));
-                screens.push(("nom_pseudo".into(), State::NameEntry { purpose: NamePurpose::Create(4), text: String::new(), sel: 0 }));
-                for tab in 0..scores::TABS.len() {
-                    screens.push((format!("classement_{tab}"), State::Scores { tab, sel: 1, stage: 0, version: String::new() }));
-                }
-                for tab in 0..controls::TABS.len() {
-                    let wait = Some((1, 1.0));
-                    screens.push((format!("commandes_{tab}"), State::Controls { tab, sel: 1, wait, from_title: tab == 0 }));
-                }
-                screens.push(("commandes_reset".into(), State::Controls { tab: 0, sel: controls::RESET, wait: None, from_title: true }));
-                if let Some(e) = evo {
-                    screens.push(("evolution".into(), State::Chest { reward: ChestReward { evolution: Some(e), upgrades: Vec::new() }, big: true, t: 2.0 }));
-                }
-                for (name, st) in screens {
-                    self.updater.force_status(match name.as_str() {
-                        "titre_maj_dispo" => UpdateStatus::Available(update::Release::sample("10.20.30")),
-                        "titre_maj_telechargement" => UpdateStatus::Downloading { version: "10.20.30".into(), done: 99, total: 100 },
-                        "titre_maj_prete" => UpdateStatus::Ready("10.20.30".into()),
-                        "titre_maj_echec" => UpdateStatus::Failed(String::new()),
-                        _ => UpdateStatus::Idle,
-                    });
-                    self.state = st;
-                    // personnage encore verrouille : texte d'indice et avancement
-                    let kills = self.profile.totals.kills;
-                    if name == "persos_verrouille" {
-                        self.profile.totals.kills = 1234;
-                    }
-                    let mut list = DrawList::default();
-                    list.probe = Some(Vec::new());
-                    self.draw(ctx, 1.0, &mut list);
-                    self.profile.totals.kills = kills;
-                    rep.analyze(list.probe.as_deref().unwrap_or(&[]), view, ctx.atlas.font("main"), &name, code);
-                }
-            }
-        }
-        ctx.view = real_view;
-        self.state = State::Title { sel: 0 };
-        let text = rep.print();
-        println!("{text}");
-    }
-
     /// Retour a l'ecran titre (partie abandonnee).
-    fn to_title(&mut self, ctx: &mut Ctx) {
+    fn quit_to_title(&mut self, ctx: &mut Ctx) {
         let root = ctx.root.clone();
+        let was_open = self.run_open;
         self.commit_run(&root, false);
-        self.state = State::Title { sel: 0 };
+        if was_open {
+            self.collect_unlocks();
+        }
+        self.state = if self.pending_unlocks.is_empty() {
+            State::Title { sel: 0 }
+        } else {
+            State::Unlocks { items: std::mem::take(&mut self.pending_unlocks), t: 0.0, next: menus::AfterUnlock::Title }
+        };
         self.menu_t = 0.0;
         self.thunder = None;
         self.juice.clear();
         self.director.clear();
         ctx.audio.stop_music(0.3);
-        let id = self.audio_cfg.menu_music.clone();
+        let id = self.menu_music();
         self.play_music(ctx, &id, 0.8);
         ctx.audio.duck_music(1.0, 0.2);
+    }
+
+    /// Musique de l'ecran titre : celle choisie au juke-box, sinon celle par defaut.
+    fn menu_music(&self) -> String {
+        shop::title_music(&self.meta, &self.profile).map(str::to_string).unwrap_or_else(|| self.audio_cfg.menu_music.clone())
     }
 
     fn make_world(content: &Content, opts: &Options, view: Vec2) -> World {
@@ -775,7 +795,7 @@ impl Game {
                 // coffre ouvert des le debut (essais des evolutions)
                 w.pending_chests.push(id == "big_chest");
             } else if id == "thief" {
-                // essais : le Pikit voleur arrive tout de suite
+                // essais : le voleur (Boo) arrive tout de suite
                 w.thief_t = 0.0;
             } else if id == "bobomb" {
                 // essais : une Bob-omb tout pres (souffle de l'ecran)
@@ -788,6 +808,8 @@ impl Game {
                 w.encounter_t = 0.0;
             } else if id == "reward" {
                 w.pending_rewards += 1;
+            } else if id == "relics" {
+                // captures : reliques du HUD (voir Game::new)
             } else if id == "drops" {
                 // essais : les objets rares du decor au sol
                 for (k, kind) in [PickupKind::Magnet, PickupKind::Fairy, PickupKind::Medallion].into_iter().enumerate() {
@@ -828,13 +850,30 @@ impl Game {
         self.play_music(ctx, &id, 1.0);
         ctx.audio.duck_music(1.0, 0.2);
         self.boss_music = false;
+        // navigateur : les musiques des boss sont telechargees et decodees des maintenant
+        for id in [self.world.map.boss_music.clone(), self.world.map.final_music.clone()] {
+            if let Some(def) = self.audio_cfg.music_def(&id) {
+                ctx.audio.prefetch(&def);
+            }
+        }
     }
 
     fn restart(&mut self, ctx: &mut Ctx) {
         let root = ctx.root.clone();
         self.commit_run(&root, false);
+        // personnage joue : il n'est plus nouveau
+        if self.profile.new_chars.remove(&self.opts.character) {
+            self.profile.save(&root);
+        }
         self.run_open = true;
         self.run_relics.clear();
+        self.run_new_weapons.clear();
+        self.witch_offer.clear();
+        self.fortune_played = [false; 2];
+        self.run_bank_mult = 1.0;
+        self.npc_met = None;
+        self.drink = None;
+        self.pending_unlocks.clear();
         self.run_kills.iter_mut().for_each(|k| *k = 0);
         self.run_bosses = 0;
         self.run_elites = 0;
@@ -846,6 +885,7 @@ impl Game {
         self.apply_mods();
         self.juice.clear();
         self.hud = Hud::new();
+        self.hud.relics = self.relic_icons(&ctx.atlas);
         self.director.clear();
         self.state = State::Playing;
         self.cam = None;
@@ -887,7 +927,7 @@ impl Game {
                 move_dir: Vec2::from_angle(self.bench_angle) * 0.8,
                 aim: None,
                 attack: false,
-                dash: self.world.ticks % 150 == 0,
+                dash: self.world.ticks.is_multiple_of(150),
                 toggle_auto: false,
             };
         }
@@ -938,9 +978,8 @@ impl Game {
         let mut close = 0;
         let mut crowd = 0;
         let mut nearest: Option<(f32, Vec2)> = None;
-        let h = &w.horde;
-        for i in 0..h.len() {
-            let d = me - h.pos[i];
+        for &p in &w.horde.pos {
+            let d = me - p;
             let l2 = d.length_squared();
             if l2 < 60.0 * 60.0 {
                 let l = l2.sqrt().max(1.0);
@@ -1097,7 +1136,7 @@ impl Game {
                 Event::PlayerDied { pos } => {
                     let root = ctx.root.clone();
                     self.commit_run(&root, false);
-                    self.announce_chars(ctx);
+                    self.collect_unlocks();
                     self.sfx(ctx, "die");
                     self.state = State::Dying(0.0);
                     ctx.audio.stop_music(2.0);
@@ -1162,15 +1201,31 @@ impl Game {
                     self.juice.add_trauma(0.12 + radius * 0.002, 0.5);
                     self.sfx(ctx, "explosion");
                 }
-                Event::Slam { pos, radius, .. } => {
-                    self.juice.ring(pos - Vec2::new(0.0, 2.0), 6.0, radius, 0.35, rgb(240, 220, 160));
-                    let n = (radius / 8.0) as u32;
-                    for k in 0..n {
-                        let a = k as f32 / n as f32 * TAU;
-                        let p = pos + Vec2::from_angle(a) * radius * 0.7;
-                        self.juice.anim(self.vis.dust, p, 0.25);
+                Event::Slam { pos, radius, weapon } => {
+                    let def = &self.content.weapons[weapon as usize];
+                    let fire = matches!(def.status, Some(sim::defs::StatusDef::Burn { .. }));
+                    if def.kind == WeaponKind::Jump {
+                        self.sfx(ctx, "land");
                     }
-                    self.juice.debris(pos, Vec2::ZERO, 10, DUST, 140.0, false);
+                    let n = (radius / 8.0) as u32;
+                    if fire {
+                        self.juice.ring(pos - Vec2::new(0.0, 2.0), 6.0, radius, 0.4, FIRE);
+                        for k in 0..n {
+                            let a = k as f32 / n as f32 * TAU;
+                            let p = pos + Vec2::from_angle(a) * radius * 0.75;
+                            self.juice.anim_ex(self.vis.flame, p, 0.4, 0.0, 1.0, WHITE, true);
+                        }
+                        self.juice.debris(pos, Vec2::ZERO, 12, FIRE, 160.0, true);
+                        self.sfx(ctx, "explosion");
+                    } else {
+                        self.juice.ring(pos - Vec2::new(0.0, 2.0), 6.0, radius, 0.35, rgb(240, 220, 160));
+                        for k in 0..n {
+                            let a = k as f32 / n as f32 * TAU;
+                            let p = pos + Vec2::from_angle(a) * radius * 0.7;
+                            self.juice.anim(self.vis.dust, p, 0.25);
+                        }
+                        self.juice.debris(pos, Vec2::ZERO, 10, DUST, 140.0, false);
+                    }
                     self.juice.add_trauma(if radius > 90.0 { 0.55 } else { 0.25 }, 0.7);
                     if radius > 90.0 {
                         self.juice.flash([1.0, 0.95, 0.8, 0.22], 0.2);
@@ -1238,8 +1293,9 @@ impl Game {
                         self.boss_music = true;
                     }
                 }
-                Event::BossDied { pos, last, .. } => {
+                Event::BossDied { pos, last, kind } => {
                     self.run_bosses += 1;
+                    self.unlock_weapons_from(ctx, kind);
                     if last {
                         ctx.audio.stop_music(1.5);
                         self.boss_music = false;
@@ -1273,13 +1329,22 @@ impl Game {
                     self.juice.ring(pos - Vec2::new(0.0, 8.0), 6.0, 120.0, 0.8, GOLD);
                     let root = ctx.root.clone();
                     self.commit_run(&root, true);
-                    self.announce_chars(ctx);
+                    self.collect_unlocks();
                     ctx.audio.stop_music(0.3);
                     self.play_music(ctx, "great_victory", 0.0);
-                    self.state = State::Victory { t: 0.0, sel: 0 };
+                    self.state = if self.pending_unlocks.is_empty() {
+                        State::Victory { t: 0.0, sel: 0 }
+                    } else {
+                        State::Unlocks { items: std::mem::take(&mut self.pending_unlocks), t: 0.0, next: menus::AfterUnlock::Victory }
+                    };
                 }
                 Event::ChestDropped { pos, big } => {
                     self.sfx(ctx, "chest_drop");
+                    if self.world.evolution_ready().is_some() {
+                        for k in 0..3 {
+                            self.juice.ring(pos - Vec2::new(0.0, 8.0), 4.0 + k as f32 * 6.0, 40.0 + k as f32 * 18.0, 0.6 + k as f32 * 0.15, rgb(255, 130, 240));
+                        }
+                    }
                     self.juice.ring(pos - Vec2::new(0.0, 8.0), 2.0, if big { 50.0 } else { 30.0 }, 0.5, GOLD);
                 }
                 Event::Frozen { pos } => {
@@ -1357,7 +1422,7 @@ impl Game {
                     self.juice.add_trauma(0.06, 0.4);
                 }
                 Event::ThiefSpawned { .. } => {
-                    self.sfx(ctx, "pikit_spawn");
+                    self.sfx(ctx, "thief_spawn");
                     let s = self.lang.get("ui.thief_spawned").to_string();
                     self.hud.banner(&s, THIEF, 3.0);
                 }
@@ -1368,13 +1433,44 @@ impl Game {
                     self.juice.ring(pos - Vec2::new(0.0, 8.0), 22.0, 2.0, 0.4, THIEF);
                 }
                 Event::ThiefLooted { pos, count } => {
-                    self.sfx(ctx, "pikit_loot");
+                    self.sfx(ctx, "thief_loot");
                     let s = self.lang.get("ui.thief_looted").replace("{n}", &count.to_string());
                     self.hud.banner(&s, THIEF, 2.6);
                     self.juice.flash([0.7, 1.0, 0.8, 0.25], 0.3);
                     self.juice.ring(pos - Vec2::new(0.0, 8.0), 4.0, 90.0, 0.5, THIEF);
                     self.juice.debris(pos - Vec2::new(0.0, 8.0), Vec2::ZERO, 18, rgb(140, 255, 140), 120.0, true);
                     self.juice.add_trauma(0.3, 0.5);
+                }
+                Event::NpcArrived { kind, pos } => {
+                    self.sfx(ctx, "npc_arrive");
+                    let (key, col) = match kind {
+                        sim::npc::NpcKind::Fortune => ("ui.fortune.arrived", crate::fortune::PURPLE),
+                        sim::npc::NpcKind::Witch => {
+                            // potions tirees a l'arrivee : les memes jusqu'a son depart
+                            let d = self.meta.difficulty(&self.profile).map(|d| d.rupees).unwrap_or(1.0);
+                            self.witch_offer = crate::witch::roll(&mut self.rng, self.world.map.power, d, self.world.time);
+                            ("ui.witch.arrived", npcs::WITCH)
+                        }
+                    };
+                    let s = self.lang.get(key).to_string();
+                    self.hud.banner(&s, col, 3.0);
+                    // apparition : eclair violet, anneaux et etincelles
+                    self.juice.flash([0.8, 0.5, 1.0, 0.35], 0.4);
+                    for (k, r) in [40.0, 80.0].iter().enumerate() {
+                        self.juice.ring(pos - Vec2::new(0.0, 12.0), 4.0, *r, 0.5 + k as f32 * 0.2, col);
+                    }
+                    self.juice.debris(pos - Vec2::new(0.0, 12.0), Vec2::ZERO, 24, col, 110.0, true);
+                }
+                Event::NpcMet { kind } => self.npc_met = Some(kind),
+                Event::NpcLeft { kind, pos } => {
+                    self.sfx(ctx, "npc_leave");
+                    self.juice.debris(pos - Vec2::new(0.0, 12.0), Vec2::ZERO, 16, rgb(200, 180, 255), 90.0, true);
+                    // partie sans achat : la sorciere s'en va
+                    if kind == sim::npc::NpcKind::Witch && !self.witch_offer.is_empty() {
+                        self.witch_offer.clear();
+                        let s = self.lang.get("ui.witch.left").to_string();
+                        self.hud.banner(&s, npcs::WITCH, 2.0);
+                    }
                 }
                 Event::Medallion { pos } => {
                     self.sfx(ctx, "medallion");
@@ -1422,6 +1518,9 @@ impl Game {
             while let Some(big) = self.world.pending_chests.pop() {
                 self.world.open_chest(big);
             }
+            if let Some(k) = self.npc_met.take() {
+                self.world.remove_npc(k);
+            }
             while self.world.pending_rewards > 0 {
                 self.world.pending_rewards -= 1;
                 let o = reward::roll(&self.world, &self.meta, &self.profile, &self.run_relics, &mut self.rng);
@@ -1445,9 +1544,30 @@ impl Game {
         }
         if !self.world.pending_chests.is_empty() {
             let big = self.world.pending_chests.remove(0);
+            let options = self.world.evolution_choices();
+            if options.len() > 1 {
+                self.state = State::EvoChoice { options, big, sel: 0, t: 0.0 };
+                ctx.audio.duck_music(0.35, 0.2);
+                return true;
+            }
             let reward = self.world.open_chest(big);
             self.state = State::Chest { reward, big, t: 0.0 };
             ctx.audio.duck_music(0.35, 0.2);
+            return true;
+        }
+        if let Some(kind) = self.npc_met.take() {
+            self.sfx(ctx, "pause");
+            match kind {
+                sim::npc::NpcKind::Fortune => {
+                    let sel = (0..2).find(|&k| !self.fortune_played[k]).unwrap_or(2);
+                    self.state = State::Fortune { phase: crate::fortune::Phase::Menu, sel, t: 0.0 };
+                    self.play_music(ctx, "fortune_teller", 0.5);
+                }
+                sim::npc::NpcKind::Witch => {
+                    self.state = State::Witch { sel: 0, t: 0.0 };
+                    ctx.audio.duck_music(0.45, 0.2);
+                }
+            }
             return true;
         }
         false
@@ -1478,7 +1598,8 @@ impl Game {
             (TitleItem::Play, l.get("ui.play").to_string()),
             (TitleItem::Players, l.get("ui.player_item").replace("{s}", &self.profile.name)),
             (TitleItem::Shop, l.get("ui.shop").to_string()),
-            (TitleItem::Profile, l.get("ui.profile").to_string()),
+            (TitleItem::Collection, l.get("ui.collection").to_string()),
+            (TitleItem::Exploits, l.get("ui.exploits").to_string()),
             (TitleItem::Scores, l.get("ui.scores").to_string()),
             (TitleItem::Options, l.get("ui.options").to_string()),
             (TitleItem::About, l.get("ui.about").to_string()),
@@ -1486,7 +1607,7 @@ impl Game {
         let upd = match self.updater.status() {
             UpdateStatus::Available(r) => Some(l.get("ui.update.install").replace("{v}", &r.version)),
             UpdateStatus::Downloading { done, total, .. } => {
-                let p = if total > 0 { (done * 100 / total).min(99) } else { 0 };
+                let p = (done * 100).checked_div(total).map_or(0, |p| p.min(99));
                 Some(l.get("ui.update.progress").replace("{p}", &p.to_string()))
             }
             UpdateStatus::Ready(_) => Some(l.get("ui.update.restart").to_string()),
@@ -1608,7 +1729,7 @@ impl Game {
                     self.updater.check();
                 }
             }
-            Opt::Controls | Opt::Back => {}
+            Opt::Controls | Opt::Save | Opt::Back => {}
         }
         self.sfx(ctx, "cursor");
     }
@@ -1616,9 +1737,9 @@ impl Game {
     /// Logique des menus (temps reel).
     fn update_shop(&mut self, ctx: &mut Ctx, nav: &NavIn, mut tab: usize, mut sel: usize) -> State {
         let ntabs = shop::TABS.len();
-        let (rows, _) = shop::rows(&self.meta, &self.profile, &self.lang, &ctx.atlas, tab);
+        let (rows, _) = shop::rows(&self.meta, &self.content, &self.profile, &self.lang, &ctx.atlas, tab);
         let n = rows.len();
-        let input = hub::input(nav, ctx.view, ntabs, n, &mut sel);
+        let input = hub::input(nav, ctx.view, ntabs, tab, n, &mut sel);
         let side = match input {
             hub::Input::Left(k) => Some((k, -1)),
             hub::Input::Right(k) => Some((k, 1)),
@@ -1643,7 +1764,9 @@ impl Game {
             hub::Input::Tab(k) => {
                 if k != tab {
                     tab = k;
-                    sel = 0;
+                    if sel != hub::TABS_ROW {
+                        sel = 0;
+                    }
                     self.sfx(ctx, "cursor");
                 }
             }
@@ -1654,9 +1777,34 @@ impl Game {
     }
 
     fn shop_act(&mut self, ctx: &mut Ctx, tab: usize, k: usize, dir: i32) {
-        match shop::act(&self.meta, &mut self.profile, tab, k, dir) {
+        let outcome = shop::act(&self.meta, &self.content, &mut self.profile, tab, k, dir);
+        if matches!(outcome, shop::Outcome::Done | shop::Outcome::Selected) {
+            match tab {
+                // garde-robe : la tenue achetee (ou choisie) est portee tout de suite
+                shop::TAB_WARDROBE => {
+                    if let Some(w) = self.meta.wardrobe.get(k) {
+                        if let Some(i) = self.content.characters.get(&w.character).and_then(|d| d.skins.iter().position(|s| s.0 == w.sprite)) {
+                            self.profile.skins.insert(w.character.clone(), i);
+                            chars::apply_skins(&mut self.content, &self.profile);
+                        }
+                    }
+                }
+                // juke-box : la musique choisie passe aussitot (et devient celle de l'ecran titre)
+                shop::TAB_JUKEBOX => {
+                    let id = self.menu_music();
+                    self.play_music(ctx, &id, 0.4);
+                }
+                _ => {}
+            }
+        }
+        match outcome {
             shop::Outcome::Done => {
-                self.sfx(ctx, if tab == 0 || tab == 1 { "buy" } else { "equip" });
+                self.sfx(ctx, "buy");
+                self.hub_toast.1 = 0.0;
+                self.profile.save(&ctx.root);
+            }
+            shop::Outcome::Selected => {
+                self.sfx(ctx, "equip");
                 self.hub_toast.1 = 0.0;
                 self.profile.save(&ctx.root);
             }
@@ -1669,33 +1817,85 @@ impl Game {
     }
 
     fn update_records(&mut self, ctx: &mut Ctx, nav: &NavIn, mut tab: usize, mut sel: usize, mut armed: bool) -> State {
-        let ntabs = records::TABS.len();
-        let (rows, _) = records::rows(&self.content, &self.vis, &self.profile, &self.lang, tab, armed);
+        // fiche d'un ennemi ouverte : gauche / droite (ou haut / bas) pour passer au suivant,
+        // A, Echap ou un clic pour fermer
+        if let Some((k, _)) = self.beast {
+            let id = self.content.enemy_ids[k].clone();
+            let owned = self.profile.figurines.contains(&id);
+            if (nav.confirm || nav.click) && !owned {
+                // figurine : A (ou un clic) l'achete, Echap ferme la fiche
+                let cost = self.meta.figurine_cost(&self.content.enemies[k], &id);
+                if self.profile.rupees >= cost {
+                    self.profile.rupees -= cost;
+                    self.profile.figurines.insert(id);
+                    self.profile.save(&ctx.root);
+                    self.sfx(ctx, "buy");
+                    self.beast = Some((k, ctx.real_time - 0.5));
+                    self.beast_bought = ctx.real_time;
+                } else {
+                    self.sfx(ctx, "error");
+                    self.toast("ui.not_enough");
+                }
+            } else if nav.back || nav.confirm || nav.click {
+                self.beast = None;
+                self.sfx(ctx, "confirm");
+            } else if nav.left || nav.right || nav.up || nav.down {
+                let known = records::bestiary_known(&self.content, &self.profile);
+                if let Some(i) = known.iter().position(|&e| e == k) {
+                    let d = if nav.left || nav.up { -1 } else { 1 };
+                    let e = known[(i as i32 + d).rem_euclid(known.len() as i32) as usize];
+                    self.beast = Some((e, ctx.real_time));
+                    sel = records::bestiary_order(&self.content, &self.profile).iter().position(|&o| o == e).unwrap_or(sel);
+                    self.sfx(ctx, "cursor");
+                }
+            }
+            return State::Records { tab, sel, armed };
+        }
+        // Recueil, Exploits ou Sauvegarde : seulement les onglets de cet ecran
+        let (range, _) = records::book(tab);
+        let ntabs = range.len();
+        let (rows, _) = records::rows(&self.content, &self.meta, &ctx.atlas, &self.vis, &self.profile, &self.lang, tab, armed);
         let n = rows.len();
-        let input = hub::input(nav, ctx.view, ntabs, n, &mut sel);
+        let input = hub::input(nav, ctx.view, ntabs, tab - range.start, n, &mut sel);
         if !matches!(input, hub::Input::None | hub::Input::Pick(_)) {
             armed = false;
         }
         match input {
             hub::Input::Back => {
                 self.sfx(ctx, "confirm");
-                return State::Title { sel: TITLE_PROFILE };
+                return match tab {
+                    records::TAB_SAVE => State::Options { sel: menus::OPTIONS.iter().position(|o| *o == Opt::Save).unwrap_or(0), from_title: true },
+                    t if t >= records::TAB_TROPHIES => State::Title { sel: TITLE_EXPLOITS },
+                    _ => State::Title { sel: TITLE_COLLECTION },
+                };
             }
             hub::Input::Moved => self.sfx(ctx, "cursor"),
             hub::Input::Tab(k) => {
+                let k = range.start + k;
                 if k != tab {
                     tab = k;
-                    sel = 0;
+                    if sel != hub::TABS_ROW {
+                        sel = 0;
+                    }
                     self.sfx(ctx, "cursor");
                 }
             }
             hub::Input::Left(_) | hub::Input::Right(_) => {
                 let dir = if matches!(input, hub::Input::Left(_)) { -1 } else { 1 };
-                tab = (tab as i32 + dir).rem_euclid(ntabs as i32) as usize;
+                tab = range.start + ((tab - range.start) as i32 + dir).rem_euclid(ntabs as i32) as usize;
                 sel = 0;
                 self.sfx(ctx, "cursor");
             }
-            hub::Input::Pick(k) if tab == 3 && k == records::SAVE_EXPORT => {
+            hub::Input::Pick(k) if tab == 0 => {
+                let e = records::bestiary_order(&self.content, &self.profile).get(k).copied();
+                if let Some(e) = e.filter(|&e| self.profile.bestiary.get(&self.content.enemy_ids[e]).copied().unwrap_or(0) > 0) {
+                    self.beast = Some((e, ctx.real_time));
+                    self.sfx(ctx, "confirm");
+                } else {
+                    self.sfx(ctx, "error");
+                }
+            }
+            hub::Input::Pick(k) if tab == records::TAB_SAVE && k == records::SAVE_EXPORT => {
                 armed = false;
                 let code = self.profile.export_code();
                 if clipboard::set(&code) {
@@ -1709,7 +1909,7 @@ impl Game {
                     self.toast("ui.export_failed");
                 }
             }
-            hub::Input::Pick(k) if tab == 3 && k == records::SAVE_IMPORT => {
+            hub::Input::Pick(k) if tab == records::TAB_SAVE && k == records::SAVE_IMPORT => {
                 if !armed {
                     armed = true;
                     self.sfx(ctx, "cursor");
@@ -1776,7 +1976,7 @@ impl Game {
         }
         let n = controls::RESET + 1;
         let mut wait = None;
-        match hub::input(nav, ctx.view, controls::TABS.len(), n, &mut sel) {
+        match hub::input(nav, ctx.view, controls::TABS.len(), tab, n, &mut sel) {
             hub::Input::Back => {
                 self.sfx(ctx, "confirm");
                 let sel = menus::OPTIONS.iter().position(|o| *o == Opt::Controls).unwrap_or(0);
@@ -1786,7 +1986,9 @@ impl Game {
             hub::Input::Tab(k) => {
                 if k != tab {
                     tab = k;
-                    sel = 0;
+                    if sel != hub::TABS_ROW {
+                        sel = 0;
+                    }
                     self.sfx(ctx, "cursor");
                 }
             }
@@ -1957,6 +2159,7 @@ impl Game {
                     character: rec.character.clone(),
                     difficulty: rec.difficulty,
                     mult: rec.mult,
+                    title: self.profile.title,
                 });
                 self.publishing = Some((map, rec));
                 self.sfx(ctx, "confirm");
@@ -2014,6 +2217,7 @@ impl Game {
         let stage_id = self.stage_ids.get(stage).map(|s| s.as_str()).unwrap_or("");
         let board = self.online.board();
         let diffs: Vec<String> = self.meta.difficulties.iter().map(|d| lang.get(&format!("difficulty.{}.name", d.id)).to_string()).collect();
+        let titles: Vec<String> = self.meta.titles.iter().map(|t| lang.get(&format!("title.{}", t.id)).to_string()).collect();
         let v = scores::View {
             lang,
             content: &self.content,
@@ -2022,6 +2226,7 @@ impl Game {
             profile: &self.profile,
             slots: &self.slots,
             difficulties: &diffs,
+            titles: &titles,
             board: &board,
             version,
         };
@@ -2055,7 +2260,7 @@ impl Game {
             self.online.fetch(&stage_id, &version);
         }
         let n = self.score_rows(ctx, tab, stage, &version).0.len();
-        let input = hub::input(nav, ctx.view, scores::TABS.len(), n, &mut sel);
+        let input = hub::input(nav, ctx.view, scores::TABS.len(), tab, n, &mut sel);
         let head = scores::head(tab);
         match input {
             hub::Input::Back => {
@@ -2066,7 +2271,9 @@ impl Game {
             hub::Input::Tab(k) => {
                 if k != tab {
                     tab = k;
-                    sel = 0;
+                    if sel != hub::TABS_ROW {
+                        sel = 0;
+                    }
                     self.sfx(ctx, "cursor");
                 }
             }
@@ -2119,13 +2326,14 @@ impl Game {
         let lang = &self.lang;
         let (title, tabs, tab, sel, rows, details, corner) = match self.state {
             State::Shop { tab, sel } => {
-                let (r, d) = shop::rows(&self.meta, &self.profile, lang, &ctx.atlas, tab);
+                let (r, d) = shop::rows(&self.meta, &self.content, &self.profile, lang, &ctx.atlas, tab);
                 let corner = Some((self.vis.icon_rupees, self.profile.rupees.to_string()));
                 (lang.get("ui.shop"), &shop::TABS[..], tab, sel, r, d, corner)
             }
             State::Records { tab, sel, armed } => {
-                let (r, d) = records::rows(&self.content, &self.vis, &self.profile, lang, tab, armed);
-                (lang.get("ui.profile"), &records::TABS[..], tab, sel, r, d, None)
+                let (r, d) = records::rows(&self.content, &self.meta, &ctx.atlas, &self.vis, &self.profile, lang, tab, armed);
+                let (range, title) = records::book(tab);
+                (lang.get(title), &records::TABS[range.clone()], tab - range.start, sel, r, d, None)
             }
             State::Scores { tab, sel, stage, ref version } => {
                 let (r, d) = self.score_rows(ctx, tab, stage, version);
@@ -2144,6 +2352,93 @@ impl Game {
             details.get(sel).map(|s| s.as_str()).unwrap_or("")
         };
         hub::draw(list, ctx, title, corner, &tabs, tab, &rows, sel, detail, lang.get("ui.back"));
+        if let (State::Records { tab: 0, .. }, Some((k, t0))) = (&self.state, self.beast) {
+            self.draw_beast(ctx, list, k, (ctx.real_time - t0) as f32);
+        }
+    }
+
+    /// Fiche d'un ennemi du bestiaire : le sprite a sa taille reelle en partie (echelle comprise),
+    /// anime, qui se tourne dans les quatre directions, dans un cadre.
+    fn draw_beast(&self, ctx: &Ctx, list: &mut DrawList, k: usize, t: f32) {
+        use sim::horde::{FACE_LEFT, FACE_RIGHT, FACE_UP};
+        let atlas = &ctx.atlas;
+        let view = ctx.view;
+        let main = atlas.font("main");
+        let white = &self.vis.white;
+        let e = &self.content.enemies[k];
+        let sc = e.scale.max(1.0);
+        let face = [FACE_DOWN, FACE_RIGHT, FACE_UP, FACE_LEFT][((t / 1.6) as usize) % 4];
+        let (anim, flip) = self.vis.enemies[k].pick(face, 0.0, false);
+        let f = atlas.frame(anim, t);
+        // cadre fixe : la plus grande image de l'ennemi (toutes directions, toute l'animation)
+        let (mut fw, mut fh) = (0u32, 0u32);
+        for d in [FACE_DOWN, FACE_RIGHT, FACE_UP, FACE_LEFT] {
+            let a = self.vis.enemies[k].pick(d, 0.0, false).0;
+            for i in 0..12 {
+                let g = atlas.frame(a, i as f32 * 0.09);
+                fw = fw.max(g.w as u32);
+                fh = fh.max(g.h as u32);
+            }
+        }
+        let (w, h) = (fw as f32 * sc, fh as f32 * sc);
+        let name = self.lang.get(&format!("enemy.{}", self.content.enemy_ids[k])).to_string();
+        let stats = format!(
+            "{} {}  {} {}  {} {}",
+            self.lang.get("ui.beast_hp"),
+            e.hp.round(),
+            self.lang.get("ui.beast_damage"),
+            (e.damage / 10.0 * 2.0).round() / 2.0,
+            self.lang.get("ui.beast_speed"),
+            e.speed.round()
+        );
+        let id = &self.content.enemy_ids[k];
+        let owned = self.profile.figurines.contains(id);
+        // figurine a acheter : A achete, la ligne d'aide ne dit plus « A : fermer »
+        let hint = self.lang.get(if owned { "ui.beast_hint" } else { "ui.beast_hint_nav" });
+        let fig = if owned {
+            self.lang.get("ui.figurine_owned").to_string()
+        } else {
+            let cost = self.meta.figurine_cost(e, id);
+            self.lang.get("ui.figurine_buy").replace("{n}", &cost.to_string())
+        };
+        let tw = [name.as_str(), stats.as_str(), hint, fig.as_str()].iter().map(|s| main.measure(s) as f32).fold(0.0, f32::max);
+        let size = Vec2::new((w + 48.0).max(200.0).max(tw + 24.0), (h + 98.0).max(144.0)).min(view - Vec2::splat(12.0)).round();
+        let pos = ((view - size) * 0.5).round();
+        let u = (t / 0.15).min(1.0);
+        list.rect(white, Vec2::ZERO, view, [0.0, 0.0, 0.0, 0.6 * u]);
+        list.rect(white, pos, size, [0.05, 0.035, 0.09, 0.97]);
+        crate::hud::frame_rect(list, white, pos, size, with_alpha(GOLD, 0.9));
+        crate::hud::frame_rect(list, white, pos + Vec2::splat(2.0), size - Vec2::splat(4.0), [1.0, 1.0, 1.0, 0.15]);
+        let cx = (view.x * 0.5).round();
+        crate::hud::text(list, main, &name, Vec2::new(cx, pos.y + 8.0), 1.0, if e.boss { rgb(255, 170, 170) } else { GOLD }, engine::draw::Align::Center);
+        // sol : ombre, puis le sprite pose dessus ; figurine achetee : socle dore qui scintille
+        let floor = (pos.y + 26.0 + h + ((size.y - 98.0 - h) * 0.5).max(0.0)).round();
+        if owned {
+            let pw = (w * 0.8 + 16.0).round();
+            list.rect(white, Vec2::new(cx - pw * 0.5, floor - 2.0).round(), Vec2::new(pw, 5.0), rgb(240, 200, 80));
+            list.rect(white, Vec2::new(cx - pw * 0.5 + 2.0, floor + 3.0).round(), Vec2::new(pw - 4.0, 4.0), rgb(170, 110, 30));
+            list.rect(white, Vec2::new(cx - pw * 0.5, floor - 2.0).round(), Vec2::new(pw, 1.0), rgb(255, 240, 170));
+            list.set(Space::Ui, Blend::Add);
+            let rt = ctx.real_time as f32;
+            for s in 0..6 {
+                let ph = (rt * 0.5 + s as f32 / 6.0).fract();
+                let x = cx + ((s as f32 * 2.1).sin() * pw * 0.45).round();
+                list.rect(white, Vec2::new(x, floor - 4.0 - ph * (h + 10.0)).round(), Vec2::splat(1.0 + (s % 2) as f32), with_alpha(GOLD, 1.0 - ph));
+            }
+            // achat : eclat dore qui retombe
+            let since = (ctx.real_time - self.beast_bought) as f32;
+            if since < 0.6 {
+                list.rect(white, pos, size, with_alpha(GOLD, 0.35 * (1.0 - since / 0.6)));
+            }
+            list.set(Space::Ui, Blend::Alpha);
+        } else {
+            let sh = atlas.frame(self.vis.shadow, 0.0);
+            list.frame(sh, Vec2::new(cx, floor), &Params::default().scale(Vec2::splat(sc)).color([1.0, 1.0, 1.0, 0.55]));
+        }
+        list.frame(f, Vec2::new(cx, floor), &Params::default().scale(Vec2::splat(sc)).flip(flip));
+        crate::hud::text(list, main, &stats, Vec2::new(cx, pos.y + size.y - 46.0), 1.0, [0.82, 0.82, 0.92, 1.0], engine::draw::Align::Center);
+        crate::hud::text(list, main, &fig, Vec2::new(cx, pos.y + size.y - 32.0), 1.0, if owned { GOLD } else { [0.95, 0.85, 0.55, 1.0] }, engine::draw::Align::Center);
+        crate::hud::text(list, main, hint, Vec2::new(cx, pos.y + size.y - 18.0), 1.0, [0.6, 0.6, 0.72, 1.0], engine::draw::Align::Center);
     }
 
     fn update_menus(&mut self, ctx: &mut Ctx, nav: &NavIn, dt: f32) {
@@ -2169,7 +2464,7 @@ impl Game {
                 match pick.map(|k| items[k].0) {
                     Some(TitleItem::Play) => {
                         self.sfx(ctx, "confirm");
-                        State::CharSelect { sel: self.char_sel() }
+                        self.char_select()
                     }
                     Some(TitleItem::Players) => {
                         self.sfx(ctx, "confirm");
@@ -2189,10 +2484,15 @@ impl Game {
                         let stage = self.stage_ids.iter().position(|s| *s == self.world.map_id).unwrap_or(0);
                         State::Scores { tab: scores::MINE, sel: 0, stage, version: String::new() }
                     }
-                    Some(TitleItem::Profile) => {
+                    Some(TitleItem::Collection) => {
                         self.sfx(ctx, "confirm");
                         self.hub_toast.1 = 0.0;
                         State::Records { tab: 0, sel: 0, armed: false }
+                    }
+                    Some(TitleItem::Exploits) => {
+                        self.sfx(ctx, "confirm");
+                        self.hub_toast.1 = 0.0;
+                        State::Records { tab: records::TAB_TROPHIES, sel: 0, armed: false }
                     }
                     Some(TitleItem::Options) => {
                         self.sfx(ctx, "confirm");
@@ -2233,17 +2533,23 @@ impl Game {
                     None => State::Title { sel },
                 }
             }
-            State::CharSelect { mut sel } => {
-                let ids = chars::roster(&self.content);
-                let n = ids.len();
-                let (pick, moved) = chars::input_select(nav, view, n, &mut sel);
+            State::CharSelect { mut page, mut sel } => {
+                let (pick, moved, turn) = chars::input_select(nav, view, chars::page_roster(&self.content, page).len(), &mut sel);
                 if moved {
                     self.sfx(ctx, "cursor");
                 }
-                // gauche / droite (ou clic sur le bouton des couleurs) : couleur du personnage
-                let mut side = if nav.right { 1 } else if nav.left { -1 } else { 0 };
+                if turn != 0 {
+                    // autre univers : le curseur reste sur le choix de l'univers
+                    page = (page as i32 + turn).rem_euclid(chars::GROUPS.len() as i32) as usize;
+                    sel = chars::page_roster(&self.content, page).len() + 1;
+                    self.sfx(ctx, "cursor");
+                }
+                let ids = chars::page_roster(&self.content, page);
+                let n = ids.len();
+                // Q / E, gachettes (ou clic sur le bouton des couleurs) : couleur du personnage
+                let mut side = if nav.tab_next { 1 } else if nav.tab_prev { -1 } else { 0 };
                 if nav.click {
-                    if let Some((bp, bs)) = chars::skin_button(ctx, &self.lang, &self.content, &self.profile, &ids, sel) {
+                    if let Some((bp, bs)) = chars::skin_button(ctx, &self.content, &self.meta, &self.profile, &ids, sel) {
                         let m = nav.mouse;
                         if m.x >= bp.x && m.y >= bp.y && m.x < bp.x + bs.x && m.y < bp.y + bs.y {
                             side = if m.x < bp.x + bs.x * 0.5 { -1 } else { 1 };
@@ -2253,10 +2559,13 @@ impl Game {
                 if side != 0 && sel < n {
                     let id = ids[sel].clone();
                     let def = &self.content.characters[&id];
-                    let m = def.skins.len();
-                    if m > 1 && chars::unlocked(def, &self.profile) {
-                        let k = chars::skin(def, &self.profile, &id);
-                        let k = if side > 0 { (k + 1) % m } else { (k + m - 1) % m };
+                    // tenues de la garde-robe : seulement celles achetees
+                    let owned = chars::owned_skins(def, &self.profile, &self.meta);
+                    let m = owned.len();
+                    if m > 1 && chars::unlocked(&self.content, def, &self.profile) {
+                        let cur = chars::skin(def, &self.profile, &id);
+                        let i = owned.iter().position(|&o| o == cur).unwrap_or(0);
+                        let k = owned[if side > 0 { (i + 1) % m } else { (i + m - 1) % m }];
                         self.profile.skins.insert(id, k);
                         self.profile.save(&ctx.root);
                         chars::apply_skins(&mut self.content, &self.profile);
@@ -2272,7 +2581,7 @@ impl Game {
                             self.sfx(ctx, "confirm");
                             State::Title { sel: 0 }
                         }
-                        Some(k) if chars::unlocked(&self.content.characters[&ids[k]], &self.profile) => {
+                        Some(k) if chars::unlocked(&self.content, &self.content.characters[&ids[k]], &self.profile) => {
                             self.sfx(ctx, "confirm");
                             self.opts.character = ids[k].clone();
                             if self.profile.character != ids[k] {
@@ -2285,9 +2594,9 @@ impl Game {
                         }
                         Some(_) => {
                             self.sfx(ctx, "error");
-                            State::CharSelect { sel }
+                            State::CharSelect { page, sel }
                         }
-                        None => State::CharSelect { sel },
+                        None => State::CharSelect { page, sel },
                     }
                 }
             }
@@ -2299,12 +2608,12 @@ impl Game {
                 }
                 if nav.back {
                     self.sfx(ctx, "confirm");
-                    State::CharSelect { sel: self.char_sel() }
+                    self.char_select()
                 } else {
                     match pick {
                         Some(k) if k >= n => {
                             self.sfx(ctx, "confirm");
-                            State::CharSelect { sel: self.char_sel() }
+                            self.char_select()
                         }
                         Some(k) if stages::unlocked(&self.stage_ids, &self.profile, k) => {
                             self.sfx(ctx, "confirm");
@@ -2344,13 +2653,13 @@ impl Game {
                         }
                         Some("ui.stage_select") => {
                             self.sfx(ctx, "confirm");
-                            self.to_title(ctx);
+                            self.quit_to_title(ctx);
                             let k = stages::suggested(&self.stage_ids, &self.profile);
                             State::StageSelect { sel: k }
                         }
                         Some(_) => {
                             self.sfx(ctx, "confirm");
-                            self.to_title(ctx);
+                            self.quit_to_title(ctx);
                             return;
                         }
                         None => State::Victory { t, sel },
@@ -2420,12 +2729,21 @@ impl Game {
                         State::Options { sel: 0, from_title: false }
                     }
                     Some(2) => {
-                        self.restart(ctx);
+                        // personnages debloques pendant la partie : montres avant la nouvelle partie
+                        let root = ctx.root.clone();
+                        self.commit_run(&root, false);
+                        self.collect_unlocks();
+                        if self.pending_unlocks.is_empty() {
+                            self.restart(ctx);
+                        } else {
+                            let items = std::mem::take(&mut self.pending_unlocks);
+                            self.state = State::Unlocks { items, t: 0.0, next: menus::AfterUnlock::Restart };
+                        }
                         return;
                     }
                     Some(_) => {
                         self.sfx(ctx, "confirm");
-                        self.to_title(ctx);
+                        self.quit_to_title(ctx);
                         return;
                     }
                     None => State::Paused { sel },
@@ -2451,6 +2769,16 @@ impl Game {
                         let tab = (ctx.input.last_device == Device::Gamepad) as usize;
                         State::Controls { tab, sel: 0, wait: None, from_title }
                     }
+                    // sauvegarde (export / import) : depuis l'ecran titre seulement (pas en pleine partie)
+                    OptAction::Step(Opt::Save, _) if from_title => {
+                        self.sfx(ctx, "confirm");
+                        self.hub_toast.1 = 0.0;
+                        State::Records { tab: records::TAB_SAVE, sel: 0, armed: false }
+                    }
+                    OptAction::Step(Opt::Save, _) => {
+                        self.sfx(ctx, "error");
+                        State::Options { sel, from_title }
+                    }
                     OptAction::Step(o, d) => {
                         self.change_option(ctx, o, d, None);
                         State::Options { sel, from_title }
@@ -2464,18 +2792,50 @@ impl Game {
             }
             State::LevelUp { offers, mut sel, t } => {
                 let t = t + dt;
-                let (mut pick, moved) = menus::input_levelup(nav, view, offers.len(), &mut sel, t);
+                let avail = [self.world.mods.rerolls > 0, self.world.mods.skips > 0];
+                let (mut pick, moved) = menus::input_levelup_ex(nav, view, offers.len(), &mut sel, t, avail);
                 if moved {
                     self.sfx(ctx, "cursor");
                 }
                 if self.opts.demo && t > 1.2 {
-                    pick = Some(0);
+                    pick = Some(menus::LevelPick::Card(0));
                 }
                 match pick {
-                    Some(k) => {
+                    // Relancer : de nouveaux choix (les cartes rentrent a nouveau)
+                    Some(menus::LevelPick::Reroll) => {
+                        self.world.mods.rerolls -= 1;
+                        self.sfx(ctx, "reroll");
+                        let offers = self.world.roll_offers();
+                        let sel = if self.world.mods.rerolls > 0 { sel } else { 0 };
+                        State::LevelUp { offers, sel, t: 0.15 }
+                    }
+                    // Passer : le niveau est consomme, sans rien en echange
+                    Some(menus::LevelPick::Skip) => {
+                        self.world.mods.skips -= 1;
+                        self.world.pending_levels = self.world.pending_levels.saturating_sub(1);
+                        self.sfx(ctx, "skip");
+                        self.resume(ctx);
+                        return;
+                    }
+                    Some(menus::LevelPick::Card(k)) => {
+                        // choix important (fusion possible, ou niveau maximal atteint) : petite fanfare
+                        // joyeuse ; choix ordinaire : aucun son (seulement l'eclair)
+                        let info = menus::offer_info(&self.world, &self.vis, &self.lang, offers[k]);
+                        let big = info.evo.iter().any(|e| e.2) || (info.max > 1 && info.level >= info.max);
+                        // fusion choisie : meme mise en scene que dans un coffre
+                        let from = match offers[k] {
+                            Offer::Evolve(into) => self.world.evolution_choices_all().into_iter().find(|e| e.1 == into).map(|e| (self.world.weapons[e.0].id, into)),
+                            _ => None,
+                        };
                         self.world.apply_offer(offers[k]);
                         self.world.pending_levels = self.world.pending_levels.saturating_sub(1);
-                        self.sfx(ctx, "pick");
+                        if let Some(evo) = from {
+                            self.state = State::Chest { reward: ChestReward { evolution: Some(evo), upgrades: Vec::new() }, big: false, t: 0.0 };
+                            return;
+                        }
+                        if big {
+                            self.sfx(ctx, "pick_big");
+                        }
                         self.juice.flash([1.0, 1.0, 1.0, 0.25], 0.12);
                         self.resume(ctx);
                         return;
@@ -2498,7 +2858,7 @@ impl Game {
                             self.run_relics.push(id);
                         }
                         self.world.pending_rewards = self.world.pending_rewards.saturating_sub(1);
-                        self.sfx(ctx, "reward");
+                        self.sfx(ctx, "pick_big");
                         self.juice.flash([1.0, 0.85, 1.0, 0.3], 0.15);
                         self.resume(ctx);
                         return;
@@ -2506,18 +2866,89 @@ impl Game {
                     None => State::Reward { offers, sel, t },
                 }
             }
-            State::Chest { reward, big, t } => {
+            State::Fortune { phase, sel, t } => match self.update_fortune(ctx, nav, phase, sel, t + dt, dt) {
+                Some(s) => s,
+                None => return,
+            },
+            State::Witch { sel, t } => match self.update_witch(ctx, nav, sel, t + dt) {
+                Some(s) => s,
+                None => return,
+            },
+            State::EvoChoice { options, big, mut sel, t } => {
+                let t = t + dt;
+                let (mut pick, moved) = menus::input_levelup(nav, view, options.len(), &mut sel, t);
+                if moved {
+                    self.sfx(ctx, "cursor");
+                }
+                if self.opts.demo && t > 1.2 {
+                    pick = Some(0);
+                }
+                match pick {
+                    Some(k) => {
+                        self.sfx(ctx, "pick_big");
+                        let reward = self.world.open_chest_choice(big, Some(options[k].0));
+                        State::Chest { reward, big, t: 0.0 }
+                    }
+                    None => State::EvoChoice { options, big, sel, t },
+                }
+            }
+            State::Unlocks { items, t, next } => {
                 let t2 = t + dt;
-                if t < menus::CHEST_OPEN && t2 >= menus::CHEST_OPEN {
-                    self.sfx(ctx, "chest_open");
-                    self.sfx(ctx, "chest_fanfare");
-                    if reward.evolution.is_some() {
-                        self.sfx(ctx, "evolution");
+                for (i, it) in items.iter().enumerate() {
+                    let ti = menus::unlock_at(i);
+                    if t < ti && t2 >= ti {
+                        self.sfx(ctx, if matches!(it, menus::Unlock::Char(_)) { "char_unlock" } else { "weapon_unlock" });
                     }
                 }
-                let go = t2 >= menus::CHEST_DONE && (nav.confirm || nav.click || (self.opts.demo && t2 > menus::CHEST_DONE + 0.5));
+                let done = menus::unlock_at(items.len().saturating_sub(1)) + 0.6;
+                if nav.confirm || nav.click || (self.opts.demo && t2 > done + 1.0) {
+                    if t2 < done {
+                        // appui pendant l'animation : tout apparait d'un coup
+                        State::Unlocks { items, t: done, next }
+                    } else {
+                        self.sfx(ctx, "confirm");
+                        match next {
+                            menus::AfterUnlock::Victory => State::Victory { t: 0.0, sel: 0 },
+                            menus::AfterUnlock::Dead => State::Dead { t: 0.0, sel: 0 },
+                            menus::AfterUnlock::Title => State::Title { sel: 0 },
+                            menus::AfterUnlock::Restart => {
+                                self.restart(ctx);
+                                return;
+                            }
+                        }
+                    }
+                } else {
+                    State::Unlocks { items, t: t2, next }
+                }
+            }
+            State::Chest { reward, big, t } => {
+                let t2 = t + dt;
+                let evo = reward.evolution;
+                if t < menus::CHEST_OPEN && t2 >= menus::CHEST_OPEN {
+                    self.sfx(ctx, "chest_open");
+                    if evo.is_some() {
+                        self.sfx(ctx, "evolution");
+                    } else {
+                        self.sfx(ctx, "chest_fanfare");
+                    }
+                }
+                if evo.is_some() && t < menus::EVO_MERGE && t2 >= menus::EVO_MERGE {
+                    self.sfx(ctx, "evo_merge");
+                    self.sfx(ctx, "chest_fanfare");
+                }
+                let done = if evo.is_some() { menus::EVO_DONE } else { menus::CHEST_DONE };
+                let go = t2 >= done && (nav.confirm || nav.click || (self.opts.demo && t2 > done + 0.5));
                 if go {
                     self.sfx(ctx, "confirm");
+                    if let Some((_, into)) = evo {
+                        // retour en jeu : l'arme evoluee eclate autour de Link, sa case brille
+                        let pp = self.world.player.pos - Vec2::new(0.0, 8.0);
+                        for k in 0..3 {
+                            self.juice.ring(pp, 4.0 + k as f32 * 8.0, 60.0 + k as f32 * 30.0, 0.5 + k as f32 * 0.15, if k == 1 { GOLD } else { rgb(255, 130, 240) });
+                        }
+                        self.juice.debris(pp, Vec2::ZERO, 30, rgb(255, 130, 240), 170.0, true);
+                        self.hud.evo_flash = Some((into, 3.0));
+                    }
                     self.resume(ctx);
                     return;
                 }
@@ -2525,7 +2956,9 @@ impl Game {
             }
             State::Dying(t) => {
                 let t = t + dt;
-                if t > 1.8 {
+                if t > 1.8 && !self.pending_unlocks.is_empty() {
+                    State::Unlocks { items: std::mem::take(&mut self.pending_unlocks), t: 0.0, next: menus::AfterUnlock::Dead }
+                } else if t > 1.8 {
                     State::Dead { t: 0.0, sel: 0 }
                 } else {
                     State::Dying(t)
@@ -2548,7 +2981,7 @@ impl Game {
                         }
                         Some(_) => {
                             self.sfx(ctx, "confirm");
-                            self.to_title(ctx);
+                            self.quit_to_title(ctx);
                             return;
                         }
                         None => State::Dead { t, sel },
@@ -2568,6 +3001,7 @@ impl Game {
         let pp = w.player.prev.lerp(w.player.pos, alpha) - Vec2::new(0.0, 8.0);
         let ui = pp - cam + ctx.view * 0.5;
         weather::draw(list, ctx, &self.weather_vis, &white, w.map.weather, w.map.tint, cam, ui, w.time);
+        self.draw_drink(ctx, list, ui);
         // fleche vers la porte quand elle est hors champ
         if let Some(at) = w.portal {
             let view = ctx.view;
@@ -2590,12 +3024,12 @@ impl Game {
 
     /// Stage suivant (deja ouvert), s'il existe.
     /// Personnage propose a l'ouverture du choix : le dernier joue, s'il est encore disponible.
-    fn char_sel(&self) -> usize {
-        let ids = chars::roster(&self.content);
+    /// Ecran des personnages, sur le personnage du profil (sa page) s'il est disponible.
+    fn char_select(&self) -> State {
         let want = if self.profile.character.is_empty() { &self.opts.character } else { &self.profile.character };
-        ids.iter()
-            .position(|id| id == want && chars::unlocked(&self.content.characters[id], &self.profile))
-            .unwrap_or(0)
+        let open = self.content.characters.get(want).is_some_and(|d| chars::unlocked(&self.content, d, &self.profile));
+        let (page, sel) = chars::locate(&self.content, want).filter(|_| open).unwrap_or((0, 0));
+        State::CharSelect { page, sel }
     }
 
     fn next_stage(&self) -> Option<String> {
@@ -2647,6 +3081,10 @@ impl Game {
                 continue;
             }
             let left = z.delay + z.life - z.age;
+            // facon retro : la flamme clignote avant de s'eteindre
+            if left >= 0.35 && expiring(left, 1.0) {
+                continue;
+            }
             let fade = (left / 0.35).clamp(0.0, 1.0);
             let sc = (z.radius / 12.0).clamp(1.0, 2.0).round();
             let anim = if left < 0.35 { self.vis.flame_fade } else { self.vis.flame };
@@ -2730,6 +3168,8 @@ impl Game {
             }
         }
 
+        self.draw_npcs(ctx, list, lo, hi);
+
         // personnages tries par profondeur (y)
         self.sort.clear();
         for i in 0..h.len() {
@@ -2790,7 +3230,13 @@ impl Game {
                     if !player.alive {
                         prm = prm.color([1.0, 0.75, 0.75, 1.0]);
                     }
-                    list.frame(&pframe, pp, &prm);
+                    // Plume de Roc : le sprite monte et redescend, l'ombre reste au sol
+                    let jump_h = if player.jump > 0.0 && player.jump_dur > 0.0 {
+                        ((1.0 - player.jump / player.jump_dur) * std::f32::consts::PI).sin() * 20.0
+                    } else {
+                        0.0
+                    };
+                    list.frame(&pframe, pp - Vec2::new(0.0, jump_h.round()), &prm);
                 }
                 continue;
             }
@@ -2827,18 +3273,38 @@ impl Game {
             }
             prm.scale *= es;
             let pos = p - Vec2::new(0.0, h.z[i].round());
-            if Some(k as u16) == w.bomb_kind {
-                let beat = 0.5 + 0.5 * (rt * 7.0 + phase).sin();
-                // anneau au sol qui pulse
-                let r = 11.0 + 3.0 * beat;
-                for s in 0..14 {
-                    let a = s as f32 / 14.0 * TAU + rt;
-                    let q = pos + Vec2::new(a.cos() * r, a.sin() * r * 0.45);
-                    list.rect(&white, q.round(), Vec2::ONE, [1.0, 0.45, 0.15, 0.5 + 0.4 * beat]);
-                }
+            // rencontres (Bob-omb, Pikit voleur) : grand anneau au sol, colonne de lumiere, halo et contour
+            let special = if Some(k as u16) == w.bomb_kind {
+                Some([1.0, 0.45, 0.15])
+            } else if Some(k as u16) == w.thief_kind {
+                Some([THIEF[0], THIEF[1], THIEF[2]])
+            } else {
+                None
+            };
+            if let Some(c) = special {
+                let beat = 0.5 + 0.5 * (rt * 5.0 + phase).sin();
+                let r = (9.0 + 2.0 * beat) * es;
                 list.set(Space::World, Blend::Add);
-                let halo = Params { scale: prm.scale * 1.3, ..prm }.flash([1.0, 0.22, 0.05], 1.0).color([1.0, 1.0, 1.0, 0.16 + 0.24 * beat]);
+                for s in 0..28 {
+                    let a = s as f32 / 28.0 * TAU + rt;
+                    let q = p + Vec2::new(a.cos() * r, a.sin() * r * 0.45);
+                    list.rect(&white, q.round(), Vec2::splat(2.0), [c[0], c[1], c[2], 0.55 + 0.4 * beat]);
+                }
+                let col_h = 26.0 * es;
+                for s in 0..6 {
+                    let wd = (6.0 - s as f32) * es;
+                    list.rect(&white, (p - Vec2::new(wd * 0.5, col_h)).round(), Vec2::new(wd, col_h), [c[0], c[1], c[2], 0.035 + 0.03 * beat]);
+                }
+                let halo = Params { scale: prm.scale * 1.3, ..prm }.flash(c, 1.0).color([1.0, 1.0, 1.0, 0.2 + 0.25 * beat]);
                 list.frame(f, pos + Vec2::new(0.0, 2.0), &halo);
+                list.set(Space::World, Blend::Alpha);
+                let edge = Params { flash: [c[0], c[1], c[2], 1.0], ..prm };
+                for d in [Vec2::X, -Vec2::X, Vec2::Y, -Vec2::Y] {
+                    list.frame(f, pos + d * es, &edge);
+                }
+            }
+            if Some(k as u16) == w.bomb_kind {
+                list.set(Space::World, Blend::Add);
                 // etincelles qui tournent
                 for s in 0..4 {
                     let a = rt * 5.0 + s as f32 * TAU / 4.0;
@@ -2949,6 +3415,11 @@ impl Game {
             if !in_view(pos) {
                 continue;
             }
+            // facon retro : un projectile qui va disparaitre clignote (pas le boomerang qui revient,
+            // ni les bombes et blocs qui ont leur propre clignotement)
+            if matches!(p.kind, ProjKind::Straight | ProjKind::Homing | ProjKind::Tornado) && expiring(p.life - p.age, (p.life * 0.3).min(0.5)) {
+                continue;
+            }
             let wv = &self.vis.weapons[p.weapon as usize];
             let (anim, orient) = match (p.beam, wv.beam, wv.sprite) {
                 (true, Some(b), _) => b,
@@ -2987,6 +3458,31 @@ impl Game {
                 ProjKind::Homing => {
                     list.frame(f, pos, &prm.flip(p.vel.x < 0.0));
                 }
+                ProjKind::Tornado => {
+                    // tornade : grains en spirale, plus larges en haut (cone), qui tournent
+                    let def = &self.content.weapons[p.weapon as usize];
+                    let t = def.tint.unwrap_or((0.85, 0.95, 1.0));
+                    let r = p.radius.max(6.0);
+                    let layers = 12;
+                    list.set(Space::World, Blend::Add);
+                    for k in 0..layers {
+                        let kf = k as f32 / (layers - 1) as f32;
+                        let h = kf * r * 2.2;
+                        let w = r * (0.25 + 0.75 * kf);
+                        for s in 0..3 {
+                            let a = p.rot * (1.0 + kf) + k as f32 * 0.9 + s as f32 * TAU / 3.0;
+                            let q = pos + Vec2::new(0.0, 6.0) + Vec2::new(a.cos() * w, -h + a.sin() * w * 0.3);
+                            let al = 0.55 + 0.4 * a.sin().abs();
+                            list.rect(&white, q.round(), Vec2::splat(3.0), [t.0, t.1, t.2, al]);
+                        }
+                        if k % 3 == 1 {
+                            let a = p.rot * 1.3 + k as f32;
+                            let q = pos + Vec2::new(0.0, 6.0) + Vec2::new(a.cos() * w * 0.6, -h);
+                            list.frame(f, q.round(), &Params::default().color([t.0, t.1, t.2, 0.8]));
+                        }
+                    }
+                    list.set(Space::World, Blend::Alpha);
+                }
                 _ => {
                     list.frame(f, pos, &prm);
                     if p.beam {
@@ -3023,11 +3519,21 @@ impl Game {
             let Some(anim) = self.vis.weapons[ws.id as usize].sprite else { continue };
             let r = ws.stats.area;
             let n = ((r * 0.7) as usize).clamp(12, 48);
-            let tint = if def.evolved { [1.0, 0.7, 1.0] } else { [1.0, 1.0, 1.0] };
+            // fanal, jarre : moitie moins de grains (gros sprites de flamme)
+            let n = if def.tint.is_some() { n / 2 } else { n };
+            let tint = match def.tint {
+                Some(t) => [t.0, t.1, t.2],
+                None if def.evolved => [1.0, 0.7, 1.0],
+                None => [1.0, 1.0, 1.0],
+            };
             list.set(Space::World, Blend::Add);
             // bord du nuage : anneau pointille qui tourne lentement (portee lisible)
             let ring = ((r * 0.45) as usize).clamp(20, 72);
-            let edge = if def.evolved { [1.0, 0.45, 0.25] } else { [0.75, 0.6, 1.0] };
+            let edge = match def.tint {
+                Some(t) => [t.0, t.1, t.2],
+                None if def.evolved => [1.0, 0.45, 0.25],
+                None => [0.75, 0.6, 1.0],
+            };
             for s in 0..ring {
                 let a = s as f32 / ring as f32 * TAU + rt * 0.4;
                 let q = pp - Vec2::new(0.0, 2.0) + Vec2::new(a.cos() * r, a.sin() * r * 0.6);
@@ -3036,14 +3542,16 @@ impl Game {
             }
             for k in 0..n {
                 let kf = k as f32;
-                let rr = r * (0.3 + 0.7 * (kf * 0.618).fract());
+                // fanal, jarre (teinte propre) : grains sur le pourtour, pour ne pas cacher le joueur
+                let ring_only = def.tint.is_some();
+                let rr = if ring_only { r * (0.7 + 0.3 * (kf * 0.618).fract()) } else { r * (0.3 + 0.7 * (kf * 0.618).fract()) };
                 let dir = if k % 2 == 0 { 1.0 } else { -1.0 };
                 let a = kf * 2.399 + rt * (0.7 + 0.5 * (kf * 0.37).fract()) * dir;
                 let q = pp - Vec2::new(0.0, 6.0) + Vec2::new(a.cos(), a.sin() * 0.6) * rr;
                 let f = atlas.frame(anim, rt + kf * 0.17);
                 let al = 0.7 + 0.3 * (rt * 3.0 + kf).sin().abs();
                 // un grain sur trois en x2 : le nuage se lit mieux dans la foule
-                let sc = if k % 3 == 0 { 2.0 } else { 1.0 };
+                let sc = if k % 3 == 0 && !ring_only { 2.0 } else { 1.0 };
                 list.frame(f, q.round(), &Params { scale: Vec2::splat(sc), ..Params::default() }.color([tint[0], tint[1], tint[2], al]));
             }
             list.set(Space::World, Blend::Alpha);
@@ -3061,6 +3569,9 @@ impl Game {
                 prm = prm.rot(s.vel.y.atan2(s.vel.x) + if up { FRAC_PI_2 } else { 0.0 });
             }
             let f = atlas.frame(anim, wt + s.age);
+            if !s.lob && expiring(s.life - s.age, (s.life * 0.3).min(0.5)) {
+                continue;
+            }
             if s.lob {
                 // bombe du boss : clignote au sol avant d'exploser
                 if s.age >= s.flight && (s.age * 14.0).fract() < 0.5 {
@@ -3087,14 +3598,16 @@ impl Game {
             }
         }
 
-        // barres de vie sous les mini-boss : elites, champions errants, Pikit et boss de mi-parcours
+        // barres de vie sous les mini-boss : elites, champions errants, rencontres (voleur, Bob-omb) et
+        // boss de mi-parcours
         list.set(Space::World, Blend::Alpha);
         for i in 0..h.len() {
             let k = h.kind[i] as usize;
             let boss = self.content.enemies[k].boss;
             let mid_boss = boss && w.final_uid != Some(h.uid[i]);
             let thief = Some(h.kind[i]) == w.thief_kind;
-            if !(h.elite[i] || mid_boss || thief) || h.hp[i] <= 0.0 {
+            let bomb = Some(h.kind[i]) == w.bomb_kind;
+            if !(h.elite[i] || mid_boss || thief || bomb) || h.hp[i] <= 0.0 {
                 continue;
             }
             let p = h.prev[i].lerp(h.pos[i], alpha);
@@ -3109,6 +3622,8 @@ impl Game {
                 CHAMPION
             } else if thief {
                 THIEF
+            } else if bomb {
+                rgb(255, 150, 80)
             } else if boss {
                 rgb(255, 110, 110)
             } else {
@@ -3141,109 +3656,76 @@ impl Game {
         }
     }
 
-    /// Fleche d'indication (sprite de la police d'A Link to the Past) a cote d'un repere au bord de l'ecran :
-    /// tournee d'un quart de tour vers la direction dominante (pixels nets), elle avance et recule un peu.
-    fn edge_arrow(&self, ctx: &Ctx, list: &mut DrawList, c: Vec2, d: Vec2, dist: f32) {
+    /// Fleche d'indication (sprite de la police d'A Link to the Past) au bord de l'ecran, tournee d'un
+    /// quart de tour vers la direction dominante (pixels nets), teintee, qui avance et recule un peu.
+    fn edge_arrow(&self, ctx: &Ctx, list: &mut DrawList, c: Vec2, d: Vec2, color: Color, blink: bool) {
         let card = if d.x.abs() >= d.y.abs() { Vec2::new(d.x.signum(), 0.0) } else { Vec2::new(0.0, d.y.signum()) };
         let rot = card.y.atan2(card.x);
-        let push = (2.0 * (ctx.real_time as f32 * 5.0).sin().abs()).round();
-        let at = (c + card * (dist + push)).round();
-        list.frame(ctx.atlas.frame(self.vis.ui_arrow, 0.0), at, &Params { rot, ..Default::default() });
+        let push = (3.0 * (ctx.real_time as f32 * 5.0).sin().abs()).round();
+        let at = (c + card * push).round();
+        let a = if blink && (ctx.real_time * 3.0).fract() >= 0.65 { 0.65 } else { 1.0 };
+        let pr = Params { rot, ..Default::default() };
+        // contour sombre puis fleche agrandie et teintee : visible sur tous les decors
+        for o in [Vec2::new(1.0, 0.0), Vec2::new(-1.0, 0.0), Vec2::new(0.0, 1.0), Vec2::new(0.0, -1.0)] {
+            list.frame(ctx.atlas.frame(self.vis.ui_arrow, 0.0), at + o * 2.0, &pr.scale(Vec2::splat(2.0)).color([0.0, 0.0, 0.0, 0.7 * a]));
+        }
+        list.frame(ctx.atlas.frame(self.vis.ui_arrow, 0.0), at, &pr.scale(Vec2::splat(2.0)).color(with_alpha(color, a)));
     }
 
-    /// Fleches au bord de l'ecran vers les coffres et la Bob-omb hors champ.
+    /// Point du bord de l'ecran vers une cible hors champ (None si elle est visible), a l'ecart du HUD.
+    fn edge_point(view: Vec2, ui: Vec2) -> Option<(Vec2, Vec2)> {
+        if ui.x >= 0.0 && ui.y >= 0.0 && ui.x <= view.x && ui.y <= view.y {
+            return None;
+        }
+        let m = 22.0;
+        let c = Vec2::new(ui.x.clamp(m, view.x - m), ui.y.clamp(m + 74.0, view.y - 40.0));
+        Some((c, (ui - c).normalize_or_zero()))
+    }
+
+    /// Fleches au bord de l'ecran vers ce qui est hors champ : champion, Pikit voleur, Bob-omb, coffres.
     fn draw_chest_markers(&self, ctx: &Ctx, list: &mut DrawList, cam: Vec2) {
         let view = ctx.view;
         let pk = &self.world.pickups;
         list.set(Space::Ui, Blend::Alpha);
         let h = &self.world.horde;
+        let font = ctx.atlas.font("main");
+        let blink = (ctx.real_time * 3.0).fract() < 0.65;
         if let (Some(e), Some(cp)) = (self.world.encounter.as_ref(), self.world.champion_pos()) {
             let ui = cp - cam + view * 0.5;
-            let m = 22.0;
-            let on_screen = ui.x >= 0.0 && ui.y >= 0.0 && ui.x <= view.x && ui.y <= view.y;
-            let blink = (ctx.real_time * 3.0).fract() < 0.65;
-            let font = ctx.atlas.font("main");
-            if !on_screen {
-                // a l'ecart du HUD : coeurs et armes en haut, mode d'attaque en bas
-                let c = Vec2::new(ui.x.clamp(m + 18.0, view.x - m - 18.0), ui.y.clamp(m + 74.0, view.y - 56.0));
-                if let Some(i) = h.uid.iter().position(|&u| u == e.uid) {
-                    let (anim, _) = self.vis.enemies[h.kind[i] as usize].pick(FACE_DOWN, 0.0, false);
-                    list.frame(ctx.atlas.frame(anim, ctx.real_time as f32), c + Vec2::new(0.0, 8.0), &Params::default().color([1.0, 1.0, 1.0, if blink { 1.0 } else { 0.7 }]));
+            match Self::edge_point(view, ui) {
+                Some((c, d)) => self.edge_arrow(ctx, list, c, d, CHAMPION, true),
+                None if !e.engaged => {
+                    let s = format!("{}s", e.t.ceil() as i32);
+                    crate::hud::text(list, font, &s, ui + Vec2::new(0.0, 6.0), 1.0, with_alpha(CHAMPION, if blink { 1.0 } else { 0.7 }), engine::draw::Align::Center);
                 }
-                let d = (ui - c).normalize_or_zero();
-                self.edge_arrow(ctx, list, c, d, 20.0);
-                // distance (en metres de jeu : 16 pixels) et temps restant
-                let dist = ((cp - self.world.player.pos).length() / 16.0).round() as i32;
-                let mut s = format!("{dist}m");
-                if !e.engaged {
-                    s = format!("{s} {}s", e.t.ceil() as i32);
-                }
-                // texte du cote oppose a la fleche
-                let ty = if d.y > 0.4 { -36.0 } else { 16.0 };
-                crate::hud::text(list, font, &s, c + Vec2::new(0.0, ty), 1.0, CHAMPION, engine::draw::Align::Center);
-            } else if !e.engaged {
-                let s = format!("{}s", e.t.ceil() as i32);
-                crate::hud::text(list, font, &s, ui + Vec2::new(0.0, 6.0), 1.0, with_alpha(CHAMPION, if blink { 1.0 } else { 0.7 }), engine::draw::Align::Center);
+                None => {}
             }
         }
-        // Pikit voleur hors champ : fleche, distance et temps restant
         if let (Some(th), Some(tp)) = (self.world.thief.as_ref(), self.world.thief_pos()) {
             let ui = tp - cam + view * 0.5;
-            let m = 22.0;
-            let on_screen = ui.x >= 0.0 && ui.y >= 0.0 && ui.x <= view.x && ui.y <= view.y;
-            let font = ctx.atlas.font("main");
-            let blink = (ctx.real_time * 3.0).fract() < 0.65;
-            if !on_screen {
-                let c = Vec2::new(ui.x.clamp(m + 18.0, view.x - m - 18.0), ui.y.clamp(m + 74.0, view.y - 56.0));
-                if let Some(k) = self.world.thief_kind {
-                    let (anim, _) = self.vis.enemies[k as usize].pick(FACE_DOWN, 0.0, false);
-                    list.frame(ctx.atlas.frame(anim, ctx.real_time as f32), c + Vec2::new(0.0, 8.0), &Params::default().color([1.0, 1.0, 1.0, if blink { 1.0 } else { 0.7 }]));
+            match Self::edge_point(view, ui) {
+                Some((c, d)) => self.edge_arrow(ctx, list, c, d, THIEF, true),
+                None => {
+                    let s = format!("{}s", th.t.ceil() as i32);
+                    crate::hud::text(list, font, &s, ui + Vec2::new(0.0, 8.0), 1.0, with_alpha(THIEF, if blink { 1.0 } else { 0.7 }), engine::draw::Align::Center);
                 }
-                let d = (ui - c).normalize_or_zero();
-                self.edge_arrow(ctx, list, c, d, 20.0);
-                let dist = ((tp - self.world.player.pos).length() / 16.0).round() as i32;
-                let s = format!("{dist}m {}s", th.t.ceil() as i32);
-                let ty = if d.y > 0.4 { -36.0 } else { 16.0 };
-                crate::hud::text(list, font, &s, c + Vec2::new(0.0, ty), 1.0, THIEF, engine::draw::Align::Center);
-            } else {
-                let s = format!("{}s", th.t.ceil() as i32);
-                crate::hud::text(list, font, &s, ui + Vec2::new(0.0, 8.0), 1.0, with_alpha(THIEF, if blink { 1.0 } else { 0.7 }), engine::draw::Align::Center);
             }
         }
         if let Some(bk) = self.world.bomb_kind {
             for i in 0..h.len() {
-                if h.kind[i] != bk {
-                    continue;
+                if h.kind[i] == bk {
+                    if let Some((c, d)) = Self::edge_point(view, h.pos[i] - cam + view * 0.5) {
+                        self.edge_arrow(ctx, list, c, d, rgb(255, 140, 90), true);
+                    }
                 }
-                let ui = h.pos[i] - cam + view * 0.5;
-                let m = 18.0;
-                if ui.x >= 0.0 && ui.y >= 0.0 && ui.x <= view.x && ui.y <= view.y {
-                    continue;
-                }
-                let c = Vec2::new(ui.x.clamp(m, view.x - m), ui.y.clamp(m + 60.0, view.y - m));
-                let (anim, _) = self.vis.enemies[bk as usize].pick(FACE_DOWN, 0.0, false);
-                let blink = (ctx.real_time * 4.0).fract() < 0.6;
-                list.frame(ctx.atlas.frame(anim, ctx.real_time as f32), c + Vec2::new(0.0, 10.0), &Params::default().color([1.0, 1.0, 1.0, if blink { 1.0 } else { 0.6 }]));
-                let d = (ui - c).normalize_or_zero();
-                self.edge_arrow(ctx, list, c, d, 18.0);
             }
         }
         for i in 0..pk.len() {
-            if !pk.kind[i].is_chest() {
-                continue;
+            if pk.kind[i].is_chest() {
+                if let Some((c, d)) = Self::edge_point(view, pk.pos[i] - cam + view * 0.5) {
+                    self.edge_arrow(ctx, list, c, d, GOLD, false);
+                }
             }
-            let ui = pk.pos[i] - cam + view * 0.5;
-            let m = 18.0;
-            if ui.x >= 0.0 && ui.y >= 0.0 && ui.x <= view.x && ui.y <= view.y {
-                continue;
-            }
-            let c = Vec2::new(ui.x.clamp(m, view.x - m), ui.y.clamp(m + 60.0, view.y - m));
-            let blink = (ctx.real_time * 3.0).fract() < 0.7;
-            let anim = self.vis.chest[(pk.kind[i] == PickupKind::BigChest) as usize];
-            list.frame(ctx.atlas.frame(anim, 0.0), c + Vec2::new(0.0, 6.0), &Params::default().color([1.0, 1.0, 1.0, if blink { 1.0 } else { 0.6 }]));
-            // fleche orientee vers le coffre
-            let d = (ui - c).normalize_or_zero();
-            self.edge_arrow(ctx, list, c, d, 16.0);
         }
     }
 
@@ -3258,7 +3740,7 @@ impl Game {
         let lang = &self.lang;
         match &self.state {
             State::Title { .. } | State::About { .. } => {}
-            State::Paused { sel } => menus::draw_pause(list, ctx, &self.vis, lang, *sel),
+            State::Paused { sel } => menus::draw_pause(list, ctx, &self.vis, lang, *sel, &self.world, &self.profile.evolutions),
             State::Options { sel, .. } => {
                 let code_idx = LANGS.iter().position(|&c| c == self.settings.lang).unwrap_or(0);
                 let v = OptValues {
@@ -3276,10 +3758,14 @@ impl Game {
             }
             State::LevelUp { offers, sel, t } => menus::draw_levelup(list, ctx, &self.world, &self.vis, lang, offers, *sel, *t),
             State::Chest { reward, big, t } => menus::draw_chest(list, ctx, &self.world, &self.vis, lang, reward, *big, *t),
+            State::EvoChoice { options, sel, t, .. } => menus::draw_evo_choice(list, ctx, &self.world, &self.vis, lang, options, *sel, *t),
+            State::Unlocks { items, t, .. } => menus::draw_unlocks(list, ctx, &self.content, &self.vis, lang, items, *t),
             State::Reward { offers, sel, t } => {
                 let infos: Vec<_> = offers.iter().map(|&o| reward::info(&self.world, &self.vis, &ctx.atlas, lang, &self.meta, o)).collect();
                 menus::draw_cards(list, ctx, &self.vis, lang, (lang.get("ui.reward.title"), lang.get("ui.choose"), CHAMPION), &infos, *sel, *t);
             }
+            State::Fortune { phase, sel, t } => self.draw_fortune(ctx, list, phase, *sel, *t),
+            State::Witch { sel, t } => self.draw_witch(ctx, list, *sel, *t),
             State::Dying(t) => {
                 let a = (t / 1.8).min(1.0) * 0.55;
                 list.rect(white, Vec2::ZERO, view, [0.25, 0.0, 0.0, a]);
@@ -3289,13 +3775,21 @@ impl Game {
                 let items = stages::victory_items(self.next_stage().is_some());
                 let mut notes = Vec::new();
                 if let Some(id) = &self.last_unlocked {
-                    notes.push(lang.get("ui.new_stage").replace("{s}", &stages::stage_name(lang, id)));
+                    notes.push(lang.get("ui.new_stage").replace("{s}", &crate::hud::hl_new(&stages::stage_name(lang, id))));
                 }
-                for id in &self.last_relics {
-                    notes.push(lang.get("ui.relic_found").replace("{s}", lang.get(&format!("relic.{id}.name"))));
+                // une ligne par sorte de deblocage : la liste reste courte meme apres une grosse partie
+                let relics: Vec<String> = self.last_relics.iter().map(|id| crate::hud::hl(lang.get(&format!("relic.{id}.name")))).collect();
+                if !relics.is_empty() {
+                    let key = if relics.len() > 1 { "ui.relics_found" } else { "ui.relic_found" };
+                    notes.push(lang.get(key).replace("{s}", &relics.join(", ")));
                 }
-                for id in &self.last_chars {
-                    notes.push(lang.get("ui.new_character").replace("{s}", &chars::name(lang, id)));
+                let mut new_chars: Vec<String> = self.last_chars.iter().take(5).map(|id| crate::hud::hl_new(&chars::name(lang, id))).collect();
+                if self.last_chars.len() > 5 {
+                    new_chars.push(format!("+{}", self.last_chars.len() - 5));
+                }
+                if !new_chars.is_empty() {
+                    let key = if new_chars.len() > 1 { "ui.new_characters" } else { "ui.new_character" };
+                    notes.push(lang.get(key).replace("{s}", &new_chars.join(", ")));
                 }
                 stages::draw_victory(list, ctx, &self.world, lang, *t, *sel, &items, self.last_banked, self.last_score, &notes);
             }
@@ -3346,9 +3840,109 @@ impl Game {
     }
 }
 
+impl Game {
+    /// Curseur de la souris : la fee de l'ecran de selection des fichiers d'A Link to the Past, qui
+    /// flotte doucement ; pointe = centre de la fee. Cache quand on joue au clavier ou a la manette.
+    fn draw_cursor(&self, ctx: &Ctx, list: &mut DrawList) {
+        let i = &ctx.input;
+        if i.last_device != Device::Mouse || !i.mouse_inside || !i.focused {
+            return;
+        }
+        let m = ctx.mouse_ui().round();
+        list.set(Space::Ui, Blend::Alpha);
+        let t = ctx.real_time as f32;
+        let f = ctx.atlas.frame(self.vis.cursor, t);
+        // ombre puis fee
+        list.frame(f, m + Vec2::new(1.0, 1.0), &Params::default().color([0.0, 0.0, 0.0, 0.45]));
+        list.frame(f, m, &Params::default());
+    }
+
+    fn draw_scene(&mut self, ctx: &Ctx, alpha: f32, list: &mut DrawList) -> Frame {
+        if self.state.in_title() {
+            let white = self.vis.white;
+            match &self.state {
+                State::About { sel, toast } => {
+                    title::draw_about(list, ctx, &self.title_vis, &self.lang, &white, &self.links, *sel, self.menu_t, *toast)
+                }
+                State::Title { sel } => {
+                    let items = self.title_items();
+                    title::draw_title(list, ctx, &self.title_vis, &self.lang, &white, &items, *sel, self.profile.avatar, self.menu_t)
+                }
+                State::Shop { .. } | State::Records { .. } | State::Controls { .. } | State::Scores { .. } => {
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    self.draw_hub(ctx, list);
+                }
+                State::Players { sel, armed } => {
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    let views: Vec<Option<players::SlotView>> = (0..profiles::SLOTS)
+                        .map(|k| {
+                            if k == self.profile.slot {
+                                Some(players::SlotView::of(&self.profile))
+                            } else {
+                                self.slots.get(k).and_then(|s| s.as_ref()).map(players::SlotView::of)
+                            }
+                        })
+                        .collect();
+                    let toast = if self.hub_toast.1 > 0.0 { self.hub_toast.0.as_str() } else { "" };
+                    players::draw(list, ctx, &self.lang, &views, self.profile.slot, *sel, *armed, self.stage_ids.len(), toast, self.menu_t);
+                }
+                State::NameEntry { purpose, text, sel } => {
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    let (key, avatar) = match purpose {
+                        NamePurpose::Create(k) => ("ui.name_new", self.free_avatar(*k)),
+                        NamePurpose::Rename => ("ui.name_rename", self.profile.avatar),
+                        NamePurpose::Pseudo { .. } => ("ui.name_pseudo", self.profile.avatar),
+                    };
+                    players::draw_name(list, ctx, &self.lang, self.lang.get(key), text, *sel, Some(avatar), self.menu_t);
+                }
+                State::CharSelect { page, sel } => {
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    chars::draw_select(list, ctx, &self.lang, &self.content, &self.meta, &self.profile, *page, *sel, self.menu_t);
+                }
+                State::StageSelect { sel } => {
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    stages::draw_select(list, ctx, &self.lang, &self.content, &self.profile, &self.stage_ids, *sel, self.menu_t);
+                }
+                _ => {
+                    // options ouvertes depuis le titre : le decor reste visible dessous
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    self.draw_overlays(ctx, list);
+                }
+            }
+            return Frame { camera: Vec2::ZERO, clear: [0.0, 0.0, 0.0] };
+        }
+        let w = &self.world;
+        let pp = w.player.prev.lerp(w.player.pos, alpha) - Vec2::new(0.0, 8.0);
+        let cam = match self.cam {
+            None => pp,
+            Some(c) => c + (pp - c) * (1.0 - (-self.frame_dt * 12.0).exp()),
+        };
+        self.cam = Some(cam);
+        let cam_shaken = cam + self.juice.shake;
+        self.draw_world(ctx, alpha, list, cam_shaken);
+        self.juice.draw_over(list, &ctx.atlas, &self.vis.white);
+        self.draw_stage_fx(ctx, alpha, list, cam_shaken);
+        self.juice.draw_numbers(list, &ctx.atlas);
+        self.draw_chest_markers(ctx, list, cam_shaken);
+        self.draw_npc_markers(ctx, list, cam_shaken);
+        self.hud.banked = (bank_amount(self.world.player.rupees, false, self.meta.bank_mult(&self.profile)) as f32 * self.run_bank_mult).round() as u64;
+        self.hud.draw(list, ctx, &self.world, &self.vis, &self.lang);
+        self.draw_overlays(ctx, list);
+        Frame { camera: cam_shaken, clear: [0.0, 0.0, 0.0] }
+    }
+}
+
 impl GameTrait for Game {
     fn frame(&mut self, ctx: &mut Ctx, dt: f32) {
         self.frame_dt = dt;
+        if cfg!(target_arch = "wasm32") {
+            let lost_focus = self.was_focused && !ctx.input.focused;
+            self.was_focused = ctx.input.focused;
+            if lost_focus || ctx.real_time >= self.checkpoint_at {
+                self.checkpoint_at = ctx.real_time + 10.0;
+                self.save_run_checkpoint(ctx);
+            }
+        }
         let i = &ctx.input;
         let (f3, f4, f12) = (i.key_pressed(KeyCode::F3), i.key_pressed(KeyCode::F4), i.key_pressed(KeyCode::F12));
         if f3 {
@@ -3363,6 +3957,13 @@ impl GameTrait for Game {
             let _ = std::fs::create_dir_all(&dir);
             let p = dir.join(format!("capture_{}.png", (ctx.real_time * 1000.0) as u64));
             ctx.capture(p);
+        }
+        // bouton Select de la manette : plein ecran (comme F11)
+        if ctx.input.action_pressed(&self.bindings, "fullscreen") {
+            let on = !ctx.fullscreen;
+            ctx.set_fullscreen(on);
+            self.settings.fullscreen = on;
+            self.settings.save(&ctx.root);
         }
         if self.opts.uicheck {
             self.opts.uicheck = false;
@@ -3443,80 +4044,19 @@ impl GameTrait for Game {
     }
 
     fn draw(&mut self, ctx: &Ctx, alpha: f32, list: &mut DrawList) -> Frame {
-        if self.state.in_title() {
-            let white = self.vis.white;
-            match &self.state {
-                State::About { sel, toast } => {
-                    title::draw_about(list, ctx, &self.title_vis, &self.lang, &white, &self.links, *sel, self.menu_t, *toast)
-                }
-                State::Title { sel } => {
-                    let items = self.title_items();
-                    title::draw_title(list, ctx, &self.title_vis, &self.lang, &white, &items, *sel, self.profile.avatar, self.menu_t)
-                }
-                State::Shop { .. } | State::Records { .. } | State::Controls { .. } | State::Scores { .. } => {
-                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
-                    self.draw_hub(ctx, list);
-                }
-                State::Players { sel, armed } => {
-                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
-                    let views: Vec<Option<players::SlotView>> = (0..profiles::SLOTS)
-                        .map(|k| {
-                            if k == self.profile.slot {
-                                Some(players::SlotView::of(&self.profile))
-                            } else {
-                                self.slots.get(k).and_then(|s| s.as_ref()).map(players::SlotView::of)
-                            }
-                        })
-                        .collect();
-                    let toast = if self.hub_toast.1 > 0.0 { self.hub_toast.0.as_str() } else { "" };
-                    players::draw(list, ctx, &self.lang, &views, self.profile.slot, *sel, *armed, self.stage_ids.len(), toast, self.menu_t);
-                }
-                State::NameEntry { purpose, text, sel } => {
-                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
-                    let (key, avatar) = match purpose {
-                        NamePurpose::Create(k) => ("ui.name_new", self.free_avatar(*k)),
-                        NamePurpose::Rename => ("ui.name_rename", self.profile.avatar),
-                        NamePurpose::Pseudo { .. } => ("ui.name_pseudo", self.profile.avatar),
-                    };
-                    players::draw_name(list, ctx, &self.lang, self.lang.get(key), text, *sel, Some(avatar), self.menu_t);
-                }
-                State::CharSelect { sel } => {
-                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
-                    let ids = chars::roster(&self.content);
-                    chars::draw_select(list, ctx, &self.lang, &self.content, &self.profile, &ids, *sel, self.menu_t);
-                }
-                State::StageSelect { sel } => {
-                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
-                    stages::draw_select(list, ctx, &self.lang, &self.content, &self.profile, &self.stage_ids, *sel, self.menu_t);
-                }
-                _ => {
-                    // options ouvertes depuis le titre : le decor reste visible dessous
-                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
-                    self.draw_overlays(ctx, list);
-                }
-            }
-            return Frame { camera: Vec2::ZERO, clear: [0.0, 0.0, 0.0] };
-        }
-        let w = &self.world;
-        let pp = w.player.prev.lerp(w.player.pos, alpha) - Vec2::new(0.0, 8.0);
-        let cam = match self.cam {
-            None => pp,
-            Some(c) => c + (pp - c) * (1.0 - (-self.frame_dt * 12.0).exp()),
-        };
-        self.cam = Some(cam);
-        let cam_shaken = cam + self.juice.shake;
-        self.draw_world(ctx, alpha, list, cam_shaken);
-        self.juice.draw_over(list, &ctx.atlas, &self.vis.white);
-        self.draw_stage_fx(ctx, alpha, list, cam_shaken);
-        self.juice.draw_numbers(list, &ctx.atlas);
-        self.draw_chest_markers(ctx, list, cam_shaken);
-        self.hud.banked = bank_amount(self.world.player.rupees, false, self.meta.bank_mult(&self.profile));
-        self.hud.draw(list, ctx, &self.world, &self.vis, &self.lang);
-        self.draw_overlays(ctx, list);
-        Frame { camera: cam_shaken, clear: [0.0, 0.0, 0.0] }
+        crate::hud::set_text_time(ctx.real_time as f32);
+        let f = self.draw_scene(ctx, alpha, list);
+        self.draw_cursor(ctx, list);
+        f
     }
 
     fn exit(&mut self, ctx: &mut Ctx) {
+        // fenetre fermee en pleine partie : comptee comme un abandon (rubis en banque, bestiaire,
+        // statistiques), comme avec « Ecran titre ». Avant, toute la partie etait perdue.
+        if !self.opts.scripted {
+            let root = ctx.root.clone();
+            self.commit_run(&root, false);
+        }
         if self.opts.bench.is_some() {
             let s = &ctx.stats;
             println!(
@@ -3561,4 +4101,10 @@ impl GameTrait for Game {
 pub fn bank_amount(rupees: u32, won: bool, mult: f32) -> u64 {
     let base = (rupees as u64 / 4) * if won { 3 } else { 2 } / 2;
     (base as f32 * mult).round() as u64
+}
+
+/// Clignotement retro d'un objet qui va disparaitre : vrai une image sur deux (environ 8 fois
+/// par seconde) pendant les `window` dernieres secondes de sa vie (`left` : temps restant).
+fn expiring(left: f32, window: f32) -> bool {
+    left < window && left > 0.0 && ((left * 16.0) as i32) % 2 == 1
 }

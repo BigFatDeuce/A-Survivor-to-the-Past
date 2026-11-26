@@ -1,52 +1,54 @@
 // Audio : musiques (avec points de boucle), regles des effets sonores, et association
 // evenement du jeu -> effet(s). Tout se regle ici sans toucher au code.
 //
-// Musiques : boucles detectees automatiquement (research/tools/music_loops.py), recalees de
-// quelques secondes avant le fondu de fin de piste. `once: true` = jingle joue une fois.
+// Musiques : comme dans le jeu d'origine (et son recompile), l'introduction est jouee une fois puis
+// la boucle se repete sans couture. Les fichiers sont prepares par research/tools/music_loopify.py :
+// ils s'arretent au point de boucle, avec un micro-fondu de 60 ms deja integre ; loop_start et
+// loop_end sont au sample pres (32 kHz). `once: true` = jingle joue une fois.
+// Une seule musique par contexte (stage, boss, menus), celle que le jeu joue au meme endroit.
 (
-    // Ecran titre : le prologue d'ALttP joue en entier puis repart du debut en fondu enchaine
-    // pendant son propre fondu de fin (aucune coupure), sous une averse continue.
+    // Ecran titre : le prologue d'ALttP (la legende des sept sages), sous une averse continue.
     menu_music: "title_theme",
     menu_ambience: Some("fierce_rainstorm"),
     music: {
-        "title_theme": (file: "03_seal_of_seven_maidens.ogg", crossfade: Some((106.0, 5.0))),
+        "title_theme": (file: "03_seal_of_seven_maidens.ogg", loop_start: 48.380000, loop_end: Some(95.836000)),
         "title_link_to_the_past": (file: "01_title_link_to_the_past.ogg", loop_start: 9.7056, loop_end: Some(14.5312)),
-        "beginning_of_the_journey": (file: "02_beginning_of_the_journey.ogg", loop_start: 27.1731, loop_end: Some(38.944)), // boucle incertaine, a verifier a l'oreille
-        "seal_of_seven_maidens": (file: "03_seal_of_seven_maidens.ogg", loop_start: 48.4754, loop_end: Some(100.96)),
-        "time_of_the_falling_rain": (file: "04_time_of_the_falling_rain.ogg", loop_start: 17.9854, loop_end: Some(39.968)),
-        "time_of_the_falling_rain_storm": (file: "05_time_of_the_falling_rain_storm.ogg", loop_start: 17.9844, loop_end: Some(39.968)),
-        "majestic_castle": (file: "06_majestic_castle.ogg", loop_start: 78.9876, loop_end: Some(161.984)),
+        "beginning_of_the_journey": (file: "02_beginning_of_the_journey.ogg", loop_start: 12.000000, loop_end: Some(35.832000)),
+        "seal_of_seven_maidens": (file: "03_seal_of_seven_maidens.ogg", loop_start: 48.380000, loop_end: Some(95.836000)),
+        "time_of_the_falling_rain": (file: "04_time_of_the_falling_rain.ogg", loop_start: 24.011750, loop_end: Some(44.350000)),
+        "time_of_the_falling_rain_storm": (file: "05_time_of_the_falling_rain_storm.ogg", loop_start: 10.829313, loop_end: Some(31.170000)),
+        "majestic_castle": (file: "06_majestic_castle.ogg", loop_start: 85.099625, loop_end: Some(163.380000)),
         "majestic_castle_storm": (file: "07_majestic_castle_storm.ogg", loop_start: 78.9873, loop_end: Some(161.984)),
-        "princess_zelda_s_rescue": (file: "08_princess_zelda_s_rescue.ogg", loop_start: 40.5976, loop_end: Some(82.96)),
-        "safety_in_the_sanctuary": (file: "09_safety_in_the_sanctuary.ogg", loop_start: 29.8723, loop_end: Some(53.968)),
-        "hyrule_field_main_theme": (file: "10_hyrule_field_main_theme.ogg", loop_start: 34.8603, loop_end: Some(69.968)),
-        "kakariko_village": (file: "11_kakariko_village.ogg", loop_start: 88.1373, loop_end: Some(177.968)),
-        "guessing_game_house": (file: "12_guessing_game_house.ogg", loop_start: 17.5793, loop_end: Some(37.968)), // boucle incertaine, a verifier a l'oreille
-        "fortune_teller": (file: "13_fortune_teller.ogg", loop_start: 25.8987, loop_end: Some(31.2569)),
+        "princess_zelda_s_rescue": (file: "08_princess_zelda_s_rescue.ogg", loop_start: 44.421937, loop_end: Some(86.552000)),
+        "safety_in_the_sanctuary": (file: "09_safety_in_the_sanctuary.ogg", loop_start: 21.696375, loop_end: Some(45.292000)),
+        "hyrule_field_main_theme": (file: "10_hyrule_field_main_theme.ogg", loop_start: 11.529250, loop_end: Some(46.638000)),
+        "kakariko_village": (file: "11_kakariko_village.ogg", loop_start: 49.240000, loop_end: Some(138.768000)),
+        "guessing_game_house": (file: "12_guessing_game_house.ogg", loop_start: 13.270000, loop_end: Some(33.434000)),
+        "fortune_teller": (file: "13_fortune_teller.ogg", loop_start: 2.202000, loop_end: Some(21.228000)),
         "soldiers_of_kakariko_village": (file: "14_soldiers_of_kakariko_village.ogg", loop_start: 4.4973, loop_end: Some(12.992)),
-        "dank_dungeons": (file: "15_dank_dungeons.ogg", loop_start: 17.232, loop_end: Some(32.992)),
-        "lost_ancient_ruins": (file: "16_lost_ancient_ruins.ogg", loop_start: 61.0493, loop_end: Some(105.968)),
-        "anger_of_the_guardians": (file: "17_anger_of_the_guardians.ogg", loop_start: 6.469, loop_end: Some(16.944)),
+        "dank_dungeons": (file: "15_dank_dungeons.ogg", loop_start: 18.020250, loop_end: Some(33.748000)),
+        "lost_ancient_ruins": (file: "16_lost_ancient_ruins.ogg", loop_start: 69.577438, loop_end: Some(110.256000)),
+        "anger_of_the_guardians": (file: "17_anger_of_the_guardians.ogg", loop_start: 7.550000, loop_end: Some(18.178000)),
         "great_victory": (file: "18_great_victory.ogg", once: true),
-        "the_silly_pink_rabbit": (file: "19_the_silly_pink_rabbit.ogg", loop_start: 20.9945, loop_end: Some(45.968)),
+        "the_silly_pink_rabbit": (file: "19_the_silly_pink_rabbit.ogg", loop_start: 5.860000, loop_end: Some(30.836000)),
         "the_silly_pink_rabbit_storm": (file: "20_the_silly_pink_rabbit_storm.ogg", loop_start: 20.9924, loop_end: Some(45.968)),
-        "forest_of_mystery": (file: "21_forest_of_mystery.ogg", loop_start: 24.2257, loop_end: Some(32.96)), // boucle incertaine, a verifier a l'oreille
+        "forest_of_mystery": (file: "21_forest_of_mystery.ogg", loop_start: 3.500125, loop_end: Some(23.840000)),
         "unsealing_the_master_sword": (file: "22_unsealing_the_master_sword.ogg", once: true),
-        "priest_of_the_dark_order": (file: "23_priest_of_the_dark_order.ogg", loop_start: 23.9869, loop_end: Some(51.984)),
-        "dark_golden_land": (file: "24_dark_golden_land.ogg", loop_start: 53.9739, loop_end: Some(111.968)),
-        "black_mist": (file: "25_black_mist.ogg", loop_start: 43.4924, loop_end: Some(90.96)),
+        "priest_of_the_dark_order": (file: "23_priest_of_the_dark_order.ogg", loop_start: 15.817125, loop_end: Some(44.900000)),
+        "dark_golden_land": (file: "24_dark_golden_land.ogg", loop_start: 56.460000, loop_end: Some(116.144000)),
+        "black_mist": (file: "25_black_mist.ogg", loop_start: 23.160000, loop_end: Some(70.556000)),
         "black_mist_storm": (file: "26_black_mist_storm.ogg", loop_start: 43.4842, loop_end: Some(90.96)),
-        "dungeon_of_shadows": (file: "27_dungeon_of_shadows.ogg", loop_start: 41.9876, loop_end: Some(87.968)),
-        "meeting_the_maidens": (file: "28_meeting_the_maidens.ogg", loop_start: 26.341, loop_end: Some(54.96)),
-        "the_goddess_appears": (file: "29_the_goddess_appears.ogg", loop_start: 34.5975, loop_end: Some(42.1565)), // boucle incertaine, a verifier a l'oreille
+        "dungeon_of_shadows": (file: "27_dungeon_of_shadows.ogg", loop_start: 23.630000, loop_end: Some(67.698000)),
+        "meeting_the_maidens": (file: "28_meeting_the_maidens.ogg", loop_start: 20.200250, loop_end: Some(48.288000)),
+        "the_goddess_appears": (file: "29_the_goddess_appears.ogg", loop_start: 14.562000, loop_end: Some(38.392000)),
         "release_of_ganon": (file: "30_release_of_ganon.ogg", once: true),
-        "ganon_s_message": (file: "31_ganon_s_message.ogg", loop_start: 26.0042, loop_end: Some(55.984)),
-        "the_prince_of_darkness": (file: "32_the_prince_of_darkness.ogg", loop_start: 26.4826, loop_end: Some(56.96)),
-        "power_of_the_gods": (file: "33_power_of_the_gods.ogg", loop_start: 35.4984, loop_end: Some(74.96)),
+        "ganon_s_message": (file: "31_ganon_s_message.ogg", loop_start: 29.178062, loop_end: Some(58.260000)),
+        "the_prince_of_darkness": (file: "32_the_prince_of_darkness.ogg", loop_start: 7.980000, loop_end: Some(37.832000)),
+        "power_of_the_gods": (file: "33_power_of_the_gods.ogg", loop_start: 31.977937, loop_end: Some(70.272000)),
         "epilogue_beautiful_hyrule": (file: "34_epilogue_beautiful_hyrule.ogg", loop_start: 113.2061, loop_end: Some(217.04)),
         "staff_roll": (file: "35_staff_roll.ogg", loop_start: 113.1873, loop_end: Some(230.096)),
-        "fierce_rainstorm": (file: "01_fierce_rainstorm.ogg", loop_start: 0.0, volume: 0.85),
-        "howling_wind": (file: "02_howling_wind.ogg", loop_start: 0.0),
+        "fierce_rainstorm": (file: "01_fierce_rainstorm.ogg", loop_start: 0.500000, loop_end: Some(6.000000), volume: 0.85),
+        "howling_wind": (file: "02_howling_wind.ogg", loop_start: 0.500000, loop_end: Some(10.000000)),
         "jingle_secret": (file: "04_secret.ogg", once: true),
         "jingle_chest_appears": (file: "05_chest_appears.ogg", once: true),
         "jingle_got_a_key": (file: "06_got_a_key.ogg", once: true),
@@ -108,6 +110,8 @@
         "secret":            (max_voices: 1, min_interval: 0.5, volume: 0.5, pitch_jitter: 0.0),
         "tink":              (max_voices: 2, min_interval: 0.05, volume: 0.32, pitch_jitter: 0.06),
         "crystal":           (max_voices: 1, min_interval: 0.2, volume: 0.42, pitch_jitter: 0.0),
+        // fin du jingle Unsealing the Master Sword (piste 22), coupee par research : joue a la fusion
+        "master_sword_fusion": (max_voices: 1, min_interval: 1.0, volume: 0.6, pitch_jitter: 0.0),
         "spin_energy":       (max_voices: 1, min_interval: 0.4, volume: 0.4, pitch_jitter: 0.0),
         // 0.4 : nouvelles armes, decor cassable, Bob-omb, objets rares
         "hookshot":          (max_voices: 2, min_interval: 0.12, volume: 0.3, pitch_jitter: 0.05),
@@ -128,6 +132,8 @@
         "sword_shine_2":     (max_voices: 1, min_interval: 0.2, volume: 0.42, pitch_jitter: 0.0),
         "wallet_1":          (max_voices: 1, min_interval: 0.3, volume: 0.45, pitch_jitter: 0.0),
         "zol":               (max_voices: 2, min_interval: 0.2, volume: 0.28, pitch_jitter: 0.08),
+        // 0.6.1 : arpege montant joyeux pour les choix importants
+        "heart_container_1": (max_voices: 1, min_interval: 0.3, volume: 0.5, pitch_jitter: 0.0),
     },
     // Evenement du jeu -> effets (un tirage au hasard si plusieurs).
     events: {
@@ -148,10 +154,19 @@
         "pause":         ["menu_open"],
         "unpause":       ["menu_close"],
         "cursor":        ["cursor"],
-        // choix d'amelioration en partie : fanfare ; validation dans les menus : tintement court
+        // choix d'amelioration en partie : aucun son pour un choix ordinaire ; arpege joyeux pour un
+        // choix important (fusion, niveau maximal, recompense de rencontre) ; menus : tintement court
         "pick":          ["item_get_2"],
+        "reroll":        ["menu_open"],
+        "skip":          ["menu_close"],
+        "pick_big":      ["heart_container_1"],
         "confirm":       ["message_finish"],
         "error":         ["error"],
+        // 0.6.3 : PNJ de passage (diseuse, sorciere) et potions
+        "npc_arrive":    ["magic_powder_2"],
+        "npc_leave":     ["magic_powder_1"],
+        "potion_drink":  ["magic_meter_1"],
+        "fortune_win":   ["item_get_3"],
         "explosion":     ["bomb_explode"],
         "frozen":        ["tink"],
         "windup":        ["soldier"],
@@ -205,7 +220,17 @@
         "fairy_pickup":  ["life_refill"],
         "medallion":     ["thunder"],
         "char_unlock":   ["secret"],
+        "weapon_unlock": ["item_get_3"],
+        "evo_merge":     ["master_sword_fusion"],
         "powder":        ["magic_powder_2"],
+        // 0.6.2 : nouvelles armes
+        "slingshot":     ["throw"],
+        "roc_feather":   ["flap"],
+        "land":          ["land"],
+        "lantern":       ["fire"],
+        "gust_jar":      ["whirpool"],
+        "ocarina":       ["flute_1"],
+        "din_fire":      ["fire"],
         // 0.5
         "encounter":     ["secret"],
         "encounter_won": ["item_get_3"],
@@ -219,9 +244,8 @@
         "shot.lynel":      ["fireball"],
         "shot.ganon":      ["fireball"],
         "shot.kholdstare": ["ice_rod"],
-        // Pikit voleur de rubis : arrivee, bonds, rubis rendus
-        "pikit_spawn":   ["wallet_1"],
-        "pikit_hop":     ["zol"],
-        "pikit_loot":    ["secret"],
+        // voleur de rubis (Boo) : arrivee, rubis rendus
+        "thief_spawn":   ["wallet_1"],
+        "thief_loot":    ["secret"],
     },
 )

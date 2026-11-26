@@ -2,7 +2,7 @@
 //! (les 5 profils de cet ordinateur) et monde (top 100 en ligne, par version du jeu ; la plus recente
 //! par defaut).
 use sim::defs::Content;
-use crate::hub::{Row, DIMMED, GREEN};
+use crate::hub::{Row, DIMMED, LOST, PUBLISHED, WON};
 use crate::hud::GOLD;
 use crate::lang::Lang;
 use crate::online::{Board, Entry, Status};
@@ -37,7 +37,7 @@ pub fn fmt_score(n: u64) -> String {
     let s = n.to_string();
     let mut out = String::new();
     for (k, c) in s.chars().enumerate() {
-        if k > 0 && (s.len() - k) % 3 == 0 {
+        if k > 0 && (s.len() - k).is_multiple_of(3) {
             out.push(' ');
         }
         out.push(c);
@@ -64,6 +64,8 @@ pub struct View<'a> {
     pub slots: &'a [Option<Profile>],
     /// Noms des difficultes (dans l'ordre de `meta.ron`).
     pub difficulties: &'a [String],
+    /// Titres offerts a la Grande Fee (dans l'ordre de `meta.ron`).
+    pub titles: &'a [String],
     pub board: &'a ((String, String), Status<Board>),
     /// Version demandee (vide : la plus recente du serveur).
     pub version: &'a str,
@@ -87,6 +89,7 @@ impl View<'_> {
         self.difficulties.get(k).cloned().unwrap_or_default()
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn detail(&self, character: &str, time: f32, kills: u32, level: Option<u32>, difficulty: usize, won: bool, version: &str) -> String {
         let mut s = self
             .lang
@@ -112,7 +115,11 @@ impl View<'_> {
     }
 
     fn entry_detail(&self, e: &Entry, version: &str) -> String {
-        self.detail(&e.character, e.time, e.kills, None, e.difficulty, e.won, version)
+        let d = self.detail(&e.character, e.time, e.kills, None, e.difficulty, e.won, version);
+        match self.titles.get((e.title as usize).wrapping_sub(1)) {
+            Some(t) => format!("{} - {d}", crate::shop::titled_name(e.title, t)),
+            None => d,
+        }
     }
 
     /// Classement en ligne du stage choisi, s'il correspond a la demande.
@@ -142,7 +149,7 @@ pub fn rows(v: &View, tab: usize) -> (Vec<Row>, Vec<String>) {
         value_color: Some(GOLD),
         ..Default::default()
     }];
-    let mut details = vec![l.get("ui.scores_stage_hint").to_string()];
+    let mut details = vec![format!("{}\n{}", l.get("ui.scores_stage_hint"), l.get("ui.scores_legend"))];
     let empty = |rows: &mut Vec<Row>, details: &mut Vec<String>, key: &str| {
         rows.push(Row { label: l.get(key).to_string(), dim: true, ..Default::default() });
         details.push(String::new());
@@ -158,7 +165,8 @@ pub fn rows(v: &View, tab: usize) -> (Vec<Row>, Vec<String>) {
                     icon: v.char_icon(&r.character),
                     label: format!("{}. {}", k + 1, fmt_score(r.score)),
                     value: if r.published { l.get("ui.published").to_string() } else { fmt_time(r.time) },
-                    value_color: Some(if r.published { GREEN } else if r.won { GOLD } else { rgb(228, 228, 244) }),
+                    value_color: Some(if r.published { PUBLISHED } else { rgb(228, 228, 244) }),
+                    label_color: Some(if r.won { WON } else { LOST }),
                     mark: r.published,
                     ..Default::default()
                 });
@@ -182,6 +190,7 @@ pub fn rows(v: &View, tab: usize) -> (Vec<Row>, Vec<String>) {
                     label: format!("{}. {}", k + 1, p.name),
                     value: rec.map(|r| fmt_score(r.score)).unwrap_or_else(|| "-".into()),
                     value_color: if rec.is_some() { rank_color(k + 1) } else { Some(DIMMED) },
+                    label_color: rec.map(|r| if r.won { WON } else { LOST }),
                     mark: p.slot == v.profile.slot,
                     ..Default::default()
                 });
@@ -205,9 +214,10 @@ pub fn rows(v: &View, tab: usize) -> (Vec<Row>, Vec<String>) {
                     for e in &b.scores {
                         rows.push(Row {
                             icon: v.char_icon(&e.character),
-                            label: format!("{}. {}", e.rank, e.name),
+                            label: format!("{}. {}", e.rank, crate::shop::titled_name(e.title, &e.name)),
                             value: fmt_score(e.score),
                             value_color: rank_color(e.rank as usize),
+                            label_color: Some(if e.won { WON } else { LOST }),
                             ..Default::default()
                         });
                         details.push(v.entry_detail(e, &b.version));

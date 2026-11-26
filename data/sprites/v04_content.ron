@@ -5,24 +5,6 @@
 (
     sheets: [
         (
-            source: "Game Boy Advance - The Legend of Zelda_ The Minish Cap - Playable Characters - Link (Cap).png",
-            transparent: ["#40b088"],
-            sprites: {
-                // planche : le profil regarde a gauche (side_faces_left dans le personnage)
-                "link_minish": {
-                    "idle_down": (frames: [(15, 9, 18, 23)], pivot: (0, -1), align: Bottom),
-                    "idle_side": (frames: [(51, 10, 17, 22)], pivot: (0, -1), align: Bottom),
-                    "idle_up":   (frames: [(79, 10, 17, 21)], pivot: (0, -1), align: Bottom),
-                    "walk_down": (frames: [(15, 76, 18, 25), (47, 76, 18, 25), (79, 76, 18, 25), (111, 76, 18, 25), (143, 76, 18, 25),
-                                           (175, 76, 18, 25), (207, 76, 18, 25), (239, 76, 18, 25), (271, 76, 18, 25), (303, 76, 18, 25)], fps: 16, pivot: (0, -1), align: Bottom),
-                    "walk_side": (frames: [(350, 76, 23, 25), (380, 76, 20, 25), (412, 76, 20, 25), (445, 76, 20, 25), (476, 76, 20, 25),
-                                           (510, 76, 23, 25), (540, 76, 19, 25), (573, 76, 19, 25), (609, 76, 19, 25), (636, 76, 20, 25)], fps: 16, pivot: (0, -1), align: Bottom),
-                    "walk_up":   (frames: [(683, 76, 18, 25), (715, 76, 18, 25), (747, 76, 18, 25), (779, 76, 18, 25), (811, 76, 18, 25),
-                                           (843, 76, 18, 25), (875, 76, 18, 25), (907, 76, 18, 25), (939, 76, 18, 25), (971, 76, 18, 25)], fps: 16, pivot: (0, -1), align: Bottom),
-                },
-            },
-        ),
-        (
             source: "Game Boy Advance - The Legend of Zelda_ The Minish Cap - Playable Characters - Link (Capless).png",
             transparent: ["#40b088"],
             sprites: {
@@ -93,8 +75,8 @@
             source: "Enemies - Object Enemies & Traps.png",
             transparent: ["#ff00ff", "#f880f8"],
             sprites: {
-                // bloc de la Tour de la Tortue (le bloc de Somaria n'est pas dans les planches)
-                "proj_somaria_block": { "0": (frames: [(336, 936, 16, 14)], pivot: (0, 0), align: Center) },
+                // statue Meduse (elle crache des boules de feu dans les donjons ; le bloc de Somaria n'est pas dans les planches)
+                "proj_somaria_block": { "0": (frames: [(8, 400, 16, 16)], pivot: (0, 0), align: Center) },
                 "fx_somaria_ray":     { "0": (frames: [(336, 1000, 16, 15), (360, 1000, 16, 15), (384, 1000, 16, 15), (408, 1000, 16, 15)], fps: 16, pivot: (0, 0), align: Center) },
             },
         ),

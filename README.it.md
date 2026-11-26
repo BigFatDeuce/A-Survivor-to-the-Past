@@ -1,8 +1,8 @@
 <p align="center"><img src="media/icon.png" width="128" height="128" alt="A Survivor to the Past"></p>
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i>Un survivors-like nel mondo di <b>A Link to the Past</b>: resisti alle orde di mostri di Hyrule.</i></p>
-<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.6.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
-<p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Scarica per Windows</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ Gioca nel browser</b></a></p>
+<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.7.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Scarica</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ Gioca nel browser</b></a></p>
 <p align="center"><a href="README.md">English</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a> · <b>Italiano</b> · <a href="README.pt.md">Português</a> · <a href="README.ja.md">日本語</a></p>
 
 <p align="center"><img src="media/horde.png" alt="" width="100%"></p>
@@ -16,12 +16,12 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
 ## Contenuti
 
 - **6 stage** da sbloccare uno dopo l'altro — Piana di Hyrule, Boschi Perduti, Deserto del Mistero, Lago ghiacciato, Piramide del Potere e il Monte Morte come bonus — ognuno con il suo meteo, la sua musica, un boss intermedio e un boss finale, fino ad Agahnim e Ganon
-- **12 personaggi giocabili** da sbloccare — Link, Link Minish, Link senza berretto, Sonic, la principessa Zelda, il Link del NES, il Link di *Four Swords* (4 colori), quello di *Link's Awakening*, Link adulto, Link Deku, Tipo Timido e Shadow Link (sconfiggendo Ganon) — ognuno con punti di forza, debolezze e la sua arma iniziale
+- **350 personaggi giocabili** in sei universi — il cast fatto a mano (Link, Link Minish, Sonic, Zelda, Mario, Vivi, Ganondorf, l'ultimo di tutti...) e più di 300 sprite della comunità del *A Link to the Past Randomizer*, ognuno con i suoi autori nei crediti e fino a quattro colori (maglia blu, maglia rossa, coniglio). Alcuni si sbloccano con le imprese (nemici, boss, livelli, stage), altri si comprano con le rupie rosse — ognuno con punti di forza, debolezze e arma iniziale
 - Una **Bob-omb** rara che spazza via tutti i nemici sullo schermo, e **scenari distruttibili** che nascondono rupie, cuori, fate o il medaglione dell'Etere
 - **Incontri** casuali: un campione errante aspetta da qualche parte, una freccia indica la strada — sconfiggilo per una benedizione, un potenziamento speciale o una reliquia che resta se vinci
-- Un **Pikit ladro** che divora le rupie rimaste a terra — prendilo per recuperarle tutte
+- Un **Boo ladro** che divora le rupie rimaste a terra — prendilo per recuperarle tutte
 - **12 armi**, ognuna con un'**evoluzione**, e **12 oggetti passivi** — 6 slot per le armi e 6 per gli oggetti: ogni scelta conta
-- **18 tipi di nemici** di Hyrule, **7 boss** ed **élite** che lasciano forzieri
+- **18 tipi di nemici** di Hyrule, **12 boss** (uno diverso in ogni stage) ed **élite** che lasciano forzieri
 - **Progressi tra le partite**: il negozio di Kakariko (potenziamenti permanenti), le benedizioni della Grande Fata, una **reliquia** per ogni stage, 4 **difficoltà** e i **sigilli** di Ganon per guadagnare più rupie
 - **Profilo**: bestiario, armeria, statistiche, ed esportazione / importazione del salvataggio come codice di testo
 - **5 giocatori** sullo stesso computer, ognuno con nome, avatar e progressi propri; un **punteggio** per ogni partita e **classifiche**: migliori punteggi per livello, tra i giocatori di casa e una **top 100 mondiale** per versione del gioco
@@ -30,13 +30,13 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
 - **Grafica, musica e suoni** originali di A Link to the Past per SNES
 - **Filtri video retrò**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, più una modalità **4:3** — e **filtri audio** abbinati
 - **7 lingue**: English, Français, Deutsch, Español, Italiano, Português, 日本語
-- **Motore fatto in casa in Rust** (wgpu): migliaia di nemici sullo schermo, su Windows e **nel browser**
+- **Motore fatto in casa in Rust** (wgpu): migliaia di nemici sullo schermo, su Windows, Linux, macOS e **nel browser**
 
 ## Armi ed evoluzioni
 
-| Arma | + Oggetto (qualsiasi livello) | Evoluzione (arma al livello massimo) |
+| Arma | + Oggetto | Evoluzione (entrambi al livello massimo) |
 |---|---|---|
-| Spada del guerriero | Portacuore | **Spada Suprema** |
+| Spada del guerriero | Portacuore | **Spada temprata** |
 | Arco | Faretra | **Frecce d'argento** |
 | Boomerang | Pinne di Zora | **Boomerang magico** |
 | Verga di fuoco | Lanterna | **Medaglione Bombos** |
@@ -48,6 +48,12 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
 | Polvere magica | Fungo | **Polvere della strega** |
 | Bastone di Somaria | Libro di Mudora | **Grande Somaria** |
 | Api | Retino | **Api dorate** |
+| Fionda | Faretra | **Iperfionda** |
+| Piuma di Roc | Stivali di Pegaso | **Mantello di Roc** |
+| Lume | Mezza magia | **Lume blu** |
+| Giara del vento | Mantello magico | **Giara di Vaati** |
+| Ocarina delle fate | Libro di Mudora | **Ocarina del tempo** |
+| Fuoco di Din | Lanterna | **Ira di Din** |
 
 ## Immagini
 
@@ -78,7 +84,7 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
 
 ## Giocare
 
-Il gioco è in **alfa** (versione 0.6.0). **Windows**: scarica l'ultima versione dalla [pagina delle release](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), estrai tutto lo zip e avvia `A Survivor to the Past.exe`. Windows potrebbe avvisare che il gioco non è firmato: fai clic su *Ulteriori informazioni* → *Esegui comunque*. Poi il gioco **si aggiorna da solo**: all'avvio controlla su GitHub se c'è una nuova versione, la scarica in background e la installa all'avvio successivo (Opzioni → Aggiornamenti: Automatici / Chiedi / No). Le tue impostazioni restano e non viene inviato alcun dato personale: gli aggiornamenti contattano solo GitHub, e la classifica mondiale contatta il sito del gioco solo quando la apri o pubblichi un punteggio (soprannome e punteggio).
+Il gioco è in **alfa** (versione 0.7.0). **Windows**: scarica l'ultima versione dalla [pagina delle release](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), estrai tutto lo zip e avvia `A Survivor to the Past.exe`. Windows potrebbe avvisare che il gioco non è firmato: fai clic su *Ulteriori informazioni* → *Esegui comunque*. **Linux, macOS e console portatili** (PortMaster, sperimentale): stessa pagina, prendi lo zip del tuo sistema e segui il suo `README.txt`. Poi il gioco **si aggiorna da solo**: all'avvio controlla su GitHub se c'è una nuova versione, la scarica in background e la installa all'avvio successivo (Opzioni → Aggiornamenti: Automatici / Chiedi / No). Le tue impostazioni restano e non viene inviato alcun dato personale: gli aggiornamenti contattano solo GitHub, e la classifica mondiale contatta il sito del gioco solo quando la apri o pubblichi un punteggio (soprannome e punteggio).
 
 **Browser**: [gioca direttamente sul sito](https://a-survivor-to-the-past.holy-c.men/play/), senza installare nulla. Meglio su computer, con Chrome, Edge o Firefox; i progressi sono salvati nel browser. Le versioni per Linux, macOS e Android arriveranno più avanti. Nel frattempo puoi compilare il gioco dai sorgenti con [Rust](https://rustup.rs) (stable):
 
@@ -99,7 +105,7 @@ Su Linux installa anche i pacchetti di sviluppo di ALSA e udev (`libasound2-dev`
 | Scatto | Spazio / clic destro | A / grilletto sinistro |
 | Attacco automatico o manuale | Tab / R | Y |
 | Pausa | Esc / P | Start |
-| Schermo intero · info · cattura | F11 · F3 · F12 |  |
+| Schermo intero · info · cattura | F11 · F3 · F12 | Select · – · – |
 
 ## Tabella di marcia
 
@@ -124,6 +130,6 @@ Sito: [a-survivor-to-the-past.holy-c.men](https://a-survivor-to-the-past.holy-c.
 
 La [licenza GPL-3.0](LICENSE) copre solo il codice sorgente scritto per questo progetto; non concede alcun diritto sulle risorse di Nintendo. Gli sprite sheet provengono dai rip condivisi dalla comunità di *The Spriters Resource* — grazie ai loro autori.
 
-Il nome di ogni autore di rip o di sprite (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny e molti altri) è elencato in **[CREDITS.md](CREDITS.md)**. Anche Tipo Timido appartiene a Nintendo; *Sonic the Hedgehog* è un marchio di **SEGA**.
+Il nome di ogni autore di rip o di sprite (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny e molti altri) è elencato in **[CREDITS.md](CREDITS.md)**. Anche Mario e Tipo Timido appartengono a Nintendo; *Sonic the Hedgehog* è un marchio di **SEGA**, *Among Us* di **Innersloth**, Simon Belmont (*Castlevania*) di **Konami**, e Vivi (*Final Fantasy IX*) di **Square Enix**.
 
 Titolari dei diritti: per far rimuovere un contenuto, aprite una issue o contattateci su [Discord](https://discord.gg/N8f62M2eaK).

@@ -67,6 +67,7 @@ fn flash(t: f32) -> f32 {
 
 /// Dessine la meteo par-dessus le monde (espace interface). `cam` : centre de la camera dans le
 /// monde ; `player` : position de Link a l'ecran (pour le halo de l'obscurite) ; `t` : temps.
+#[allow(clippy::too_many_arguments)]
 pub fn draw(
     list: &mut DrawList,
     ctx: &Ctx,

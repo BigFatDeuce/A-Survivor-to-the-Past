@@ -1,0 +1,53 @@
+// Grand Marais
+// Stage 6 : Zoras, Baris et Zols dans les eaux troubles, la Lanmola revient, puis Arrghus
+// Le boss final apparait a 9:00 ; sa defaite ouvre la porte de sortie (victoire en la franchissant).
+// props : decor procedural (density = chance par case de 48 px, solid = bloque Link et la horde).
+(
+    name: "Grand Marais",
+    order: 6,
+    music: "black_mist_storm",
+    boss_music: "anger_of_the_guardians",
+    final_music: "anger_of_the_guardians",
+    ground: "swamp",
+    weather: Rain,
+    ambience: Some("fierce_rainstorm"),
+    tint: Some((0.1, 0.2, 0.15, 0.08)),
+    max_enemies: 4800,
+    duration: 540.0,
+    // difficulte du stage : vie et degats des ennemis ordinaires
+    power: 1.7,
+    waves: [
+        (enemy: "zol", from: 0.0, to: 900.0, rate: (1.0, 5.5), cap: 450),
+        (enemy: "bari", from: 15.0, to: 900.0, rate: (0.4, 3.5), cap: 250),
+        (enemy: "ropa", from: 40.0, to: 900.0, rate: (0.4, 3.0), cap: 250),
+        (enemy: "zora", from: 70.0, to: 900.0, rate: (0.2, 1.8), cap: 80),
+        (enemy: "popo", from: 100.0, to: 900.0, rate: (0.5, 4.0), cap: 300),
+        (enemy: "buzz_blob", from: 160.0, to: 900.0, rate: (0.3, 2.5), cap: 150),
+        (enemy: "tektite", from: 220.0, to: 900.0, rate: (0.3, 2.5), cap: 150),
+        (enemy: "stalfos", from: 300.0, to: 900.0, rate: (0.3, 2.5), cap: 200),
+    ],
+    bursts: [
+        (at: 30.0, enemy: "zol", count: 140, pattern: Ring),
+        (at: 75.0, enemy: "bari", count: 80, pattern: Pack),
+        (at: 130.0, enemy: "ropa", count: 100, pattern: Ring),
+        (at: 190.0, enemy: "zora", count: 24, pattern: Ring),
+        (at: 250.0, enemy: "popo", count: 160, pattern: Pack),
+        (at: 330.0, enemy: "zol", count: 240, pattern: Ring),
+        (at: 410.0, enemy: "bari", count: 160, pattern: Pack),
+        (at: 490.0, enemy: "zora", count: 40, pattern: Ring),
+    ],
+    elites: [
+        (at: 60.0, enemy: "zora"),
+        (at: 150.0, enemy: "ropa"),
+        (at: 240.0, enemy: "bari"),
+        (at: 360.0, enemy: "zora"),
+        (at: 450.0, enemy: "buzz_blob"),
+    ],
+    boss: Some((at: 270.0, enemy: "lanmola", hp: Some(6500.0))),
+    final_boss: Some((at: 540.0, enemy: "arrghus", hp: Some(12000.0))),
+    props: [
+        (sprite: "prop_stump_dark", density: 0.03, radius: 9.0, solid: true),
+        (sprite: "prop_tree_dark", density: 0.025, radius: 13.0, solid: true),
+        (sprite: "prop_bush", density: 0.06, radius: 6.0, solid: false, tint: Some((0.3, 0.45, 0.35, 0.4)), breakable: true, break_fx: "fx_bush_break"),
+    ],
+)

@@ -15,13 +15,205 @@ pub const GOLD: Color = rgb(248, 216, 88);
 pub const HP_RED: Color = rgb(224, 48, 56);
 const DASH_BLUE: Color = rgb(120, 200, 255);
 
-/// Texte avec ombre a une echelle entiere.
-pub fn text(list: &mut DrawList, font: &Font, s: &str, pos: Vec2, scale: f32, color: Color, align: Align) -> f32 {
-    list.text_ex(font, s, pos, scale, color, align, Some([0.0, 0.0, 0.0, color[3] * 0.75]))
+// ---------------------------------------------------------------------------------------------
+// Mise en valeur dans les textes : un nom d'objet, d'arme ou de personnage entoure de balises
+// (caracteres de controle, invisibles et sans largeur) est dessine en couleur, avec un reflet qui
+// le parcourt et quelques etincelles. Retour 0.6.2 : le joueur doit reperer d'un coup d'oeil ce
+// dont parle un message (« Une seule arme peut fusionner avec Carquois »).
+
+/// Objet, arme, boss : or.
+pub const HL: char = '\u{1}';
+/// Fin de mise en valeur.
+pub const HL_END: char = '\u{2}';
+/// Fusion, evolution : rose qui chatoie.
+pub const HL_FUSION: char = '\u{3}';
+/// Deblocage, nouveaute : vert.
+pub const HL_NEW: char = '\u{4}';
+
+pub fn hl(s: &str) -> String {
+    format!("{HL}{s}{HL_END}")
 }
 
-/// Decoupe un texte en lignes d'au plus `width` pixels (coupure aux espaces).
+pub fn hl_fusion(s: &str) -> String {
+    format!("{HL_FUSION}{s}{HL_END}")
+}
+
+pub fn hl_new(s: &str) -> String {
+    format!("{HL_NEW}{s}{HL_END}")
+}
+
+thread_local! {
+    /// Horloge des reflets (temps reel, mis a jour a chaque image).
+    static HL_TIME: std::cell::Cell<f32> = const { std::cell::Cell::new(0.0) };
+}
+
+pub fn set_text_time(t: f32) {
+    HL_TIME.with(|c| c.set(t));
+}
+
+fn mix(a: Color, b: Color, k: f32) -> Color {
+    [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k, a[3] + (b[3] - a[3]) * k]
+}
+
+/// Texte avec ombre a une echelle entiere ; les balises de mise en valeur sont prises en compte.
+pub fn text(list: &mut DrawList, font: &Font, s: &str, pos: Vec2, scale: f32, color: Color, align: Align) -> f32 {
+    if !s.chars().any(|c| c.is_control() && c != '\n') {
+        return list.text_ex(font, s, pos, scale, color, align, Some([0.0, 0.0, 0.0, color[3] * 0.75]));
+    }
+    rich_text(list, font, s, pos, scale, color, align)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn rich_text(list: &mut DrawList, font: &Font, s: &str, pos: Vec2, scale: f32, color: Color, align: Align) -> f32 {
+    let w = font.measure(s) as f32 * scale;
+    let mut x = match align {
+        Align::Left => pos.x,
+        Align::Center => (pos.x - w * 0.5).round(),
+        Align::Right => pos.x - w,
+    };
+    let x_start = x;
+    // controle des ecrans : une seule boite pour toute la phrase (pas une par lettre ni par etincelle)
+    let probe = list.probe.take();
+    let t = HL_TIME.with(|c| c.get());
+    let shadow = |c: Color| Some([0.0, 0.0, 0.0, c[3] * 0.75]);
+    let sp = font.spacing as f32 * scale;
+    let mut style: Option<char> = None;
+    let mut first = true;
+    let mut words: Vec<(f32, f32, char)> = Vec::new();
+    let mut word_start = 0.0;
+    let mut idx = 0usize;
+    let mut buf = String::new();
+    // texte ordinaire : par morceaux ; texte mis en valeur : lettre par lettre (couleur et reflet)
+    let flush = |list: &mut DrawList, buf: &mut String, x: &mut f32, first: &mut bool| {
+        if buf.is_empty() {
+            return;
+        }
+        if !*first {
+            *x += sp;
+        }
+        *first = false;
+        let ww = list.text_ex(font, buf, Vec2::new(*x, pos.y), scale, color, Align::Left, shadow(color));
+        *x += ww;
+        buf.clear();
+    };
+    for ch in s.chars() {
+        match ch {
+            HL | HL_FUSION | HL_NEW => {
+                flush(list, &mut buf, &mut x, &mut first);
+                style = Some(ch);
+                word_start = x + if first { 0.0 } else { sp };
+                idx = 0;
+            }
+            HL_END => {
+                if let Some(st) = style.take() {
+                    words.push((word_start, x, st));
+                }
+            }
+            c if c.is_control() => {}
+            c => match style {
+                None => buf.push(c),
+                Some(st) => {
+                    if !first {
+                        x += sp;
+                    }
+                    first = false;
+                    let i = idx as f32;
+                    idx += 1;
+                    // reflet blanc qui balaie le mot
+                    let glint = ((t * 3.2 - i * 0.45).sin().max(0.0)).powi(6);
+                    let (base, bob) = match st {
+                        HL_FUSION => {
+                            let k = 0.5 + 0.5 * (t * 2.5 - i * 0.6).sin();
+                            (mix(rgb(255, 120, 240), rgb(255, 210, 120), k), ((t * 5.0 - i * 0.7).sin() * 1.0).round())
+                        }
+                        HL_NEW => (rgb(120, 255, 150), 0.0),
+                        _ => (GOLD, 0.0),
+                    };
+                    let mut col = mix(base, WHITE, glint * 0.85);
+                    col[3] = color[3];
+                    let cs = c.to_string();
+                    let ww = list.text_ex(font, &cs, Vec2::new(x, pos.y + bob * scale), scale, col, Align::Left, shadow(col));
+                    x += ww;
+                }
+            },
+        }
+    }
+    flush(list, &mut buf, &mut x, &mut first);
+    if let Some(st) = style {
+        words.push((word_start, x, st));
+    }
+    // etincelles autour des mots mis en valeur
+    if color[3] > 0.3 {
+        let space = list.space();
+        list.set(space, Blend::Add);
+        for (k, &(x0, x1, st)) in words.iter().enumerate() {
+            let ww = (x1 - x0).max(4.0);
+            let n = if st == HL_FUSION { 3 } else { 2 };
+            for j in 0..n {
+                let seed = k as f32 * 1.7 + j as f32 * 2.3;
+                let ph = (t * 0.8 + seed * 0.37).fract();
+                let cycle = (t * 0.8 + seed * 0.37).floor();
+                let rx = ((cycle * 12.9898 + seed * 78.233).sin() * 43758.547).fract().abs();
+                let ry = ((cycle * 39.346 + seed * 11.135).sin() * 24634.635).fract().abs();
+                let a = (ph * std::f32::consts::PI).sin() * color[3];
+                let c = match st {
+                    HL_FUSION => [1.0, 0.75, 1.0, a],
+                    HL_NEW => [0.7, 1.0, 0.8, a],
+                    _ => [1.0, 0.95, 0.6, a],
+                };
+                let p = Vec2::new((x0 + rx * ww).round(), (pos.y + (ry * 10.0 - 3.0) * scale).round());
+                list.text_ex(font, "+", p - Vec2::new(3.0, 3.0), 1.0, c, Align::Left, None);
+            }
+        }
+        list.set(space, Blend::Alpha);
+    }
+    list.probe = probe;
+    let ui = list.space() == Space::Ui;
+    if let (Some(pr), true) = (list.probe.as_mut(), ui) {
+        let clean: String = s.chars().filter(|c| !c.is_control()).collect();
+        let missing: Vec<char> = clean.chars().filter(|&c| c != ' ' && font.glyph(c).is_none()).collect();
+        let size = Vec2::new(w, font.line_height as f32 * scale);
+        let at = Vec2::new(x_start, pos.y + font.nudge as f32 * scale);
+        for ch in missing {
+            pr.push(engine::gfx::Probe::MissingGlyph { ch, text: clean.clone() });
+        }
+        pr.push(engine::gfx::Probe::Text { pos: at, size, text: clean });
+    }
+    w
+}
+
+/// Decoupe un texte en lignes d'au plus `width` pixels (coupure aux espaces). Une mise en valeur
+/// coupee en fin de ligne est refermee, puis rouverte sur la ligne suivante.
 pub fn wrap(font: &Font, s: &str, width: f32, scale: f32) -> Vec<String> {
+    let lines = wrap_plain(font, s, width, scale);
+    if !s.chars().any(|c| c.is_control() && c != '\n') {
+        return lines;
+    }
+    let mut open: Option<char> = None;
+    lines
+        .into_iter()
+        .map(|l| {
+            let mut out = String::new();
+            if let Some(o) = open {
+                out.push(o);
+            }
+            for c in l.chars() {
+                match c {
+                    HL | HL_FUSION | HL_NEW => open = Some(c),
+                    HL_END => open = None,
+                    _ => {}
+                }
+                out.push(c);
+            }
+            if open.is_some() {
+                out.push(HL_END);
+            }
+            out
+        })
+        .collect()
+}
+
+fn wrap_plain(font: &Font, s: &str, width: f32, scale: f32) -> Vec<String> {
     let mut lines = Vec::new();
     // un saut de ligne force une nouvelle ligne
     for para in s.split('\n') {
@@ -40,6 +232,16 @@ pub fn wrap(font: &Font, s: &str, width: f32, scale: f32) -> Vec<String> {
         }
     }
     lines
+}
+
+/// Annonce d'un deblocage en pleine partie (arme debloquee par un mini-boss) : panneau en bas.
+pub struct Toast {
+    pub icon: engine::assets::AnimId,
+    pub title: String,
+    pub name: String,
+    pub sub: String,
+    pub t: f32,
+    pub life: f32,
 }
 
 /// Grande annonce au centre de l'ecran.
@@ -66,6 +268,12 @@ pub struct Hud {
     dash_ready: f32,
     dash_was_full: bool,
     t: f32,
+    /// Reliques actives pendant la partie (equipees), affichees sous les objets.
+    pub relics: Vec<engine::assets::AnimId>,
+    /// Deblocages a annoncer (le premier est affiche).
+    pub toasts: Vec<Toast>,
+    /// Arme qui vient d'evoluer : sa case brille en rose (identifiant, temps restant).
+    pub evo_flash: Option<(u16, f32)>,
 }
 
 impl Hud {
@@ -76,11 +284,14 @@ impl Hud {
             rupee_pop: 0.0,
             heart_shake: 0.0,
             mode_banner: 0.0,
+            toasts: Vec::new(),
+            evo_flash: None,
             banner: None,
             hp_trail: 0.0,
             boss_trail: 1.0,
             dash_ready: 0.0,
             dash_was_full: true,
+            relics: Vec::new(),
             t: 0.0,
         }
     }
@@ -101,6 +312,18 @@ impl Hud {
         self.rupee_pop = (self.rupee_pop - dt * 6.0).max(0.0);
         self.heart_shake = (self.heart_shake - dt * 2.5).max(0.0);
         self.mode_banner = (self.mode_banner - dt).max(0.0);
+        if let Some(t) = self.toasts.first_mut() {
+            t.t += dt;
+            if t.t >= t.life {
+                self.toasts.remove(0);
+            }
+        }
+        if let Some((_, r)) = &mut self.evo_flash {
+            *r -= dt;
+            if *r <= 0.0 {
+                self.evo_flash = None;
+            }
+        }
         if let Some(b) = &mut self.banner {
             b.t += dt;
             if b.t > b.life {
@@ -256,6 +479,18 @@ impl Hud {
                     [1.0, 1.0, 1.0, 0.15]
                 };
                 frame_rect(list, white, pos, Vec2::splat(slot), border);
+                // arme qui vient d'evoluer : halo rose qui pulse
+                if let (0, Some((id, r)), Some(w)) = (row, self.evo_flash, world.weapons.get(k)) {
+                    if w.id == id {
+                        let a = r.min(1.0) * (0.55 + 0.45 * (self.t * 8.0).sin());
+                        list.set(Space::Ui, Blend::Add);
+                        for g in 1..4 {
+                            let o = g as f32;
+                            frame_rect(list, white, pos - Vec2::splat(o), Vec2::splat(slot + 2.0 * o), [1.0, 0.5, 0.95, a / o]);
+                        }
+                        list.set(Space::Ui, Blend::Alpha);
+                    }
+                }
                 if let Some(ic) = icon {
                     list.frame(atlas.frame(ic, 0.0), pos + Vec2::splat(slot * 0.5), &Params::default());
                     if !evolved {
@@ -265,6 +500,17 @@ impl Hud {
                 }
             }
             y += slot + 2.0;
+        }
+
+        // reliques actives (equipees) : cases dorees, plus petites, sous les objets
+        if !self.relics.is_empty() {
+            let rs = 18.0;
+            for (k, ic) in self.relics.iter().enumerate() {
+                let pos = Vec2::new(8.0 + k as f32 * (rs + 2.0), y + 1.0);
+                list.rect(white, pos, Vec2::splat(rs), [0.16, 0.11, 0.02, 0.75]);
+                frame_rect(list, white, pos, Vec2::splat(rs), with_alpha(GOLD, 0.8));
+                list.frame(atlas.frame(*ic, 0.0), pos + Vec2::splat(rs * 0.5), &Params::default());
+            }
         }
 
         // chronometre
@@ -314,17 +560,86 @@ impl Hud {
         let sword = sword.or_else(|| world.content.weapon_index("sword").map(|i| (i, false)));
         if let Some((id, owned)) = sword {
             let c = if owned { [1.0, 1.0, 1.0, a] } else { [0.6, 0.6, 0.6, 0.45 * a] };
-            let at = Vec2::new((8.0 + mw + 6.0 + 6.0 * sc).round(), (my + 6.0 * sc).round());
-            list.frame(atlas.frame(vis.weapons[id as usize].icon, 0.0), at, &Params::default().scale(Vec2::splat(sc)).color(c));
+            // centre de l'icone sur le centre visuel des lettres (hauteur des capitales ~9 px), 4 px d'ecart
+            let f = atlas.frame(vis.weapons[id as usize].icon, 0.0);
+            let half_w = (f.w as f32 * 0.5).ceil();
+            let at = Vec2::new((8.0 + mw + (4.0 + half_w) * sc).round(), (my + 4.0 * sc).round());
+            list.frame(f, at, &Params::default().scale(Vec2::splat(sc)).color(c));
             list.probe_block(at - Vec2::splat(8.0 * sc), Vec2::splat(16.0 * sc), "icone du mode d'attaque");
         }
 
         // annonce
-        if let Some(b) = &self.banner {
-            let pop = if b.t < 0.12 { 3.0 } else { 2.0 };
-            let a = if b.t > b.life - 0.4 { ((b.life - b.t) / 0.4).max(0.0) } else { 1.0 };
-            text(list, main, &b.text, Vec2::new(view.x * 0.5, (view.y * 0.26).round() + 6.0), pop, with_alpha(b.color, a), Align::Center);
+        if let Some(tt) = self.toasts.first() {
+            self.draw_toast(list, ctx, vis, tt);
         }
+        if let Some(b) = &self.banner {
+            // bandeau qui s'ouvre depuis le centre, texte qui glisse en fondu ; sortie vers le haut
+            let ease = |x: f32| 1.0 - (1.0 - x.clamp(0.0, 1.0)).powi(3);
+            let open = ease(b.t / 0.25);
+            let out = ease((b.t - (b.life - 0.35)) / 0.35);
+            let a = open * (1.0 - out);
+            let sc = if main.measure(&b.text) as f32 * 2.0 <= view.x - 48.0 { 2.0 } else { 1.0 };
+            // bandeau centre sur l'encre des majuscules (lettre A de la police : decalage `nudge` et hauteur,
+            // ombre comprise) ; les jambages des p, g... descendent dans la marge du bas (mesure au pixel)
+            let (ink_top, ink_h) = main.glyph('A').map_or((0.0, main.line_height as f32), |g| ((main.nudge + g.oy) as f32, g.h as f32));
+            let pad = 6.0;
+            let th = ink_h * sc + pad * 2.0;
+            let tw = main.measure(&b.text) as f32 * sc;
+            let cy = (view.y * 0.26).round() + 6.0;
+            let bw = ((tw + 48.0) * open).round();
+            let bp = Vec2::new(((view.x - bw) * 0.5).round(), (cy + ink_top * sc - pad - out * 6.0).round());
+            list.rect(white, bp, Vec2::new(bw, th), [0.0, 0.0, 0.0, 0.45 * a]);
+            list.rect(white, bp, Vec2::new(bw, 1.0), with_alpha(b.color, 0.8 * a));
+            list.rect(white, bp + Vec2::new(0.0, th - 1.0), Vec2::new(bw, 1.0), with_alpha(b.color, 0.8 * a));
+            let dy = ((1.0 - open) * 6.0 - out * 6.0).round();
+            text(list, main, &b.text, Vec2::new(view.x * 0.5, cy + dy), sc, with_alpha(b.color, a), Align::Center);
+        }
+    }
+}
+
+impl Hud {
+    /// Panneau de deblocage : monte depuis le bas (le haut est pris par les armes et la barre du boss),
+    /// icone dans un cadre qui scintille.
+    fn draw_toast(&self, list: &mut DrawList, ctx: &Ctx, vis: &Vis, tt: &Toast) {
+        let view = ctx.view;
+        let atlas = &ctx.atlas;
+        let main = atlas.font("main");
+        let white = &vis.white;
+        let slide = (tt.t / 0.3).min(1.0).min(((tt.life - tt.t) / 0.4).max(0.0));
+        let e = 1.0 - (1.0 - slide) * (1.0 - slide);
+        let tw = [&tt.title, &tt.name, &tt.sub].iter().map(|s| main.measure(s) as f32).fold(0.0, f32::max);
+        let size = Vec2::new((tw + 62.0).round(), 48.0);
+        let pos = Vec2::new(((view.x - size.x) * 0.5).round(), (view.y - 90.0 + (1.0 - e) * 100.0).round());
+        let green = rgb(120, 255, 150);
+        list.rect(white, pos, size, BACK);
+        let pulse = 0.6 + 0.4 * (self.t * 5.0).sin();
+        frame_rect(list, white, pos, size, with_alpha(GOLD, pulse));
+        list.set(Space::Ui, Blend::Add);
+        frame_rect(list, white, pos - Vec2::ONE, size + Vec2::splat(2.0), with_alpha(GOLD, pulse * 0.4));
+        // reflet qui balaie le panneau
+        let sweep = ((self.t * 0.7).fract() * (size.x + 40.0)) - 20.0;
+        for i in 0..5 {
+            let x = (pos.x + sweep + i as f32 * 3.0).clamp(pos.x, pos.x + size.x - 2.0);
+            list.rect(white, Vec2::new(x.round(), pos.y + 1.0), Vec2::new(2.0, size.y - 2.0), [1.0, 0.95, 0.6, 0.06]);
+        }
+        list.set(Space::Ui, Blend::Alpha);
+        // icone x2 avec etincelles qui tournent autour
+        let ib = Vec2::new(36.0, 36.0);
+        let ip = pos + Vec2::new(6.0, 6.0);
+        list.rect(white, ip, ib, [0.0, 0.0, 0.0, 0.5]);
+        frame_rect(list, white, ip, ib, with_alpha(green, 0.7));
+        list.frame(atlas.frame(tt.icon, 0.0), ip + ib * 0.5, &Params::default().scale(Vec2::splat(2.0)));
+        list.set(Space::Ui, Blend::Add);
+        for k in 0..6 {
+            let a = self.t * 2.5 + k as f32 * std::f32::consts::TAU / 6.0;
+            let p = ip + ib * 0.5 + Vec2::new(a.cos() * 21.0, a.sin() * 21.0);
+            list.rect(white, (p - Vec2::ONE).round(), Vec2::splat(2.0), [0.7, 1.0, 0.8, 0.8]);
+        }
+        list.set(Space::Ui, Blend::Alpha);
+        let tx = ip.x + ib.x + 8.0;
+        text(list, main, &tt.title, Vec2::new(tx, pos.y + 4.0), 1.0, GOLD, Align::Left);
+        text(list, main, &hl_new(&tt.name), Vec2::new(tx, pos.y + 18.0), 1.0, WHITE, Align::Left);
+        text(list, main, &tt.sub, Vec2::new(tx, pos.y + 32.0), 1.0, rgb(200, 200, 220), Align::Left);
     }
 }
 

@@ -1,0 +1,17 @@
+// Sheik (planche Ocarina of Time d'Oldskoolmario, dos et profil ajoutes) : tres rapide, dash vif, fragile.
+// Part avec l'arc (ses aiguilles). Debloquee en vainquant Vitreous (Desert).
+(
+    name: "Sheik",
+    sprite: "sheik",
+    max_hp: 50.0,
+    speed: 86.0,
+    radius: 5.0,
+    magnet: 34.0,
+    dash: (speed: 350.0, duration: 0.15, cooldown: 1.4),
+    weapon: "bow",
+    weapon_sprite: "sword1",
+    // avantages : vitesse +15 %, recharge du dash -20 % ; defauts : 5 coeurs, degats -10 %
+    stats: [(MoveSpeed, 0.15), (DashCooldown, -0.2), (Might, -0.1)],
+    order: 17,
+    unlock: Some(Slain("vitreous")),
+)

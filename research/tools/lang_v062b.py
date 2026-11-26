@@ -1,0 +1,152 @@
+"""Textes de la version 0.6.2, suite : six armes et leurs evolutions (lance-pierre, plume de Roc, fanal,
+jarre magique, ocarina, Feu de Din), boutons Relancer / Passer de la montee de niveau, articles de boutique
+et reliques qui en donnent plus. Importe par gen_lang.py. Japonais en kana uniquement (police du jeu) ; pas de
+guillemets doubles ni de chevrons, pas de point-virgule.
+La lanterne arme s'appelle autrement que l'objet Lanterne / Lamp (Fanal, Lantern...) pour ne pas les confondre."""
+
+WEAPONS = ["slingshot", "hyper_slingshot", "roc_feather", "roc_cape", "lantern", "blue_lantern",
+           "gust_jar", "vaati_jar", "ocarina", "ocarina_of_time", "din_fire", "din_wrath"]
+UI = ["ui.reroll", "ui.skip", "stat.rerolls", "stat.skips",
+      "shop.reroll.name", "shop.reroll.desc", "shop.skip.name", "shop.skip.desc",
+      "relic.lens_of_truth.name", "relic.kinstone.name", "ui.evo_choose", "ui.evo_from"]
+
+KEYS = UI + [f"weapon.{w}.{f}" for w in WEAPONS for f in ("name", "desc")]
+
+
+def table(ui, weapons):
+    assert len(ui) == len(UI) and len(weapons) == len(WEAPONS)
+    t = dict(zip(UI, ui))
+    for w, (n, d) in zip(WEAPONS, weapons):
+        t[f"weapon.{w}.name"] = n
+        t[f"weapon.{w}.desc"] = d
+    return t
+
+
+EXTRA = {
+    "fr": table(
+        ["Relancer", "Passer", "relance", "passe",
+         "Regard neuf", "Une relance de plus par partie : de nouveaux choix à la montée de niveau.",
+         "Patience", "Une passe de plus par partie : un niveau sans rien prendre.",
+         "Monocle de Vérité", "Fragment de Kinstone", "Une seule arme peut fusionner avec {a} : choisis-la.", "Remplace"],
+        [("Lance-pierre", "Tire une salve de graines en éventail vers l'ennemi le plus proche."),
+         ("Hyper lance-pierre", "Sept graines en éventail, rapides et perçantes."),
+         ("Plume de Roc", "Saute quand un ennemi approche : invincible en l'air, onde de choc à l'atterrissage."),
+         ("Cape de Roc", "Un saut plus long et une énorme onde de choc qui étourdit."),
+         ("Fanal", "Un halo de flammes autour de vous brûle les ennemis proches."),
+         ("Fanal bleu", "Un grand halo de flammes bleues qui brûle fort."),
+         ("Jarre magique", "Un souffle autour de vous repousse les ennemis."),
+         ("Jarre de Vaati", "Un grand vent violet qui repousse et étourdit."),
+         ("Ocarina des fées", "Un air magique : des tornades errent et traversent les ennemis."),
+         ("Ocarina du temps", "Quatre grandes tornades, plus longues et plus fortes."),
+         ("Feu de Din", "Une explosion de feu autour de vous quand les ennemis approchent."),
+         ("Courroux de Din", "Une immense explosion de feu qui laisse des flammes au sol.")],
+    ),
+    "en": table(
+        ["Reroll", "Skip", "reroll", "skip",
+         "Fresh Eyes", "One more reroll per run: new choices when you level up.",
+         "Patience", "One more skip per run: a level where you take nothing.",
+         "Lens of Truth", "Kinstone Piece", "Only one weapon can fuse with {a}: pick it.", "Replaces"],
+        [("Slingshot", "Fires a fan of seeds at the nearest enemy."),
+         ("Hyper Slingshot", "Seven fast, piercing seeds in a wide fan."),
+         ("Roc's Feather", "Jumps when an enemy gets close: invincible in the air, shockwave on landing."),
+         ("Roc's Cape", "A longer jump and a huge stunning shockwave."),
+         ("Lantern", "A ring of flames around you burns nearby enemies."),
+         ("Blue Lantern", "A wide halo of blue flames that burns hard."),
+         ("Gust Jar", "A gust around you pushes enemies back."),
+         ("Vaati's Jar", "A wide violet wind that pushes back and stuns."),
+         ("Fairy Ocarina", "A magic tune: tornadoes wander and sweep through enemies."),
+         ("Ocarina of Time", "Four big tornadoes that last longer and hit harder."),
+         ("Din's Fire", "A burst of fire around you when enemies close in."),
+         ("Din's Wrath", "A huge fire blast that leaves flames on the ground.")],
+    ),
+    "de": table(
+        ["Neu würfeln", "Überspringen", "Neuwurf", "Überspringen",
+         "Neuer Blick", "Ein Neuwurf mehr pro Runde: neue Auswahl beim Stufenaufstieg.",
+         "Geduld", "Einmal mehr Überspringen pro Runde: eine Stufe ohne Belohnung.",
+         "Auge der Wahrheit", "Kinstone-Fragment", "Nur eine Waffe kann mit {a} verschmelzen: wähle sie.", "Ersetzt"],
+        [("Schleuder", "Schießt einen Fächer aus Samen auf den nächsten Gegner."),
+         ("Hyperschleuder", "Sieben schnelle, durchbohrende Samen im weiten Fächer."),
+         ("Rocs Feder", "Springt, wenn ein Gegner nahe kommt: in der Luft unverwundbar, Schockwelle bei der Landung."),
+         ("Rocs Cape", "Ein längerer Sprung und eine riesige, betäubende Schockwelle."),
+         ("Leuchtfeuer", "Ein Flammenring um dich verbrennt nahe Gegner."),
+         ("Blaues Leuchtfeuer", "Ein großer Ring aus blauen Flammen, der stark brennt."),
+         ("Wirbelkrug", "Ein Windstoß um dich stößt Gegner zurück."),
+         ("Vaatis Krug", "Ein großer violetter Wind, der zurückstößt und betäubt."),
+         ("Feen-Okarina", "Eine Zaubermelodie: Wirbelstürme ziehen umher und fegen durch Gegner."),
+         ("Okarina der Zeit", "Vier große Wirbelstürme, die länger halten und stärker treffen."),
+         ("Dins Feuerinferno", "Eine Feuerexplosion um dich, wenn Gegner nahe kommen."),
+         ("Dins Zorn", "Eine gewaltige Feuerexplosion, die Flammen am Boden hinterlässt.")],
+    ),
+    "es": table(
+        ["Cambiar", "Saltar", "cambio", "salto",
+         "Nueva mirada", "Un cambio más por partida: nuevas opciones al subir de nivel.",
+         "Paciencia", "Un salto más por partida: un nivel sin llevarte nada.",
+         "Lente de la Verdad", "Fragmento de Kinstone", "Solo un arma puede fusionarse con {a}: elígela.", "Reemplaza"],
+        [("Tirachinas", "Dispara un abanico de semillas al enemigo más cercano."),
+         ("Supertirachinas", "Siete semillas rápidas y perforantes en un gran abanico."),
+         ("Pluma de Roc", "Salta cuando un enemigo se acerca: invencible en el aire, onda expansiva al caer."),
+         ("Capa de Roc", "Un salto más largo y una enorme onda expansiva que aturde."),
+         ("Farol", "Un anillo de llamas a tu alrededor quema a los enemigos cercanos."),
+         ("Farol azul", "Un gran halo de llamas azules que quema con fuerza."),
+         ("Ánfora de viento", "Una ráfaga a tu alrededor empuja a los enemigos."),
+         ("Ánfora de Vaati", "Un gran viento violeta que empuja y aturde."),
+         ("Ocarina de las Hadas", "Una melodía mágica: tornados vagan y arrasan a los enemigos."),
+         ("Ocarina del Tiempo", "Cuatro grandes tornados que duran más y golpean más fuerte."),
+         ("Fuego de Din", "Una explosión de fuego a tu alrededor cuando se acercan los enemigos."),
+         ("Ira de Din", "Una inmensa explosión de fuego que deja llamas en el suelo.")],
+    ),
+    "it": table(
+        ["Rilancia", "Salta", "rilancio", "salto",
+         "Sguardo nuovo", "Un rilancio in più per partita: nuove scelte quando sali di livello.",
+         "Pazienza", "Un salto in più per partita: un livello senza prendere nulla.",
+         "Lente della Verità", "Frammento Kinstone", "Solo un'arma può fondersi con {a}: sceglila.", "Sostituisce"],
+        [("Fionda", "Spara un ventaglio di semi verso il nemico più vicino."),
+         ("Iperfionda", "Sette semi rapidi e perforanti in un ampio ventaglio."),
+         ("Piuma di Roc", "Salta quando un nemico si avvicina: invincibile in aria, onda d'urto all'atterraggio."),
+         ("Mantello di Roc", "Un salto più lungo e un'enorme onda d'urto che stordisce."),
+         ("Lume", "Un anello di fiamme intorno a te brucia i nemici vicini."),
+         ("Lume blu", "Un grande alone di fiamme blu che brucia forte."),
+         ("Giara del vento", "Una folata intorno a te respinge i nemici."),
+         ("Giara di Vaati", "Un grande vento viola che respinge e stordisce."),
+         ("Ocarina delle fate", "Una melodia magica: tornado vagano e travolgono i nemici."),
+         ("Ocarina del tempo", "Quattro grandi tornado che durano di più e colpiscono più forte."),
+         ("Fuoco di Din", "Un'esplosione di fuoco intorno a te quando i nemici si avvicinano."),
+         ("Ira di Din", "Un'immensa esplosione di fuoco che lascia fiamme a terra.")],
+    ),
+    "pt": table(
+        ["Trocar", "Pular", "troca", "pulo",
+         "Novo olhar", "Uma troca a mais por partida: novas escolhas ao subir de nível.",
+         "Paciência", "Um pulo a mais por partida: um nível sem pegar nada.",
+         "Lente da Verdade", "Fragmento Kinstone", "Só uma arma pode se fundir com {a}: escolha-a.", "Substitui"],
+        [("Estilingue", "Dispara um leque de sementes no inimigo mais próximo."),
+         ("Hiperestilingue", "Sete sementes rápidas e perfurantes num grande leque."),
+         ("Pena de Roc", "Pula quando um inimigo se aproxima: invencível no ar, onda de choque ao cair."),
+         ("Capa de Roc", "Um pulo mais longo e uma enorme onda de choque que atordoa."),
+         ("Lanterna", "Um anel de chamas ao seu redor queima os inimigos próximos."),
+         ("Lanterna azul", "Um grande halo de chamas azuis que queima forte."),
+         ("Jarro de vento", "Uma rajada ao seu redor empurra os inimigos."),
+         ("Jarro de Vaati", "Um grande vento violeta que empurra e atordoa."),
+         ("Ocarina das Fadas", "Uma melodia mágica: tornados vagam e varrem os inimigos."),
+         ("Ocarina do Tempo", "Quatro grandes tornados que duram mais e batem mais forte."),
+         ("Fogo de Din", "Uma explosão de fogo ao seu redor quando os inimigos se aproximam."),
+         ("Ira de Din", "Uma imensa explosão de fogo que deixa chamas no chão.")],
+    ),
+    "ja": table(
+        ["ひきなおす", "スキップ", "ひきなおし", "スキップ",
+         "あたらしい め", "1かいの プレイで ひきなおしが 1かい ふえる。 レベルアップの せんたくしを かえられる。",
+         "がまん", "1かいの プレイで スキップが 1かい ふえる。 なにも とらずに レベルを すすめる。",
+         "まことの めがね", "ふしぎの かけら", "{a}と がったい できる ぶきは ひとつだけ。 えらぼう。", "いれかえ"],
+        [("パチンコ", "いちばん ちかい てきに タネを おうぎがたに うつ。"),
+         ("ハイパー パチンコ", "はやくて つらぬく タネを 7つ ひろく うつ。"),
+         ("ロックの はね", "てきが ちかづくと ジャンプ。 くうちゅうでは むてきで ちゃくちで しょうげきは。"),
+         ("ロックの マント", "ながい ジャンプと てきを しびれさせる おおきな しょうげきは。"),
+         ("ランタン", "まわりの ほのおの わが ちかくの てきを もやす。"),
+         ("あおい ランタン", "あおい ほのおの おおきな わが つよく もやす。"),
+         ("かぜの ツボ", "まわりに ふく かぜが てきを おしかえす。"),
+         ("グフーの ツボ", "むらさきの おおかぜが おしかえして しびれさせる。"),
+         ("ようせいの オカリナ", "ふしぎな メロディ。 たつまきが さまよい てきを まきこむ。"),
+         ("ときの オカリナ", "おおきな たつまきが 4つ。 ながく つよく なる。"),
+         ("ディンの ほのお", "てきが ちかづくと まわりで ほのおが ばくはつ する。"),
+         ("ディンの いかり", "ゆかに ほのおを のこす おおきな ばくはつ。")],
+    ),
+}

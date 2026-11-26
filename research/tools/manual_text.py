@@ -60,10 +60,11 @@ T = {
         menu=[
             ("ui.play", "Choisir un personnage puis un stage, et partir à l'aventure."),
             ("ui.player_item", "Le joueur actif (nom et avatar). Ouvre l'écran des joueurs."),
-            ("ui.shop", "Dépenser les rubis en banque : améliorations, bénédictions, reliques, défis."),
-            ("ui.profile", "Bestiaire, armurerie, statistiques et sauvegarde du joueur actif."),
+            ("ui.shop", "Dépenser les rubis rouges : la sorcière et les bénédictions, améliorations, reliques, défis, tenues, musiques."),
+            ("ui.collection", "Bestiaire, armes, objets et fusions découverts par le joueur actif."),
+            ("ui.exploits", "Trophées (bronze, argent, or) et statistiques du joueur actif."),
             ("ui.scores", "Les meilleurs scores de chaque stage : les vôtres, ceux des autres joueurs, le monde."),
-            ("ui.options", "Son, image, filtres rétro, langue, commandes et mises à jour."),
+            ("ui.options", "Son, image, filtres rétro, langue, commandes, mises à jour et sauvegarde."),
             ("ui.about", "Crédits et liens (site, Discord, code source)."),
         ],
         players_h="L'écran des joueurs",
@@ -95,6 +96,9 @@ T = {
             ("Pause", "Échap / P", "", "Start"),
             ("Menus : valider", "Entrée / Espace / J", "Clic gauche", "A"),
             ("Menus : retour", "Échap / Retour arrière", "Clic droit", "B"),
+            ("Menus : onglet précédent / suivant", "A / E", "Clic sur l'onglet", "Gâchettes"),
+            ("Menus : faire défiler une liste", "Flèches", "Molette", "Stick gauche / croix"),
+            ("Plein écran", "F11 / Alt + Entrée", "", "Select"),
         ],
         controls_note="Les lettres sont celles d'un clavier AZERTY (WASD sur un clavier QWERTY). Par défaut, vos armes "
                       "attaquent seules la cible la plus proche ; en mode manuel, elles visent là où vous visez.",
@@ -105,10 +109,12 @@ T = {
             ("Cœurs", "Votre vie. À zéro, la partie est perdue (sauf si une fée vous ranime)."),
             ("Barre d'expérience", "Se remplit avec les rubis ramassés. Pleine : niveau supérieur et un choix d'amélioration."),
             ("Temps", "Le temps de la partie. Le boss du milieu arrive vers 4:30, le boss final à 9:00."),
-            ("Rubis", "Les rubis ramassés, et ceux qui iront en banque à la fin de la partie."),
+            ("Rubis", "En vert : les rubis ramassés pendant la partie. En rouge : les rubis rouges, la monnaie de la "
+                      "boutique, que vous gardez à la fin de la partie."),
             ("Armes et objets", "Vos 6 emplacements d'armes et vos 6 emplacements d'objets, avec leur niveau."),
-            ("Barres de vie", "En haut de l'écran pour les boss ; sous les mini-boss, les champions et le Pikit voleur."),
-            ("Flèches au bord", "Elles montrent les coffres, les champions errants et le Pikit, avec leur distance."),
+            ("Reliques", "Juste en dessous, dans des cases dorées : les reliques équipées pour cette partie."),
+            ("Barres de vie", "En haut de l'écran pour les boss ; sous les mini-boss, les champions et le Boo voleur."),
+            ("Flèches au bord", "Elles montrent la direction des coffres (or), des champions errants (violet), du Boo (vert) et de la Bob-omb."),
         ],
         # 4. Deroulement
         ch_run="4. Déroulement d'une partie",
@@ -124,12 +130,22 @@ T = {
             "vous avez déjà (jusqu'au niveau 8 pour les armes, 5 pour les objets).",
             "Les choix **en rose** peuvent **fusionner** avec une arme ou un objet que vous possédez déjà : c'est le "
             "chemin vers une évolution. L'objet partenaire que vous avez déjà sautille sur la carte.",
+            "Sous les cartes, **Relancer** propose trois nouveaux choix et **Passer** termine le niveau sans rien "
+            "prendre. Vous en avez **2 de chaque par partie** ; la boutique et deux reliques des champions errants "
+            "en ajoutent.",
+            "Six armes se **méritent** : le lance-pierre, la plume de Roc, le fanal, la jarre magique, l'ocarina et "
+            "le Feu de Din n'apparaissent qu'après avoir vaincu une première fois le **mini-boss** d'un stage "
+            "(Chevalier Armos, Blind, Lanmola, Arrghus, Moldorm, Agahnim). L'arme est proposée dès la même partie, "
+            "puis dans toutes les suivantes ; le recueil indique quel mini-boss vaincre.",
         ],
         chest_h="Coffres et évolutions",
         chest=[
             "Les ennemis **élites** (contour doré) laissent un coffre. Il contient des améliorations, ou une "
-            "**évolution** : une arme au niveau maximum, accompagnée de son objet partenaire, se transforme en sa "
+            "**évolution** : une arme au niveau maximum, accompagnée de son objet partenaire lui aussi au niveau "
+            "maximum, se transforme en sa "
             "forme légendaire. Les boss laissent un grand coffre.",
+            "Certains objets sont partenaires de **deux armes**, mais un objet ne sert qu'à **une seule fusion par "
+            "partie** : si deux armes sont prêtes en même temps, le coffre vous laisse choisir celle qui évolue.",
         ],
         drops_h="Ce que l'on trouve au sol",
         drops=[
@@ -143,14 +159,15 @@ T = {
         drops_note="Les buissons, pots et autres décors se cassent et cachent parfois rubis, cœurs, fées ou médaillons.",
         shots_h="Les tirs ennemis",
         shots="Les archers, Lynels, sorciers et boss tirent. Leurs projectiles sont entourés d'un halo rouge, et leur "
-              "zone de contact est un peu plus petite que leur dessin : un frôlement ne compte pas.",
+              "zone de contact est un peu plus petite que leur dessin : un frôlement ne compte pas. Comme dans les jeux "
+              "d'autrefois, un projectile qui va disparaître clignote.",
         encounters_h="Rencontres",
         champion="**Champions errants** : un ennemi plus fort que les autres attend quelque part ; une flèche montre "
                  "le chemin. Vaincu, il vous offre une récompense au choix : bénédiction, amélioration spéciale "
                  "d'une arme, ou relique gardée si vous gagnez le stage.",
-        thief="**Pikit voleur** : deux à trois fois par partie, un Pikit surgit et dévore les rubis restés au sol. "
-              "Il fuit en sautant quand vous approchez et repart au bout de 45 secondes. Rattrapez-le et vainquez-le : "
-              "sa langue vous rapporte **tous les rubis** encore au sol !",
+        thief="**Boo voleur** : deux à trois fois par partie, un Boo surgit et dévore les rubis restés au sol. "
+              "Il s'enfuit par bonds quand vous approchez et repart au bout de 45 secondes. Rattrapez-le et vainquez-le : "
+              "il vous rend **tous les rubis** encore au sol !",
         # 5. Equipement
         ch_gear="5. Armes et objets",
         gear_intro="Vous partez avec l'arme de votre personnage. Les autres arrivent en montant de niveau. Six armes et six "
@@ -158,12 +175,16 @@ T = {
         weapons_h="Les armes",
         passives_h="Les objets",
         evos_h="Évolutions",
-        evos_intro="Une arme au **niveau 8** et son objet partenaire (à n'importe quel niveau) : le prochain coffre la "
-                   "fait évoluer.",
+        evos_intro="Une arme au **niveau 8** et son objet partenaire au **niveau maximum** : le prochain coffre la "
+                   "fait évoluer. Sur les cartes de niveau, le partenaire possédé affiche son niveau "
+                   "(par exemple « Abeilles 3/8 »).",
         evos_cols=("Arme", "Objet", "Évolution"),
         # 6. Personnages
         ch_chars="6. Les personnages",
-        chars_intro="Chaque personnage a ses forces, ses faiblesses et son arme de départ. Les autres se débloquent en jouant.",
+        chars_intro="Chaque personnage a ses forces, ses faiblesses et son arme de départ. Les autres se débloquent en jouant. "
+                    "Voici la troupe faite main ; plus de 300 autres, venus des sprites du A Link to the Past Randomizer, "
+                    "se rangent par univers (gauche / droite sur le nom de l'univers, en haut de la grille) : certains se "
+                    "débloquent par des exploits, les autres s'achètent à la boutique (onglet Personnages).",
         unlocked="Disponible dès le début.",
         # 7. Stages
         ch_stages="7. Les stages",
@@ -174,8 +195,8 @@ T = {
         relic="Relique",
         # 8. Entre les parties
         ch_meta="8. Entre les parties",
-        meta_intro="À la fin d'une partie, une partie des rubis ramassés va **en banque** (plus si vous gagnez). Ils se "
-                   "dépensent depuis l'écran titre, dans la Boutique.",
+        meta_intro="À la fin d'une partie, une partie des rubis verts ramassés devient des **rubis rouges**, mis en banque "
+                   "(plus si vous gagnez). Ils se dépensent depuis l'écran titre, dans la Boutique.",
         shop_h="Boutique de Kakariko",
         shop_intro="Des améliorations permanentes, achetées niveau par niveau.",
         fairy_h="La Grande Fée",
@@ -187,8 +208,11 @@ T = {
         seals_intro="Des défis optionnels : chaque sceau rend les parties plus dures, mais rapporte plus de rubis et de points.",
         diff_h="Difficultés",
         diff_intro="Quatre difficultés, choisies dans la Boutique. Plus c'est dur, plus la banque et le score grimpent.",
-        profile_h="Profil et sauvegarde",
-        profile="Le Profil montre le bestiaire, l'armurerie et les statistiques du joueur actif. L'onglet Sauvegarde "
+        profile_h="Recueil, exploits et sauvegarde",
+        profile="Le Recueil montre le bestiaire, les armes, les objets et les fusions du joueur actif. Dans le bestiaire, "
+                "validez (ou cliquez) un ennemi déjà vaincu pour ouvrir sa fiche : son sprite animé à sa vraie taille "
+                "et ses statistiques ; Gauche/Droite passe au suivant. Les Exploits rassemblent les trophées (bronze, "
+                "argent, or : victoires, boss, collections...) et les statistiques. Dans les Options, la Sauvegarde "
                 "exporte toute la progression sous forme de code texte, à recoller sur un autre ordinateur ou dans "
                 "le navigateur.",
         # 9. Score et classements
@@ -198,7 +222,8 @@ T = {
             "Chaque partie, gagnée ou perdue, reçoit un score :",
             "**10 points** par ennemi vaincu, **10 points** par seconde de survie, **1 000 points** par boss et "
             "**5 000 points** pour une victoire, le tout multiplié par la **difficulté** et les **Sceaux de Ganon** actifs.",
-            "Les cinq meilleures parties de chaque stage sont gardées pour chaque joueur.",
+            "Les cinq meilleures parties de chaque stage sont gardées pour chaque joueur. Les parties quittées et "
+            "celles de moins de 30 secondes ne comptent pas.",
         ],
         boards_h="L'écran Classements",
         boards=[
@@ -231,7 +256,7 @@ T = {
             "Le dash rend invulnérable un court instant : gardez-le pour sortir d'un encerclement.",
             "Cherchez les fusions en rose : une arme évoluée change une partie.",
             "Les élites lâchent des coffres : ne les laissez pas filer.",
-            "Quand le Pikit voleur apparaît, suivez la flèche : tous vos rubis au sol sont en jeu.",
+            "Quand le Boo voleur apparaît, suivez la flèche : tous vos rubis au sol sont en jeu.",
             "Un mauvais départ ? Les rubis mis en banque ne sont jamais perdus : chaque partie vous rend plus fort.",
             "Les Sceaux de Ganon multiplient le score : idéal pour grimper au classement mondial.",
         ],
@@ -297,10 +322,11 @@ T = {
         menu=[
             ("ui.play", "Choose a character, then a stage, and set off."),
             ("ui.player_item", "The active player (name and avatar). Opens the players screen."),
-            ("ui.shop", "Spend your banked rupees: upgrades, blessings, relics, challenges."),
-            ("ui.profile", "Bestiary, armory, statistics and save of the active player."),
+            ("ui.shop", "Spend your red rupees: the witch and blessings, upgrades, relics, challenges, outfits, music."),
+            ("ui.collection", "Bestiary, weapons, items and fusions found by the active player."),
+            ("ui.exploits", "Trophies (bronze, silver, gold) and statistics of the active player."),
             ("ui.scores", "The best scores of every stage: yours, the other players', the world's."),
-            ("ui.options", "Sound, video, retro filters, language, controls and updates."),
+            ("ui.options", "Sound, video, retro filters, language, controls, updates and save."),
             ("ui.about", "Credits and links (website, Discord, source code)."),
         ],
         players_h="The players screen",
@@ -330,6 +356,9 @@ T = {
             ("Pause", "Esc / P", "", "Start"),
             ("Menus: confirm", "Enter / Space / J", "Left click", "A"),
             ("Menus: back", "Esc / Backspace", "Right click", "B"),
+            ("Menus: previous / next tab", "Q / E", "Click the tab", "Triggers"),
+            ("Menus: scroll a list", "Arrows", "Mouse wheel", "Left stick / D-pad"),
+            ("Fullscreen", "F11 / Alt + Enter", "", "Select"),
         ],
         controls_note="Letters are those of a QWERTY keyboard (ZQSD on an AZERTY keyboard). By default your weapons attack "
                       "the nearest enemy on their own; in manual mode they aim where you aim.",
@@ -339,10 +368,12 @@ T = {
             ("Hearts", "Your life. At zero the run is lost (unless a fairy revives you)."),
             ("Experience bar", "Fills up with the rupees you collect. When full: level up and a choice of upgrade."),
             ("Time", "The run's clock. The mid-boss arrives around 4:30, the final boss at 9:00."),
-            ("Rupees", "Rupees collected, and those that will go to the bank at the end of the run."),
+            ("Rupees", "Green: the rupees collected during the run. Red: red rupees, the shop's currency, "
+                        "which you keep at the end of the run."),
             ("Weapons and items", "Your 6 weapon slots and 6 item slots, with their levels."),
-            ("Health bars", "At the top of the screen for bosses; under mini-bosses, champions and the thief Pikit."),
-            ("Edge arrows", "They point to chests, wandering champions and the Pikit, with their distance."),
+            ("Relics", "Just below, in golden slots: the relics equipped for this run."),
+            ("Health bars", "At the top of the screen for bosses; under mini-bosses, champions and the thief Boo."),
+            ("Edge arrows", "They point toward chests (gold), wandering champions (purple), the Boo (green) and the Bob-omb."),
         ],
         ch_run="4. How a Run Goes",
         run=[
@@ -357,11 +388,20 @@ T = {
             "(up to level 8 for weapons, 5 for items).",
             "Choices shown **in pink** can **fuse** with a weapon or item you already own: that's the road to an "
             "evolution. The partner you already have hops on the card.",
+            "Below the cards, **Reroll** offers three new choices and **Skip** ends the level without taking anything. "
+            "You get **2 of each per run**; the shop and two relics from wandering champions add more.",
+            "Six weapons must be **earned**: the slingshot, Roc's feather, lantern, gust jar, ocarina and Din's fire "
+            "only appear after you defeat a stage's **mini-boss** once (Armos Knight, Blind, Lanmola, Arrghus, "
+            "Moldorm, Agahnim). The weapon can be offered in that same run, then in every run after; the records "
+            "tell you which mini-boss to defeat.",
         ],
         chest_h="Chests and evolutions",
         chest=[
             "**Elite** enemies (golden outline) drop a chest. It holds upgrades, or an **evolution**: a weapon at its "
-            "maximum level, together with its partner item, turns into its legendary form. Bosses drop a big chest.",
+            "maximum level, together with its partner item also at maximum level, turns into its legendary form. "
+            "Bosses drop a big chest.",
+            "Some items partner with **two weapons**, but an item serves **only one fusion per run**: the first "
+            "weapon to be ready wins it; if both are ready at once, the chest lets you pick which one evolves.",
         ],
         drops_h="What lies on the ground",
         drops=[
@@ -375,12 +415,13 @@ T = {
         drops_note="Bushes, pots and other scenery break, and sometimes hide rupees, hearts, fairies or medallions.",
         shots_h="Enemy shots",
         shots="Archers, Lynels, wizards and bosses shoot. Their projectiles glow with a red halo, and their hitbox is a "
-              "little smaller than their drawing: a graze doesn't count.",
+              "little smaller than their drawing: a graze doesn't count. As in the games of old, a projectile about to "
+              "vanish blinks.",
         encounters_h="Encounters",
         champion="**Wandering champions**: a stronger enemy waits somewhere; an arrow shows the way. Beat it for a reward "
                  "of your choice: a blessing, a special weapon upgrade, or a relic you keep if you win the stage.",
-        thief="**Thief Pikit**: two or three times per run, a Pikit shows up and gobbles the rupees left on the ground. "
-              "It hops away when you get close and leaves after 45 seconds. Catch it and defeat it: its tongue brings "
+        thief="**Thief Boo**: two or three times per run, a Boo shows up and gobbles the rupees left on the ground. "
+              "It darts away when you get close and leaves after 45 seconds. Catch it and defeat it: it gives "
               "back **every rupee** still on the ground!",
         ch_gear="5. Weapons and Items",
         gear_intro="You start with your character's weapon. The others come as you level up. Six weapons and six items at "
@@ -388,10 +429,14 @@ T = {
         weapons_h="Weapons",
         passives_h="Items",
         evos_h="Evolutions",
-        evos_intro="A weapon at **level 8** plus its partner item (any level): the next chest evolves it.",
+        evos_intro="A weapon at **level 8** plus its partner item at **max level**: the next chest evolves it. On "
+                   "level-up cards, an owned partner shows its level (for example “Bees 3/8”).",
         evos_cols=("Weapon", "Item", "Evolution"),
         ch_chars="6. Characters",
-        chars_intro="Each character has strengths, weaknesses and a starting weapon. The others unlock as you play.",
+        chars_intro="Each character has strengths, weaknesses and a starting weapon. The others unlock as you play. "
+                    "Here is the hand-made cast; more than 300 others, from the A Link to the Past Randomizer sprites, "
+                    "are sorted by universe (left / right on the universe name, above the grid): some unlock through "
+                    "feats, the rest are bought in the shop (Characters tab).",
         unlocked="Available from the start.",
         ch_stages="7. Stages",
         stages_intro="Stages open one after the other: win one to open the next. Each has its own weather, music, mid-boss "
@@ -400,8 +445,8 @@ T = {
         final_boss="Final boss",
         relic="Relic",
         ch_meta="8. Between Runs",
-        meta_intro="At the end of a run, part of the rupees you collected goes **to the bank** (more if you win). Spend them "
-                   "from the title screen, in the Shop.",
+        meta_intro="At the end of a run, part of the green rupees you collected becomes **red rupees**, banked for good "
+                   "(more if you win). Spend them from the title screen, in the Shop.",
         shop_h="Kakariko Shop",
         shop_intro="Permanent upgrades, bought level by level.",
         fairy_h="The Great Fairy",
@@ -413,8 +458,11 @@ T = {
         seals_intro="Optional challenges: each seal makes runs harder, but earns more rupees and points.",
         diff_h="Difficulties",
         diff_intro="Four difficulties, chosen in the Shop. The harder, the higher the bank and the score.",
-        profile_h="Profile and save",
-        profile="The Profile shows the active player's bestiary, armory and statistics. The Save tab exports all progress "
+        profile_h="Collection, achievements and save",
+        profile="The Collection shows the active player's bestiary, weapons, items and fusions. In the bestiary, confirm (or "
+                "click) an enemy you have defeated to open its card: its animated sprite at its real size and its "
+                "statistics; Left/Right moves to the next one. Achievements gather the trophies (bronze, silver, gold: "
+                "wins, bosses, collections...) and the statistics. In the Options, Save exports all progress "
                 "as a text code, to paste on another computer or in the browser.",
         ch_scores="9. Score and Leaderboards",
         score_h="The score",
@@ -422,7 +470,8 @@ T = {
             "Every run, won or lost, gets a score:",
             "**10 points** per enemy defeated, **10 points** per second survived, **1,000 points** per boss and "
             "**5,000 points** for a victory, all multiplied by the **difficulty** and the active **Ganon's Seals**.",
-            "Each player keeps their five best runs on every stage.",
+            "Each player keeps their five best runs on every stage. Runs you quit and runs shorter than 30 seconds "
+            "don't count.",
         ],
         boards_h="The Leaderboards screen",
         boards=[
@@ -453,7 +502,7 @@ T = {
             "The dash makes you invulnerable for a moment: keep it to escape when surrounded.",
             "Look for pink fusions: an evolved weapon changes a run.",
             "Elites drop chests: don't let them slip away.",
-            "When the thief Pikit appears, follow the arrow: all your rupees on the ground are at stake.",
+            "When the thief Boo appears, follow the arrow: all your rupees on the ground are at stake.",
             "Bad start? Banked rupees are never lost: every run makes you stronger.",
             "Ganon's Seals multiply the score: ideal for climbing the world leaderboard.",
         ],

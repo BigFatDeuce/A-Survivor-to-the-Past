@@ -1,13 +1,60 @@
-//! Boutique (entre les parties) : Kakariko (ameliorations), Grande Fee (benedictions),
-//! reliques (a equiper) et defis (difficulte, Sceaux de Ganon). Contenu des onglets et achats.
+//! Boutique (entre les parties) : Kakariko (ameliorations), Grande Fee (benedictions et offrandes),
+//! reliques (a equiper), defis (difficulte, Sceaux de Ganon), garde-robe (tenues) et juke-box
+//! (musique de l'ecran titre). Contenu des onglets et achats.
 use crate::hub::{Row, DIMMED, GREEN, RED};
 use crate::lang::Lang;
-use crate::meta::{stat_text, Meta};
+use crate::meta::{perk_text, relic_fx, stat_text, Meta};
 use crate::profile::Profile;
 use engine::assets::Atlas;
 use engine::draw::rgb;
 
-pub const TABS: [&str; 4] = ["ui.tab.kakariko", "ui.tab.fairy", "ui.tab.relics", "ui.tab.challenges"];
+/// 0.6.4 : la Grande Fee (et la sorciere, en tete) ouvre la boutique ; 0.6.5 : personnages a acheter.
+pub const TABS: [&str; 7] = ["ui.tab.fairy", "ui.tab.kakariko", "ui.tab.relics", "ui.tab.challenges", "ui.tab.characters", "ui.tab.wardrobe", "ui.tab.jukebox"];
+pub const TAB_FAIRY: usize = 0;
+pub const TAB_KAKARIKO: usize = 1;
+pub const TAB_RELICS: usize = 2;
+pub const TAB_CHALLENGES: usize = 3;
+pub const TAB_CHARS: usize = 4;
+pub const TAB_WARDROBE: usize = 5;
+pub const TAB_JUKEBOX: usize = 6;
+
+/// Nom d'une musique d'apres son identifiant (titres anglais officiels de la bande originale) :
+/// « princess_zelda_s_rescue » -> « Princess Zelda's Rescue ».
+pub fn track_title(id: &str) -> String {
+    let small = ["of", "the", "to", "in", "a"];
+    id.replace("_s_", "'s_")
+        .split('_')
+        .enumerate()
+        .map(|(k, w)| {
+            if k > 0 && small.contains(&w) {
+                w.to_string()
+            } else {
+                let mut c = w.chars();
+                c.next().map(|f| f.to_uppercase().chain(c).collect()).unwrap_or_default()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Musique de l'ecran titre choisie au juke-box (None : celle par defaut).
+pub fn title_music<'a>(meta: &'a Meta, p: &Profile) -> Option<&'a str> {
+    meta.jukebox.iter().find(|t| t.id == p.title_music && track_owned(t, p)).map(|t| t.id.as_str())
+}
+
+fn track_owned(t: &crate::meta::Track, p: &Profile) -> bool {
+    t.cost == 0 || p.jukebox.contains(&t.id)
+}
+
+/// Pseudo au classement selon le titre offert (1 a 3) : vert, or, rose chatoyant.
+pub fn titled_name(title: u32, name: &str) -> String {
+    match title {
+        0 => name.to_string(),
+        1 => crate::hud::hl_new(name),
+        2 => crate::hud::hl(name),
+        _ => crate::hud::hl_fusion(name),
+    }
+}
 
 const PRICE: engine::draw::Color = rgb(248, 216, 88);
 
@@ -16,11 +63,11 @@ fn icon(atlas: &Atlas, name: &str) -> Option<engine::assets::AnimId> {
 }
 
 /// Lignes de l'onglet et texte de detail de chaque ligne.
-pub fn rows(meta: &Meta, p: &Profile, lang: &Lang, atlas: &Atlas, tab: usize) -> (Vec<Row>, Vec<String>) {
+pub fn rows(meta: &Meta, content: &sim::defs::Content, p: &Profile, lang: &Lang, atlas: &Atlas, tab: usize) -> (Vec<Row>, Vec<String>) {
     let mut rows = Vec::new();
     let mut details = Vec::new();
     match tab {
-        0 => {
+        TAB_KAKARIKO => {
             for it in &meta.shop {
                 let lv = p.shop_level(&it.id);
                 let cost = meta.shop_cost(it, lv);
@@ -37,21 +84,26 @@ pub fn rows(meta: &Meta, p: &Profile, lang: &Lang, atlas: &Atlas, tab: usize) ->
                     dim: cost.is_none(),
                     ..Default::default()
                 });
-                let effect = match it.stat {
-                    Some(s) => stat_text(lang, s, it.per_level),
-                    None => format!("+{} % {}", (it.per_level * 100.0).round(), lang.get("stat.greed")),
+                let effect = match (it.stat, it.perk) {
+                    (_, Some(pk)) => perk_text(lang, pk, it.per_level.round() as u32),
+                    (Some(s), None) => stat_text(lang, s, it.per_level),
+                    (None, None) => format!("+{} % {}", (it.per_level * 100.0).round(), lang.get("stat.greed")),
                 };
                 details.push(format!("{} {}", lang.get(&format!("shop.{}.desc", it.id)), lang.get("ui.per_level").replace("{v}", &effect)));
             }
         }
-        1 => {
+        TAB_FAIRY => {
             for b in &meta.blessings {
                 let owned = p.blessings.contains(&b.id);
                 let open = meta.blessing_open(b, p);
+                // la sorciere (en tete de la boutique) : son portrait et son nom en rose chatoyant
+                let witch = matches!(b.effect, crate::meta::BlessingEffect::Witch);
+                let name = lang.get(&format!("blessing.{}.name", b.id));
                 rows.push(Row {
-                    icon: icon(atlas, &b.icon),
+                    label_color: None,
+                    icon: if witch { atlas.find("npc_witch", "0") } else { icon(atlas, &b.icon) },
                     icon_dim: !open && !owned,
-                    label: lang.get(&format!("blessing.{}.name", b.id)).to_string(),
+                    label: if witch && !owned { crate::hud::hl_fusion(name) } else { name.to_string() },
                     value: if owned { lang.get("ui.owned").to_string() } else { b.cost.to_string() },
                     value_color: Some(if owned {
                         GREEN
@@ -69,13 +121,123 @@ pub fn rows(meta: &Meta, p: &Profile, lang: &Lang, atlas: &Atlas, tab: usize) ->
                 }
                 details.push(d);
             }
+            // offrandes : titres au classement, dans l'ordre
+            for (j, t) in meta.titles.iter().enumerate() {
+                let owned = (p.title as usize) > j;
+                let open = p.title as usize >= j;
+                let name = lang.get(&format!("title.{}", t.id));
+                rows.push(Row {
+                    icon: icon(atlas, "icon_fairy_bottle"),
+                    icon_dim: !open && !owned,
+                    label: format!("{} {}", lang.get("ui.offering"), titled_name(j as u32 + 1, name)),
+                    value: if owned { lang.get("ui.owned").to_string() } else { t.cost.to_string() },
+                    value_color: Some(if owned {
+                        GREEN
+                    } else if open && t.cost <= p.rupees {
+                        PRICE
+                    } else {
+                        RED
+                    }),
+                    dim: owned || !open,
+                    mark: owned,
+                    ..Default::default()
+                });
+                let mut d = lang.get("ui.offering_desc").replace("{s}", &titled_name(j as u32 + 1, name));
+                if j > 0 && !open {
+                    d = format!("{d} {}", lang.get("ui.requires").replace("{s}", lang.get(&format!("title.{}", meta.titles[j - 1].id))));
+                }
+                details.push(d);
+            }
         }
-        2 => {
+        TAB_CHARS => {
+            for (id, cost) in crate::chars::for_sale(content) {
+                let owned = p.chars_bought.contains(&id);
+                let def = &content.characters[&id];
+                rows.push(Row {
+                    icon: atlas.find(&def.sprite, "idle_down"),
+                    label: crate::chars::name(lang, &id),
+                    value: if owned { lang.get("ui.owned").to_string() } else { cost.to_string() },
+                    value_color: Some(if owned {
+                        GREEN
+                    } else if cost <= p.rupees {
+                        PRICE
+                    } else {
+                        RED
+                    }),
+                    mark: owned,
+                    ..Default::default()
+                });
+                let mut d = lang.get(&format!("char.{id}.desc")).to_string();
+                if !def.credit.is_empty() {
+                    d = format!("{d} {}", lang.get("ui.char_credit").replace("{s}", &def.credit));
+                }
+                details.push(format!("{d} {}", lang.get(if owned { "ui.char_bought" } else { "ui.char_buy" })));
+            }
+        }
+        TAB_WARDROBE => {
+            for w in &meta.wardrobe {
+                let owned = p.wardrobe.contains(&w.sprite);
+                let worn = content.characters.get(&w.character).is_some_and(|d| d.skins.get(crate::chars::skin(d, p, &w.character)).is_some_and(|s| s.0 == w.sprite));
+                rows.push(Row {
+                    icon: icon(atlas, &w.icon).or_else(|| atlas.find(&w.sprite, "idle_down")),
+                    label: lang.get(&format!("wardrobe.{}.name", w.sprite)).to_string(),
+                    value: if worn {
+                        lang.get("ui.equipped").to_string()
+                    } else if owned {
+                        lang.get("ui.owned").to_string()
+                    } else {
+                        w.cost.to_string()
+                    },
+                    value_color: Some(if owned {
+                        GREEN
+                    } else if w.cost <= p.rupees {
+                        PRICE
+                    } else {
+                        RED
+                    }),
+                    mark: worn,
+                    ..Default::default()
+                });
+                details.push(format!("{} {}", lang.get(&format!("wardrobe.{}.desc", w.sprite)), lang.get(if owned { "ui.wardrobe_wear" } else { "ui.wardrobe_buy" })));
+            }
+        }
+        TAB_JUKEBOX => {
+            let current = title_music(meta, p);
+            for (j, t) in meta.jukebox.iter().enumerate() {
+                let owned = track_owned(t, p);
+                // sans choix : la premiere (offerte) est celle de l'ecran titre
+                let on = current.map_or(j == 0, |c| c == t.id);
+                rows.push(Row {
+                    icon: icon(atlas, "icon_ocarina"),
+                    icon_dim: !owned,
+                    label: track_title(&t.id),
+                    value: if on {
+                        lang.get("ui.jukebox_on").to_string()
+                    } else if owned {
+                        lang.get("ui.owned").to_string()
+                    } else {
+                        t.cost.to_string()
+                    },
+                    value_color: Some(if owned {
+                        GREEN
+                    } else if t.cost <= p.rupees {
+                        PRICE
+                    } else {
+                        RED
+                    }),
+                    mark: on,
+                    ..Default::default()
+                });
+                details.push(lang.get(if owned { "ui.jukebox_play" } else { "ui.jukebox_buy" }).to_string());
+            }
+        }
+        TAB_RELICS => {
             let n = p.equipped.len();
             for r in &meta.relics {
                 let found = p.relics.contains(&r.id);
                 let on = p.equipped.contains(&r.id);
                 rows.push(Row {
+                    label_color: None,
                     icon: icon(atlas, &r.icon),
                     icon_dim: !found,
                     label: if found { lang.get(&format!("relic.{}.name", r.id)).to_string() } else { "???".into() },
@@ -90,10 +252,11 @@ pub fn rows(meta: &Meta, p: &Profile, lang: &Lang, atlas: &Atlas, tab: usize) ->
                     dim: !found,
                     mark: on,
                 });
-                let fx: Vec<String> = r.stats.iter().map(|&(s, v)| stat_text(lang, s, v)).collect();
+                let fx = relic_fx(lang, r);
                 let slots = lang.get("ui.relic_slots").replace("{a}", &n.to_string()).replace("{b}", &meta.max_relics.to_string());
                 details.push(if found {
-                    format!("{} {}", fx.join(", "), slots)
+                    // les emplacements sur leur propre ligne (retour 0.6.1)
+                    format!("{}\n{}", fx.join(", "), slots)
                 } else {
                     if r.encounter {
                         lang.get("ui.relic_hint_encounter").to_string()
@@ -133,16 +296,18 @@ pub fn rows(meta: &Meta, p: &Profile, lang: &Lang, atlas: &Atlas, tab: usize) ->
 
 pub enum Outcome {
     Nothing,
-    /// Achat ou changement fait (profil a enregistrer).
+    /// Achat fait (profil a enregistrer).
     Done,
+    /// Choix fait sans achat : equiper, porter une tenue, choisir une musique (profil a enregistrer).
+    Selected,
     /// Refus, avec la cle du message (pas assez de rubis, maximum, verrouille).
     Refused(&'static str),
 }
 
 /// Action sur la ligne `k` : `dir` 0 = choisir, -1 / +1 = gauche / droite.
-pub fn act(meta: &Meta, p: &mut Profile, tab: usize, k: usize, dir: i32) -> Outcome {
+pub fn act(meta: &Meta, content: &sim::defs::Content, p: &mut Profile, tab: usize, k: usize, dir: i32) -> Outcome {
     match tab {
-        0 if dir == 0 => {
+        TAB_KAKARIKO if dir == 0 => {
             let Some(it) = meta.shop.get(k) else { return Outcome::Nothing };
             let lv = p.shop_level(&it.id);
             match meta.shop_cost(it, lv) {
@@ -155,7 +320,23 @@ pub fn act(meta: &Meta, p: &mut Profile, tab: usize, k: usize, dir: i32) -> Outc
                 None => Outcome::Refused("ui.maxed"),
             }
         }
-        1 if dir == 0 => {
+        TAB_FAIRY if dir == 0 && k >= meta.blessings.len() => {
+            let j = k - meta.blessings.len();
+            let Some(t) = meta.titles.get(j) else { return Outcome::Nothing };
+            if (p.title as usize) > j {
+                return Outcome::Refused("ui.owned");
+            }
+            if (p.title as usize) < j {
+                return Outcome::Refused("ui.locked");
+            }
+            if t.cost > p.rupees {
+                return Outcome::Refused("ui.not_enough");
+            }
+            p.rupees -= t.cost;
+            p.title = j as u32 + 1;
+            Outcome::Done
+        }
+        TAB_FAIRY if dir == 0 => {
             let Some(b) = meta.blessings.get(k) else { return Outcome::Nothing };
             if p.blessings.contains(&b.id) {
                 return Outcome::Refused("ui.owned");
@@ -170,7 +351,7 @@ pub fn act(meta: &Meta, p: &mut Profile, tab: usize, k: usize, dir: i32) -> Outc
             p.blessings.insert(b.id.clone());
             Outcome::Done
         }
-        2 if dir == 0 => {
+        TAB_RELICS if dir == 0 => {
             let Some(r) = meta.relics.get(k) else { return Outcome::Nothing };
             if !p.relics.contains(&r.id) {
                 return Outcome::Refused("ui.locked");
@@ -182,20 +363,64 @@ pub fn act(meta: &Meta, p: &mut Profile, tab: usize, k: usize, dir: i32) -> Outc
             } else {
                 return Outcome::Refused("ui.slots_full");
             }
+            Outcome::Selected
+        }
+        TAB_CHARS if dir == 0 => {
+            let Some((id, cost)) = crate::chars::for_sale(content).into_iter().nth(k) else { return Outcome::Nothing };
+            if p.chars_bought.contains(&id) {
+                return Outcome::Refused("ui.owned");
+            }
+            if cost > p.rupees {
+                return Outcome::Refused("ui.not_enough");
+            }
+            p.rupees -= cost;
+            p.chars_bought.insert(id.clone());
+            // pas encore joue : etincelle dans l'ecran des personnages
+            p.new_chars.insert(id);
             Outcome::Done
         }
-        3 if k == 0 => {
+        // la tenue est ensuite portee par le jeu (il connait les couleurs du personnage)
+        TAB_WARDROBE if dir == 0 => {
+            let Some(w) = meta.wardrobe.get(k) else { return Outcome::Nothing };
+            if p.wardrobe.contains(&w.sprite) {
+                return Outcome::Selected;
+            }
+            if w.cost > p.rupees {
+                return Outcome::Refused("ui.not_enough");
+            }
+            p.rupees -= w.cost;
+            p.wardrobe.insert(w.sprite.clone());
+            Outcome::Done
+        }
+        TAB_JUKEBOX if dir == 0 => {
+            let Some(t) = meta.jukebox.get(k) else { return Outcome::Nothing };
+            let bought = !track_owned(t, p);
+            if bought {
+                if t.cost > p.rupees {
+                    return Outcome::Refused("ui.not_enough");
+                }
+                p.rupees -= t.cost;
+                p.jukebox.insert(t.id.clone());
+            }
+            p.title_music = t.id.clone();
+            if bought {
+                Outcome::Done
+            } else {
+                Outcome::Selected
+            }
+        }
+        TAB_CHALLENGES if k == 0 => {
             let n = meta.difficulties.len().max(1);
             let step = if dir == 0 { 1 } else { dir };
             p.difficulty = ((p.difficulty.min(n - 1) as i32 + step).rem_euclid(n as i32)) as usize;
-            Outcome::Done
+            Outcome::Selected
         }
-        3 if dir == 0 => {
+        TAB_CHALLENGES if dir == 0 => {
             let Some(s) = meta.seals.get(k - 1) else { return Outcome::Nothing };
             if !p.seals.remove(&s.id) {
                 p.seals.insert(s.id.clone());
             }
-            Outcome::Done
+            Outcome::Selected
         }
         _ => Outcome::Nothing,
     }
@@ -203,5 +428,51 @@ pub fn act(meta: &Meta, p: &mut Profile, tab: usize, k: usize, dir: i32) -> Outc
 
 /// Gauche / droite changent d'onglet, sauf sur la ligne de difficulte.
 pub fn row_uses_sides(tab: usize, k: usize) -> bool {
-    tab == 3 && k == 0
+    tab == TAB_CHALLENGES && k == 0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn red_rupee_sinks() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let meta = Meta::load(&root);
+        let content = crate::content::load_content(&root);
+        let mut p = Profile::new();
+        p.rupees = 100_000;
+        // offrandes : dans l'ordre seulement
+        let nb = meta.blessings.len();
+        assert!(matches!(act(&meta, &content, &mut p, TAB_FAIRY, nb + 1, 0), Outcome::Refused("ui.locked")));
+        assert!(matches!(act(&meta, &content, &mut p, TAB_FAIRY, nb, 0), Outcome::Done));
+        assert_eq!(p.title, 1);
+        assert!(matches!(act(&meta, &content, &mut p, TAB_FAIRY, nb, 0), Outcome::Refused("ui.owned")));
+        // garde-robe : achetee une fois, puis seulement portee
+        assert!(meta.skin_locked(&p, "link_blue"));
+        assert!(matches!(act(&meta, &content, &mut p, TAB_WARDROBE, 0, 0), Outcome::Done));
+        assert!(!meta.skin_locked(&p, "link_blue"));
+        let left = p.rupees;
+        assert!(matches!(act(&meta, &content, &mut p, TAB_WARDROBE, 0, 0), Outcome::Selected));
+        assert_eq!(p.rupees, left);
+        // juke-box : la premiere est offerte, les autres achetees puis choisies
+        assert_eq!(title_music(&meta, &p), None);
+        assert!(matches!(act(&meta, &content, &mut p, TAB_JUKEBOX, 0, 0), Outcome::Selected));
+        assert!(matches!(act(&meta, &content, &mut p, TAB_JUKEBOX, 3, 0), Outcome::Done));
+        assert_eq!(title_music(&meta, &p), Some(meta.jukebox[3].id.as_str()));
+        assert_eq!(track_title("princess_zelda_s_rescue"), "Princess Zelda's Rescue");
+        assert_eq!(track_title("title_link_to_the_past"), "Title Link to the Past");
+        // personnages : achetes une fois, alors debloques
+        let (id, cost) = crate::chars::for_sale(&content)[0].clone();
+        assert!(!crate::chars::unlocked(&content, &content.characters[&id], &p));
+        let left = p.rupees;
+        assert!(matches!(act(&meta, &content, &mut p, TAB_CHARS, 0, 0), Outcome::Done));
+        assert_eq!(p.rupees, left - cost);
+        assert!(crate::chars::unlocked(&content, &content.characters[&id], &p));
+        assert!(matches!(act(&meta, &content, &mut p, TAB_CHARS, 0, 0), Outcome::Refused("ui.owned")));
+        // pas assez de rubis : rien ne change
+        p.rupees = 0;
+        assert!(matches!(act(&meta, &content, &mut p, TAB_JUKEBOX, 4, 0), Outcome::Refused("ui.not_enough")));
+        assert!(!p.jukebox.contains(&meta.jukebox[4].id));
+    }
 }

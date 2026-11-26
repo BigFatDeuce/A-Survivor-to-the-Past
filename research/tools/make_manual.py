@@ -88,6 +88,8 @@ def characters():
 def enemies():
     out = []
     for eid, b in blocks(read("data/enemies.ron")):
+        if "bestiary: false" in b:
+            continue
         out.append(dict(id=eid, sprite=field(b, "sprite"), boss="boss: true" in b,
                         hp=float(field(b, "hp", "0")), damage=float(field(b, "damage", "0")), speed=float(field(b, "speed", "0"))))
     return out
@@ -619,7 +621,7 @@ def build(lang, atlas):
     b.bar(t["encounters_h"])
     b.para(t["champion"])
     b.figure("thief")
-    b.item(b.sprite("pikit", max_mm=9), ename("pikit"), t["thief"])
+    b.item(b.sprite("boo", max_mm=9), ename("boo"), t["thief"])
 
     # 5. armes et objets
     b.chapter("gear", t["ch_gear"])

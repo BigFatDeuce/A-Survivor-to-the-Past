@@ -13,5 +13,13 @@
     // avantages : recharge -10 % ; defauts : zone -15 %, 4 coeurs
     stats: [(Cooldown, -0.1), (Area, -0.15)],
     order: 3,
+
+    group: "games",
     unlock: Some(Win("desert")),
+    // 0.6.5 : sprite du Randomizer (Sonic the Hedgehog), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Sonic the Hedgehog), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Sonic the Hedgehog), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Sonic the Hedgehog), couleurs de ses palettes : gen_zspr_chars.py
+    skins: [("sonic", "blue"), ("sonic_p2", "p2"), ("sonic_orange", "orange"), ("sonic_bunny", "dark")],
+    credit: "Osaka",
 )

@@ -19,5 +19,10 @@
         "menu_down":   [Key(KeyS), Key(ArrowDown), Pad(DPadDown)],
         "menu_left":   [Key(KeyA), Key(ArrowLeft), Pad(DPadLeft)],
         "menu_right":  [Key(KeyD), Key(ArrowRight), Pad(DPadRight)],
+        // onglets des menus : gachettes et boutons de tranche de la manette, Q / E ou Page prec. / suiv.
+        "tab_prev":    [Key(KeyQ), Key(PageUp), Pad(LeftTrigger), Pad(LeftTrigger2)],
+        "tab_next":    [Key(KeyE), Key(PageDown), Pad(RightTrigger), Pad(RightTrigger2)],
+        // plein ecran : Select de la manette (F11 ou Alt+Entree au clavier)
+        "fullscreen":  [Pad(Select)],
     },
 )

@@ -1,0 +1,25 @@
+// Mario (facon Link's Awakening) : avance bouclier leve, part avec les bombes.
+// Debloque apres 15 boss vaincus.
+(
+    name: "Mario",
+    sprite: "mario",
+    max_hp: 60.0,
+    speed: 86.0,
+    radius: 5.0,
+    magnet: 34.0,
+    dash: (speed: 330.0, duration: 0.15, cooldown: 1.8),
+    weapon: "bombs",
+    weapon_sprite: "sword1",
+    // avantages : armure +2 (bouclier), explosions +10 % ; defaut : chance -10 %
+    stats: [(Armor, 2.0), (Area, 0.1), (Luck, -0.1)],
+    order: 18,
+
+    group: "nintendo",
+    unlock: Some(Bosses(15)),
+    // 0.6.5 : sprite du Randomizer (Mario (Classic)), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Mario (Classic)), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Mario (Classic)), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Mario (Classic)), couleurs de ses palettes : gen_zspr_chars.py
+    skins: [("mario", "red"), ("mario_blue", "blue"), ("mario_gray", "gray"), ("mario_bunny", "dark")],
+    credit: "Damon",
+)

@@ -25,10 +25,16 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const PACKAGE_EXE: &str = "A Survivor to the Past.exe";
 #[cfg(not(windows))]
 pub const PACKAGE_EXE: &str = "a-survivor-to-the-past";
-/// Fin du nom de l'archive de cette plateforme (seul Windows est publie pour l'instant).
+/// Fin du nom de l'archive de cette plateforme (make_release.py --platform).
 #[cfg(all(windows, target_arch = "x86_64"))]
 pub const ASSET_SUFFIX: &str = "-windows-x64.zip";
-#[cfg(not(all(windows, target_arch = "x86_64")))]
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+pub const ASSET_SUFFIX: &str = "-linux-x64.zip";
+#[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+pub const ASSET_SUFFIX: &str = "-linux-arm64.zip";
+#[cfg(target_os = "macos")]
+pub const ASSET_SUFFIX: &str = "-macos.zip";
+#[cfg(not(any(all(windows, target_arch = "x86_64"), all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")), target_os = "macos")))]
 pub const ASSET_SUFFIX: &str = "-no-package-yet.zip";
 /// Dossiers remplaces en entier (ils ne contiennent aucun fichier du joueur).
 const REPLACED_DIRS: [&str; 2] = ["data", "assets"];
@@ -149,7 +155,8 @@ impl Updater {
             Some(p) => Source::Local(p),
             None => Source::GitHub,
         };
-        let enabled = matches!(source, Source::Local(_)) || is_packaged(root);
+        // ASTP_NO_UPDATE : paquets dont le lanceur doit rester maitre (PortMaster)
+        let enabled = matches!(source, Source::Local(_)) || (is_packaged(root) && std::env::var_os("ASTP_NO_UPDATE").is_none());
         let mut status = Status::Idle;
         if let Ok(v) = fs::read_to_string(root.join(UPDATE_DIR).join("ready")) {
             status = Status::Ready(v.trim().to_string());
@@ -343,6 +350,16 @@ fn extract(zip_path: &Path, dest: &Path) -> Result<(), String> {
     fs::create_dir_all(dest).map_err(|e| e.to_string())?;
     for (i, (p, is_dir)) in names.into_iter().enumerate() {
         let rel: PathBuf = if strip { p.components().skip(1).collect() } else { p };
+        // macOS : la racine du jeu est « .app/Contents/MacOS » ; le reste (Info.plist, lisez-moi
+        // a cote de l'application) garde la version installee
+        #[cfg(target_os = "macos")]
+        let rel: PathBuf = {
+            let c: Vec<_> = rel.components().collect();
+            match c.windows(2).position(|w| w[0].as_os_str() == "Contents" && w[1].as_os_str() == "MacOS") {
+                Some(i) => c[i + 2..].iter().collect(),
+                None => continue,
+            }
+        };
         if rel.as_os_str().is_empty() {
             continue;
         }
@@ -359,6 +376,12 @@ fn extract(zip_path: &Path, dest: &Path) -> Result<(), String> {
         let n = std::io::copy(&mut (&mut e).take(MAX_SIZE + 1), &mut out).map_err(|e| e.to_string())?;
         if n > MAX_SIZE {
             return Err("fichier trop gros dans l'archive".into());
+        }
+        // droit d'execution (executable du jeu sous Linux / macOS)
+        #[cfg(unix)]
+        if let Some(mode) = e.unix_mode() {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&target, fs::Permissions::from_mode(mode & 0o755 | 0o600)).map_err(|e| e.to_string())?;
         }
     }
     Ok(())
@@ -502,5 +525,69 @@ mod tests {
         assert!(!is_newer("v0.1.9", "0.2.0"));
         assert!(!is_newer("nimportequoi", "0.2.0"));
         assert!(is_newer("v0.3.0-beta", "0.2.0"));
+    }
+
+    fn zip_with(dir: &Path, entries: &[&str]) -> PathBuf {
+        let path = dir.join("p.zip");
+        let mut z = zip::ZipWriter::new(fs::File::create(&path).unwrap());
+        let opt = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        for e in entries {
+            z.start_file(*e, opt).unwrap();
+            z.write_all(b"x").unwrap();
+        }
+        z.finish().unwrap();
+        path
+    }
+
+    /// Une archive qui tente d'ecrire hors du dossier de mise a jour est refusee en entier ;
+    /// une archive normale perd son dossier de premier niveau.
+    #[test]
+    fn extract_refuses_escaping_paths() {
+        let dir = std::env::temp_dir().join(format!("astp_extract_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        for bad in ["../evil.txt", "A/../../evil.txt"] {
+            let z = zip_with(&dir, &["A/data/ok.txt", bad]);
+            let dest = dir.join("new");
+            assert!(extract(&z, &dest).is_err(), "{bad} accepte");
+            assert!(!dir.join("evil.txt").exists());
+            let _ = fs::remove_dir_all(&dest);
+        }
+        // chemin absolu : ramene dans le dossier de destination, jamais ecrit ailleurs
+        let z = zip_with(&dir, &["/abs.txt"]);
+        let dest = dir.join("new");
+        extract(&z, &dest).unwrap();
+        assert!(dest.join("abs.txt").is_file() && !dir.join("abs.txt").exists());
+        let _ = fs::remove_dir_all(&dest);
+        let z = zip_with(&dir, &["A Survivor/data/ok.txt", "A Survivor/game.exe"]);
+        let dest = dir.join("new");
+        extract(&z, &dest).unwrap();
+        assert!(dest.join("data/ok.txt").is_file() && dest.join("game.exe").is_file());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    /// Linux / macOS : l'executable extrait garde son droit d'execution.
+    #[cfg(unix)]
+    #[test]
+    fn extract_keeps_exec_bit() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("astp_exec_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("p.zip");
+        let mut z = zip::ZipWriter::new(fs::File::create(&path).unwrap());
+        let opt = zip::write::SimpleFileOptions::default().unix_permissions(0o755);
+        let root = if cfg!(target_os = "macos") { "A.app/Contents/MacOS/" } else { "A/" };
+        z.start_file(format!("{root}{PACKAGE_EXE}"), opt).unwrap();
+        z.write_all(b"x").unwrap();
+        z.start_file(format!("{root}data/a.ron"), opt.unix_permissions(0o644)).unwrap();
+        z.write_all(b"x").unwrap();
+        z.finish().unwrap();
+        let dest = dir.join("new");
+        extract(&path, &dest).unwrap();
+        let mode = |p: &Path| fs::metadata(p).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode(&dest.join(PACKAGE_EXE)), 0o755);
+        assert_eq!(mode(&dest.join("data/a.ron")), 0o644);
+        let _ = fs::remove_dir_all(&dir);
     }
 }

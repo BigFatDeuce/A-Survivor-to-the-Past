@@ -3,7 +3,6 @@
 (
     name: "Link (Link's Awakening)",
     sprite: "link_awakening",
-    side_faces_left: true,
     max_hp: 60.0,
     speed: 86.0,
     radius: 5.0,
@@ -14,4 +13,11 @@
     stats: [(Luck, 0.15), (Magnet, 0.3), (Might, -0.1)],
     order: 7,
     unlock: Some(Win("ice_lake")),
+    // deux apparences : Game Boy Color (DX) et Game Boy (Super Mario Bros. Crossover)
+    // 0.6.5 : sprite du Randomizer (Hero of Awakening), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Hero of Awakening), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Hero of Awakening), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Hero of Awakening), couleurs de ses palettes : gen_zspr_chars.py
+    skins: [("link_awakening", "green"), ("link_awakening_blue", "blue"), ("link_awakening_red", "red"), ("link_awakening_bunny", "dark")],
+    credit: "Vonyee",
 )

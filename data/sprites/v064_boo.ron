@@ -1,0 +1,17 @@
+// 0.6.4 : Boo (Boo Buddy, Link's Awakening, style A Link to the Past), voleur de rubis a la place du Pikit.
+// Planche de JulioTanaka (voir CREDITS.md). Coordonnees (x, y, largeur, hauteur).
+(
+    sheets: [
+        (
+            source: "Custom _ Edited - The Legend of Zelda Customs - Enemies - Boo Buddy (A Link to the Past-Style).png",
+            transparent: ["#b5e61d"],
+            sprites: {
+                // rieur quand il attend, effraye quand il fuit
+                "boo": {
+                    "idle": (frames: [(40, 123, 20, 19), (65, 123, 20, 19), (88, 123, 20, 19), (113, 123, 20, 19)], fps: 6, pivot: (0, -1), align: Bottom),
+                    "jump": (frames: [(232, 123, 20, 19), (257, 123, 20, 19), (280, 123, 20, 19), (305, 123, 20, 19)], fps: 10, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+    ],
+)

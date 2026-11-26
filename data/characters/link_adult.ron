@@ -13,4 +13,6 @@
     stats: [(Might, 0.15), (Area, 0.1), (DashCooldown, 0.2), (MoveSpeed, -0.05)],
     order: 9,
     unlock: Some(Win("pyramid")),
+    // 0.6.4 : tenues de la garde-robe (boutique), recolorations : research/tools/gen_wardrobe_v064.py
+    skins: [("link_adult", "green"), ("link_adult_goron", "goron"), ("link_adult_zora", "zora")],
 )

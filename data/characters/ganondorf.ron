@@ -1,0 +1,23 @@
+// Ganondorf (facon Wind Waker / Minish Cap) : le plus puissant, lent. Part avec l'epee (ses deux lames).
+// Toujours le dernier : debloque quand tous les autres personnages le sont.
+(
+    name: "Ganondorf",
+    sprite: "ganondorf",
+    max_hp: 100.0,
+    speed: 80.0,
+    radius: 6.0,
+    magnet: 34.0,
+    dash: (speed: 320.0, duration: 0.15, cooldown: 2.0),
+    weapon: "sword",
+    weapon_sprite: "sword1",
+    // avantages : 10 coeurs, degats +30 %, armure +2, zone +15 % ; defaut : vitesse -8 %
+    stats: [(Might, 0.3), (Armor, 2.0), (Area, 0.15), (MoveSpeed, -0.08)],
+    order: 99,
+    unlock: Some(AllOthers),
+    // 0.6.5 : sprite du Randomizer (Ganondorf), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Ganondorf), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Ganondorf), couleurs de ses palettes : gen_zspr_chars.py
+    // 0.6.5 : sprite du Randomizer (Ganondorf), couleurs de ses palettes : gen_zspr_chars.py
+    skins: [("ganondorf", "red"), ("ganondorf_blue", "blue"), ("ganondorf_purple", "purple"), ("ganondorf_bunny", "dark")],
+    credit: "Fish waffle64",
+)

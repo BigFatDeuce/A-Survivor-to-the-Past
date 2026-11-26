@@ -16,7 +16,9 @@ CREATE TABLE IF NOT EXISTS scores (
   mult REAL NOT NULL,
   -- empreinte salee de l'adresse IP (limite d'envois), videe au bout de 30 jours
   ip TEXT NOT NULL,
-  created INTEGER NOT NULL
+  created INTEGER NOT NULL,
+  -- 0.6.3 : titre offert a la Grande Fee (0 : aucun) ; base existante : worker/migrations/0063_title.sql
+  title INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS scores_board ON scores (map, version, score DESC);
 CREATE INDEX IF NOT EXISTS scores_name ON scores (map, version, name);

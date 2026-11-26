@@ -47,6 +47,15 @@ pub struct CharacterDef {
     /// est `skin.<couleur>`. Le choix est garde dans le profil et remplace `sprite`.
     #[serde(default)]
     pub skins: Vec<(String, String)>,
+    /// Univers (page de l'ecran des personnages, cle `group.<univers>`) ; vide : Zelda.
+    #[serde(default)]
+    pub group: String,
+    /// Auteur du sprite (personnages du Randomizer, 0.6.5).
+    #[serde(default)]
+    pub credit: String,
+    /// Identifiant (nom du fichier ou cle), rempli au chargement.
+    #[serde(skip)]
+    pub id: String,
 }
 
 /// Condition de deblocage d'un personnage (verifiee par le jeu, d'apres le profil).
@@ -62,6 +71,10 @@ pub enum UnlockDef {
     Level(u32),
     /// Vaincre cet ennemi (identifiant de `enemies.ron`) au moins une fois.
     Slain(String),
+    /// Debloquer tous les autres personnages d'origine (rang < 1000, hors boutique) : reste le dernier.
+    AllOthers,
+    /// Acheter a la boutique (onglet des personnages) pour ce prix en rubis rouges.
+    Shop(u64),
 }
 
 fn default_player_radius() -> f32 {
@@ -151,6 +164,10 @@ pub enum WeaponKind {
     Somaria,
     /// Projectiles qui poursuivent les ennemis (abeilles).
     Bees,
+    /// Saut invincible, onde de choc a l'atterrissage (Plume de Roc). `duration` = duree du saut.
+    Jump,
+    /// Tornades qui errent lentement et traversent les ennemis (Ocarina).
+    Tornado,
 }
 
 /// Effet d'etat inflige au contact.
@@ -263,9 +280,17 @@ pub struct WeaponDef {
     pub levels: Vec<Vec<Mod>>,
     #[serde(default)]
     pub evolution: Option<EvolutionDef>,
+    /// Fusion ultime (Master Sword : epee + bouclier) : possible seulement une fois l'arme evoluee
+    /// debloquee (son `unlock`).
+    #[serde(default)]
+    pub ultimate: Option<EvolutionDef>,
     /// Arme evoluee : obtenue seulement par evolution.
     #[serde(default)]
     pub evolved: bool,
+    /// Arme a debloquer : identifiant de l'ennemi (mini-boss) a vaincre une premiere fois. Avant,
+    /// elle n'est jamais proposee ; ensuite, elle peut l'etre dans toutes les parties.
+    #[serde(default)]
+    pub unlock: Option<String>,
     #[serde(default)]
     pub status: Option<StatusDef>,
     #[serde(default)]
@@ -292,6 +317,12 @@ pub struct WeaponDef {
     /// Canne de Somaria : nombre de rayons a l'eclatement du bloc.
     #[serde(default = "rays_default")]
     pub rays: u32,
+    /// Projectiles : tous en eventail vers la cible la plus proche (lance-pierre), ecart = `arc`.
+    #[serde(default)]
+    pub fan: bool,
+    /// Teinte de l'effet (nuage des armes Aura : grains et bord), RVB 0..1.
+    #[serde(default)]
+    pub tint: Option<(f32, f32, f32)>,
 }
 
 fn rays_default() -> u32 {
@@ -305,6 +336,11 @@ fn range_default() -> f32 {
 impl WeaponDef {
     pub fn max_level(&self) -> u32 {
         self.levels.len() as u32 + 1
+    }
+
+    /// Toutes les fusions de cette arme : la normale puis l'ultime.
+    pub fn recipes(&self) -> impl Iterator<Item = &EvolutionDef> {
+        self.evolution.iter().chain(self.ultimate.iter())
     }
 }
 
@@ -387,6 +423,10 @@ pub enum EnemyAnims {
     Hop { idle: String, jump: String },
 }
 
+fn yes() -> bool {
+    true
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct EnemyDef {
     pub sprite: String,
@@ -414,6 +454,9 @@ pub struct EnemyDef {
     /// Agrandissement a l'affichage (entier pour rester net : 2 = boss geant).
     #[serde(default = "one")]
     pub scale: f32,
+    /// Faux : absent du bestiaire tant qu'il n'a pas ete vaincu (ennemi qu'aucun stage n'utilise).
+    #[serde(default = "yes")]
+    pub bestiary: bool,
 }
 
 /// Flux continu d'apparition entre deux instants.
@@ -451,6 +494,10 @@ pub struct BurstDef {
 pub struct SpawnAt {
     pub at: f32,
     pub enemy: String,
+    /// Boss : vie de base pour ce stage (remplace celle de la fiche ; un meme boss peut revenir plus
+    /// fort dans un stage plus avance).
+    #[serde(default)]
+    pub hp: Option<f32>,
 }
 
 /// Element de decor place au hasard (voir `props.rs`).
@@ -545,6 +592,9 @@ pub struct MapDef {
     /// Duree de la partie (s).
     #[serde(default = "default_duration")]
     pub duration: f32,
+    /// Difficulte du stage : vie et degats des ennemis ordinaires (x1 au premier stage).
+    #[serde(default = "one")]
+    pub power: f32,
 }
 
 fn default_duration() -> f32 {
