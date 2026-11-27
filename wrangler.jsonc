@@ -16,7 +16,7 @@
     { "binding": "DB", "database_name": "astp-scores", "database_id": "c0bf6b92-8290-451b-8abe-daa81d5be966" }
   ],
   "vars": {
-    "LATEST": "0.7.0",
+    "LATEST": "0.8.0",
     "STAGES": "hyrule_field,desert,death_mountain,hyrule_castle,dark_palace,swamp,lost_woods,thieves_town,ice_lake,pyramid",
     "MAX_MULT": "4.05"
   },
