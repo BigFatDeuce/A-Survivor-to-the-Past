@@ -269,6 +269,8 @@ pub struct World {
     /// Porte de sortie et temps depuis son apparition.
     pub portal: Option<Vec2>,
     pub portal_t: f32,
+    /// Porte annoncee : position et secondes avant qu'elle s'ouvre (apres le boss final).
+    pub portal_pending: Option<(Vec2, f32)>,
     /// Stage gagne (porte franchie).
     pub won: bool,
     /// Graine du decor (placement des arbres, rochers...).
@@ -359,6 +361,7 @@ impl World {
             final_done: false,
             portal: None,
             portal_t: 0.0,
+            portal_pending: None,
             won: false,
             prop_seed: (seed as u32) ^ ((seed >> 32) as u32).wrapping_mul(0x9e37_79b9) ^ 0x2545_f491,
             broken: HashSet::new(),
@@ -546,6 +549,13 @@ impl World {
         if self.portal.is_none() && self.map.final_boss.is_none() && self.time >= self.map.duration {
             self.open_portal(self.player.pos + self.player.facing * 90.0);
         }
+        if let Some((at, t)) = self.portal_pending {
+            let t = t - DT;
+            self.portal_pending = if t <= 0.0 { None } else { Some((at, t)) };
+            if t <= 0.0 {
+                self.open_portal(at);
+            }
+        }
         let Some(at) = self.portal else { return };
         self.portal_t += DT;
         let p = &self.player;
@@ -555,6 +565,9 @@ impl World {
             self.events.push(Event::Victory { pos: at });
         }
     }
+
+    /// Secondes entre la chute du boss final et l'ouverture de la porte de sortie.
+    pub const PORTAL_DELAY: f32 = 5.0;
 
     /// Ouvre la porte de sortie (hors des obstacles) et arrete les apparitions.
     pub fn open_portal(&mut self, at: Vec2) {
@@ -711,10 +724,12 @@ impl World {
                 }
                 self.boss_defeated = true;
                 if last {
-                    // boss final : la diseuse de bonne aventure remplace le grand coffre
+                    // boss final : la diseuse de bonne aventure remplace le grand coffre ; elle se tient
+                    // devant (plus bas a l'ecran), la porte s'ouvre derriere elle quelques secondes apres
                     self.final_uid = None;
-                    self.open_portal(pos + Vec2::new(0.0, 24.0));
-                    self.add_npc(crate::npc::NpcKind::Fortune, pos - Vec2::new(0.0, 20.0));
+                    self.spawning = false;
+                    self.add_npc(crate::npc::NpcKind::Fortune, pos + Vec2::new(0.0, 12.0));
+                    self.portal_pending = Some((pos - Vec2::new(0.0, 30.0), Self::PORTAL_DELAY));
                 } else {
                     self.pickups.spawn(PickupKind::BigChest, 0, pos, Vec2::ZERO, 120.0);
                     self.events.push(Event::ChestDropped { pos, big: true });

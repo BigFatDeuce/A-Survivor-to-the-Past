@@ -74,21 +74,27 @@ pub fn progress(content: &Content, def: &CharacterDef, p: &Profile) -> Option<(u
     })
 }
 
-/// Couleur choisie (indice dans `skins`).
-pub fn skin(def: &CharacterDef, p: &Profile, id: &str) -> usize {
-    p.skins.get(id).copied().unwrap_or(0).min(def.skins.len().saturating_sub(1))
+/// Couleur choisie (indice dans `skins`) ; la premiere si celle du profil n'est pas (ou plus) achetee.
+pub fn skin(def: &CharacterDef, p: &Profile, id: &str, meta: &crate::meta::Meta) -> usize {
+    let k = p.skins.get(id).copied().unwrap_or(0).min(def.skins.len().saturating_sub(1));
+    if def.skins.get(k).is_some_and(|s| meta.skin_locked(p, &s.0)) {
+        0
+    } else {
+        k
+    }
 }
 
 /// Couleurs disponibles : toutes, sauf les tenues de la garde-robe pas encore achetees.
+#[cfg(test)]
 pub fn owned_skins(def: &CharacterDef, p: &Profile, meta: &crate::meta::Meta) -> Vec<usize> {
     (0..def.skins.len()).filter(|&k| !meta.skin_locked(p, &def.skins[k].0)).collect()
 }
 
 /// Remplace le sprite des personnages a couleurs par la couleur choisie dans le profil.
-pub fn apply_skins(content: &mut Content, p: &Profile) {
+pub fn apply_skins(content: &mut Content, p: &Profile, meta: &crate::meta::Meta) {
     for (id, def) in content.characters.iter_mut() {
         if !def.skins.is_empty() {
-            let k = skin(def, p, id);
+            let k = skin(def, p, id, meta);
             def.sprite = def.skins[k].0.clone();
         }
     }
@@ -114,6 +120,32 @@ pub fn hint(lang: &Lang, def: &CharacterDef) -> String {
         Some(UnlockDef::AllOthers) => lang.get("ui.unlock_all_others").to_string(),
         Some(UnlockDef::Shop(n)) => lang.get("ui.unlock_shop").replace("{n}", &crate::hud::hl(&n.to_string())),
     }
+}
+
+/// Description d'un personnage ; sans texte propre (sprites du Randomizer), son arme de depart.
+/// Ni origine ni auteur ici : ils sont dans CREDITS.md (demande du 27/11/2026).
+pub fn desc(lang: &Lang, def: &CharacterDef) -> String {
+    let d = lang.get(&format!("char.{}.desc", def.id));
+    if !d.is_empty() {
+        return d.to_string();
+    }
+    let w = lang.get(&format!("weapon.{}.name", def.weapon));
+    lang.get("ui.char_starts").replace("{w}", &crate::hud::hl(w))
+}
+
+/// Fiche courte (boutique) : coeurs, vitesse, puis avantages en vert et defauts en rouge.
+pub fn stats_line(lang: &Lang, def: &CharacterDef) -> String {
+    let mut parts = vec![
+        format!("{} {}", lang.get("ui.char_health"), (def.max_hp / 10.0).round() as u32),
+        format!("{} {}", lang.get("ui.char_speed"), def.speed.round() as u32),
+    ];
+    for &(s, v) in &def.stats {
+        let line = menus::stat_text(lang, s, v);
+        // une recharge plus courte est un avantage (meme regle que la fiche du choix du personnage)
+        let good = if matches!(s, Stat::Cooldown | Stat::DashCooldown) { v < 0.0 } else { v > 0.0 };
+        parts.push(if good { crate::hud::hl_good(&line) } else { crate::hud::hl_bad(&line) });
+    }
+    parts.join(", ")
 }
 
 /// Personnages qui viennent d'etre debloques (entre deux etats du profil).
@@ -285,16 +317,26 @@ fn portrait_box(l: &GridLayout) -> (Vec2, Vec2, f32) {
     (Vec2::new((pp.x + (ps.x - bw) * 0.5).round(), pp.y + 32.0), Vec2::new(bw, bh), sc)
 }
 
-/// Bouton des couleurs (personnages qui en proposent plusieurs), juste sous le portrait.
-pub fn skin_button(ctx: &Ctx, content: &Content, meta: &crate::meta::Meta, profile: &Profile, ids: &[String], sel: usize) -> Option<(Vec2, Vec2)> {
+/// Prix d'une couleur pas encore achetee (rubis rouges) ; None : deja a soi (ou gratuite).
+pub fn skin_price(meta: &crate::meta::Meta, profile: &Profile, sprite: &str) -> Option<u64> {
+    meta.skin_locked(profile, sprite).then(|| meta.wardrobe.iter().find(|w| w.sprite == sprite).map_or(0, |w| w.cost))
+}
+
+/// Couleur montree : celle qu'on regarde (`browse`, meme pas achetee) ou celle portee.
+pub fn shown_skin(def: &CharacterDef, p: &Profile, id: &str, meta: &crate::meta::Meta, browse: Option<usize>) -> usize {
+    browse.filter(|&k| k < def.skins.len()).unwrap_or_else(|| skin(def, p, id, meta))
+}
+
+/// Bouton des couleurs (personnages qui en proposent plusieurs, achetees ou non), sous le portrait.
+pub fn skin_button(ctx: &Ctx, content: &Content, profile: &Profile, ids: &[String], sel: usize) -> Option<(Vec2, Vec2)> {
     let id = ids.get(sel)?;
     let def = &content.characters[id];
-    if owned_skins(def, profile, meta).len() < 2 || !unlocked(content, def, profile) {
+    if def.skins.len() < 2 || !unlocked(content, def, profile) {
         return None;
     }
     let l = grid_layout(ctx.view, ids.len(), sel);
     let (bp, bs, _) = portrait_box(&l);
-    Some((Vec2::new(bp.x, bp.y + bs.y + 4.0), Vec2::new(bs.x, 16.0)))
+    Some((Vec2::new(bp.x, bp.y + bs.y + 4.0), Vec2::new(bs.x, 18.0)))
 }
 
 /// Petit triangle plein (fleche du bouton des couleurs), pointe vers `dir` (-1 gauche, 1 droite).
@@ -306,13 +348,13 @@ fn arrow(list: &mut DrawList, white: &assetkit::meta::Frame, tip: Vec2, dir: f32
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Content, meta: &crate::meta::Meta, profile: &Profile, page: usize, sel: usize, t: f32) {
+/// `browse` : couleur regardee du personnage selectionne (pas encore achetee : grisee, avec son prix).
+pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Content, meta: &crate::meta::Meta, profile: &Profile, page: usize, sel: usize, t: f32, browse: Option<usize>) {
     let ids = &page_roster(content, page);
     let view = ctx.view;
     let atlas = &ctx.atlas;
     let white = &atlas.white;
     let main = atlas.font("main");
-    let lh = main.line_height as f32;
     list.set(Space::Ui, Blend::Alpha);
     list.probe_layer();
     list.rect(white, Vec2::ZERO, view, [0.01, 0.01, 0.05, 0.55]);
@@ -333,7 +375,7 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
     arrow(list, white, Vec2::new(tp.x + ts.x - 5.0, mid), 1.0, if on { GOLD } else { SOFT });
     let open_n = ids.iter().filter(|id| unlocked(content, &content.characters[*id], profile)).count();
     let label = format!("{} ({open_n}/{})", lang.get(&format!("group.{}", GROUPS[page.min(GROUPS.len() - 1)])), ids.len());
-    text(list, main, &label, Vec2::new(tp.x + ts.x * 0.5, (tp.y + (ts.y - lh) * 0.5).round()), 1.0, if on { GOLD } else { SOFT }, Align::Center);
+    text(list, main, &label, Vec2::new(tp.x + ts.x * 0.5, crate::hud::mid_y(main, tp.y, ts.y, 1.0)), 1.0, if on { GOLD } else { SOFT }, Align::Center);
     // grille : chaque personnage de face ; celui sous le curseur marche
     for (j, &(p, s)) in l.cells.iter().enumerate() {
         let k = l.first + j;
@@ -382,7 +424,7 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
         crate::hub::focus_frame(list, ctx, bp, bs);
     }
     list.probe_panel(bp, bs, "retour");
-    let ty = (bp.y + (bs.y - lh) * 0.5).round();
+    let ty = crate::hud::mid_y(main, bp.y, bs.y, 1.0);
     text(list, main, lang.get("ui.back"), Vec2::new(bp.x + bs.x * 0.5, ty), 1.0, if on { GOLD } else { SOFT }, Align::Center);
 
     // fiche du personnage
@@ -400,7 +442,7 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
     let big = main.measure(&title) as f32 * 2.0 <= w;
     let title = if open && profile.new_chars.contains(id) { crate::hud::hl_new(&title) } else { title };
     let tsc = if big { 2.0 } else { 1.0 };
-    text(list, main, &title, Vec2::new(pp.x + ps.x * 0.5, pp.y + 7.0 + if big { 0.0 } else { 5.0 }), tsc, if open { GOLD } else { DIMMED }, Align::Center);
+    text(list, main, &title, Vec2::new(pp.x + ps.x * 0.5, pp.y + 3.0 + if big { 0.0 } else { 6.0 }), tsc, if open { GOLD } else { DIMMED }, Align::Center);
     let (bp, bsize, sc) = portrait_box(&l);
     let (bw, bh) = (bsize.x, bsize.y);
     list.rect(white, bp, bsize, [0.0, 0.0, 0.0, 0.35]);
@@ -413,7 +455,10 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
         2 => ("walk_up", 0),
         _ => ("walk_side", -1),
     };
-    if let Some(a) = atlas.find(&def.sprite, anim) {
+    let shown = shown_skin(def, profile, id, meta, browse);
+    let sprite = def.skins.get(shown).map_or(def.sprite.as_str(), |s| s.0.as_str());
+    let price = skin_price(meta, profile, sprite);
+    if let Some(a) = atlas.find(sprite, anim) {
         let f = atlas.frame(a, t);
         // le profil d'origine regarde a gauche ou a droite selon la planche
         let flip = match side {
@@ -424,18 +469,21 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
         let mut prm = Params::default().scale(Vec2::splat(sc)).flip(flip);
         if !open {
             prm = prm.flash([0.08, 0.06, 0.14], 1.0);
+        } else if price.is_some() {
+            // couleur pas encore achetee : grisee (on voit la tenue, sans la porter)
+            prm = prm.flash([0.42, 0.42, 0.48], 0.55).color([1.0, 1.0, 1.0, 0.75]);
         }
         list.frame(f, Vec2::new(bp.x + bw * 0.5, bp.y + bh - 4.0).round(), &prm);
     }
     let mut y = bp.y + bh + 8.0;
     // bouton des couleurs : fleches dessinees aux deux bouts, nom centre (verifie par --uicheck)
-    if let Some((cp, cs)) = skin_button(ctx, content, meta, profile, ids, sel) {
-        let owned = owned_skins(def, profile, meta);
-        let n = owned.len();
-        let cur = skin(def, profile, id);
+    if let Some((cp, cs)) = skin_button(ctx, content, profile, ids, sel) {
+        let all: Vec<usize> = (0..def.skins.len()).collect();
+        let n = all.len();
+        let cur = shown;
         let phase = rt / 1.6;
-        let a = owned[(phase as usize) % n];
-        let b = owned[(phase as usize + 1) % n];
+        // couleur pas achetee : le bouton reste sur elle (sinon il passe d'une couleur a l'autre)
+        let (a, b) = if price.is_some() { (cur, cur) } else { (all[(phase as usize) % n], all[(phase as usize + 1) % n]) };
         let u = ((phase.fract() - 0.5) * 2.0).clamp(0.0, 1.0);
         let u = u * u * (3.0 - 2.0 * u);
         let ca = skin_rgb(&def.skins[a].1);
@@ -455,9 +503,22 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
         arrow(list, white, Vec2::new(cp.x + 5.0, mid), -1.0, WHITE);
         arrow(list, white, Vec2::new(cp.x + cs.x - 5.0, mid), 1.0, WHITE);
         let c = lang.get(&format!("skin.{}", def.skins[cur].1));
-        let ty = (cp.y + (cs.y - lh) * 0.5).round();
-        text(list, main, c, Vec2::new(cp.x + cs.x * 0.5, ty), 1.0, WHITE, Align::Center);
-        text(list, main, lang.get("ui.skin_keys"), Vec2::new(cp.x + cs.x * 0.5, cp.y + cs.y + 3.0), 1.0, DIMMED, Align::Center);
+        let ty = crate::hud::mid_y(main, cp.y, cs.y, 1.0);
+        text(list, main, c, Vec2::new(cp.x + cs.x * 0.5, ty), 1.0, if price.is_some() { DIMMED } else { WHITE }, Align::Center);
+        // pas achetee : prix (rouge s'il manque des rubis) et « A : acheter » sous le bouton
+        let hint = match price {
+            Some(p) => {
+                let key = if p <= profile.rupees { "ui.skin_buy_hint" } else { "ui.skin_buy_short" };
+                lang.get(key).replace("{n}", &p.to_string())
+            }
+            None => lang.get("ui.skin_keys").to_string(),
+        };
+        let hc = match price {
+            Some(p) if p > profile.rupees => crate::hub::RED,
+            Some(_) => rgb(248, 216, 88),
+            None => DIMMED,
+        };
+        text(list, main, &hint, Vec2::new(cp.x + cs.x * 0.5, cp.y + cs.y + 3.0), 1.0, hc, Align::Center);
         y = cp.y + cs.y + 18.0;
     }
     let bottom = pp.y + ps.y - 10.0;
@@ -508,11 +569,7 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
         y += 13.0;
     }
     y += 3.0;
-    let mut desc = lang.get(&format!("char.{id}.desc")).to_string();
-    if !def.credit.is_empty() {
-        desc = format!("{desc} {}", lang.get("ui.char_credit").replace("{s}", &def.credit));
-    }
-    for line in wrap(main, &desc, w, 1.0) {
+    for line in wrap(main, &desc(lang, def), w, 1.0) {
         if y + 12.0 > bottom {
             break;
         }
@@ -566,11 +623,18 @@ mod tests {
             all.bestiary.insert(e.clone(), 1);
         }
         assert!(super::unlocked(&c, &c.characters["ganondorf"], &all));
-        // couleurs : le choix du profil remplace le sprite
+        // couleurs : seule la premiere est offerte (0.7.1), les autres s'achetent a la garde-robe
+        let mut meta = crate::meta::Meta::load(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").as_path());
+        meta.complete_wardrobe(&c);
         let mut c2 = c.clone();
         p.skins.insert("link_fsa".into(), 1);
-        super::apply_skins(&mut c2, &p);
+        super::apply_skins(&mut c2, &p, &meta);
+        assert_eq!(c2.characters["link_fsa"].sprite, c.characters["link_fsa"].skins[0].0, "pas achetee : la couleur par defaut");
+        assert_eq!(super::owned_skins(&c.characters["link_fsa"], &p, &meta), vec![0]);
+        p.wardrobe.insert("link_fsa_blue".into());
+        super::apply_skins(&mut c2, &p, &meta);
         assert_eq!(c2.characters["link_fsa"].sprite, "link_fsa_blue");
+        assert!(meta.wardrobe.iter().all(|w| w.cost > 0), "chaque couleur a un prix");
         // 0.6.5 : personnages du Randomizer, chacun dans une page, un tiers en boutique
         let sale = super::for_sale(&c);
         assert!(sale.len() > 50 && sale.windows(2).all(|w| w[0].1 <= w[1].1), "{}", sale.len());

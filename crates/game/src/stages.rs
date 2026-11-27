@@ -229,7 +229,7 @@ pub fn draw_select(
             crate::hub::focus_frame(list, ctx, p, s);
         }
         list.probe_panel(p, s, "ligne de stage");
-        let ty = p.y + 7.0;
+        let ty = crate::hud::mid_y(main, p.y, s.y, 1.0);
         if back {
             text(list, main, lang.get("ui.back"), Vec2::new(p.x + 22.0, ty), 1.0, if k == sel { GOLD } else { SOFT }, Align::Left);
             continue;

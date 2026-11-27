@@ -127,6 +127,8 @@ impl Ctx {
 pub struct Frame {
     /// Centre de la camera dans le monde (pixels logiques, valeurs fractionnaires permises).
     pub camera: Vec2,
+    /// Agrandissement du monde en plus de l'echelle entiere (1 = vue la plus large ; l'interface ne change pas).
+    pub zoom: f32,
     pub clear: [f32; 3],
 }
 
@@ -154,7 +156,16 @@ struct Runner<G: Game> {
     started: bool,
 }
 
+#[cfg(target_os = "android")]
+pub use winit::platform::android::activity::AndroidApp;
+
+/// Android : application donnee par `android_main`, avant `run`.
+#[cfg(target_os = "android")]
+pub static ANDROID_APP: std::sync::OnceLock<AndroidApp> = std::sync::OnceLock::new();
+
 struct Running<G> {
+    /// Android : appli en arriere-plan (plus de surface d'affichage) ; rien n'est dessine.
+    suspended: bool,
     gfx: Gfx,
     ctx: Ctx,
     game: G,
@@ -168,7 +179,14 @@ struct Running<G> {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn run<G: Game + 'static>(cfg: Config, make: impl FnOnce(&mut Ctx) -> G + 'static) {
+    #[cfg(not(target_os = "android"))]
     let event_loop = EventLoop::new().expect("boucle d'evenements");
+    #[cfg(target_os = "android")]
+    let event_loop = {
+        use winit::platform::android::EventLoopBuilderExtAndroid;
+        let app = ANDROID_APP.get().expect("android_main : ANDROID_APP").clone();
+        EventLoop::builder().with_android_app(app).build().expect("boucle d'evenements")
+    };
     event_loop.set_control_flow(ControlFlow::Poll);
     let mut r = Runner { cfg, make: Some(Box::new(make)), state: None };
     event_loop.run_app(&mut r).expect("execution");
@@ -227,6 +245,7 @@ impl<G: Game> Runner<G> {
         let now = Instant::now();
         let window = gfx.window.clone();
         self.state = Some(Running {
+            suspended: false,
             gfx,
             ctx,
             game,
@@ -243,7 +262,16 @@ impl<G: Game> Runner<G> {
 
 impl<G: Game> ApplicationHandler for Runner<G> {
     fn resumed(&mut self, el: &ActiveEventLoop) {
-        if self.state.is_some() {
+        // Android : retour au premier plan, nouvelle surface d'affichage
+        if let Some(s) = self.state.as_mut() {
+            if s.suspended {
+                s.suspended = false;
+                s.gfx.recreate_surface();
+                s.ctx.view = s.gfx.view;
+                s.ctx.scale = s.gfx.scale;
+                s.last = Instant::now();
+                s.gfx.window.request_redraw();
+            }
             return;
         }
         #[cfg(target_arch = "wasm32")]
@@ -317,6 +345,8 @@ impl<G: Game> ApplicationHandler for Runner<G> {
             WindowEvent::ModifiersChanged(m) => s.mods = m.state(),
             WindowEvent::KeyboardInput { event, .. } => {
                 if let PhysicalKey::Code(code) = event.physical_key {
+                    // Android : touche Retour = Echap (pause, retour des menus)
+                    let code = if code == KeyCode::BrowserBack { KeyCode::Escape } else { code };
                     let down = event.state == ElementState::Pressed;
                     // raccourcis globaux : F11 ou Alt+Entree = plein ecran
                     if down
@@ -355,6 +385,18 @@ impl<G: Game> ApplicationHandler for Runner<G> {
                 };
                 s.ctx.input.wheel_event(n);
             }
+            WindowEvent::Touch(t) => {
+                use crate::input::TouchPhase as P;
+                let phase = match t.phase {
+                    winit::event::TouchPhase::Started => P::Start,
+                    winit::event::TouchPhase::Moved => P::Move,
+                    winit::event::TouchPhase::Ended => P::End,
+                    winit::event::TouchPhase::Cancelled => P::Cancel,
+                };
+                let p = Vec2::new(t.location.x as f32, t.location.y as f32) - s.gfx.origin;
+                // une ligne de liste des menus fait environ 22 pixels d'interface
+                s.ctx.input.touch_event(t.id, phase, p, 22.0 * s.gfx.scale as f32);
+            }
             WindowEvent::CursorLeft { .. } => s.ctx.input.mouse_inside = false,
             WindowEvent::CursorEntered { .. } => s.ctx.input.mouse_inside = true,
             WindowEvent::CursorMoved { position, .. } => {
@@ -362,6 +404,8 @@ impl<G: Game> ApplicationHandler for Runner<G> {
                 // coordonnees relatives a l'image de jeu (bandes noires du 4:3 exclues)
                 s.ctx.input.mouse_moved(Vec2::new(position.x as f32, position.y as f32) - s.gfx.origin);
             }
+            // Android en arriere-plan : plus de surface, rien a dessiner
+            WindowEvent::RedrawRequested if s.suspended => {}
             // une image entiere est calculee ici : pas dans une garde de `match` (lisibilite)
             #[allow(clippy::collapsible_match)]
             WindowEvent::RedrawRequested => {
@@ -371,6 +415,13 @@ impl<G: Game> ApplicationHandler for Runner<G> {
                 }
             }
             _ => {}
+        }
+    }
+
+    fn suspended(&mut self, _el: &ActiveEventLoop) {
+        if let Some(s) = self.state.as_mut() {
+            s.suspended = true;
+            s.ctx.input.focus_lost();
         }
     }
 
@@ -450,7 +501,7 @@ impl<G: Game> Running<G> {
                 self.captured += 1;
             }
         }
-        self.gfx.render(&self.list, fr.camera, fr.clear);
+        self.gfx.render(&self.list, fr.camera, fr.zoom, fr.clear);
         let t3 = Instant::now();
         ctx.input.end_frame();
 

@@ -37,7 +37,7 @@ pub enum Phase {
 }
 
 fn card(icon: AnimId, name: String, tag: String, ok: bool, desc: String) -> OfferInfo {
-    OfferInfo { icon, name, tag, is_new: ok, desc, level: 0, max: 0, evo: Vec::new(), evo_label: String::new(), keep: false }
+    OfferInfo { icon, name, tag, is_new: ok, desc, level: 0, max: 0, evo: Vec::new(), evo_label: String::new(), keep: false, fusion: 0 }
 }
 
 /// Cartes du menu : jeu des coffres, quitte ou double, partir. `played` : jeux deja faits.
@@ -139,7 +139,7 @@ fn backdrop(list: &mut DrawList, ctx: &Ctx, vis: &Vis, title: &str, t: f32) {
     list.rect(&vis.white, Vec2::ZERO, view, with_alpha(DIM, (t / 0.15).min(1.0)));
     list.rect(&vis.white, Vec2::ZERO, view, [0.25, 0.05, 0.35, 0.25]);
     let main = ctx.atlas.font("main");
-    text(list, main, title, Vec2::new(view.x * 0.5, 14.0), 2.0, PURPLE, Align::Center);
+    text(list, main, title, Vec2::new(view.x * 0.5, 14.0), crate::hud::title_scale(main, title, view.x, 2.0), PURPLE, Align::Center);
     let f = ctx.atlas.frame(vis.npc_fortune, ctx.real_time as f32);
     list.frame(f, Vec2::new(view.x * 0.5, TELLER_Y), &Params::default().scale(Vec2::splat(3.0)));
     draw_table(list, vis, Vec2::new(view.x * 0.5, TELLER_Y + 3.0), 3.0, PURPLE);

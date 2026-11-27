@@ -23,9 +23,10 @@ T = {
         ],
         needs_h="Ce qu'il vous faut",
         needs=[
-            "**Windows 10 ou 11** (64 bits) avec une carte graphique compatible Vulkan, DirectX 12 ou DirectX 11, "
-            "ou un **navigateur** récent pour la version web.",
-            "Un clavier (et une souris), ou une **manette** (Xbox, PlayStation, Switch Pro et la plupart des manettes USB).",
+            "**Windows 10 ou 11** (64 bits), **Linux**, **macOS**, une console portable sous Linux (PortMaster), "
+            "un téléphone ou une tablette **Android 8** ou plus récent, ou un **navigateur** récent pour la version web.",
+            "Un clavier (et une souris), une **manette** (Xbox, PlayStation, Switch Pro et la plupart des manettes USB), "
+            "ou un **écran tactile**.",
         ],
         toc_h="Sommaire",
         legend_h="La légende d'Hyrule",
@@ -60,7 +61,7 @@ T = {
         menu=[
             ("ui.play", "Choisir un personnage puis un stage, et partir à l'aventure."),
             ("ui.player_item", "Le joueur actif (nom et avatar). Ouvre l'écran des joueurs."),
-            ("ui.shop", "Dépenser les rubis rouges : la sorcière et les bénédictions, améliorations, reliques, défis, tenues, musiques."),
+            ("ui.shop", "Dépenser les rubis rouges : améliorations de Cocorico, bénédictions de la Grande Fée, personnages, tenues, musiques."),
             ("ui.collection", "Bestiaire, armes, objets et fusions découverts par le joueur actif."),
             ("ui.exploits", "Trophées (bronze, argent, or) et statistiques du joueur actif."),
             ("ui.scores", "Les meilleurs scores de chaque stage : les vôtres, ceux des autres joueurs, le monde."),
@@ -94,14 +95,21 @@ T = {
             ("Dash (esquive rapide)", "Espace / K", "Clic droit", "A / gâchette gauche"),
             ("Attaque automatique ou manuelle", "Tab / R", "", "Y"),
             ("Pause", "Échap / P", "", "Start"),
+            ("Zoom (3 niveaux)", "E", "", "RB / R1"),
             ("Menus : valider", "Entrée / Espace / J", "Clic gauche", "A"),
             ("Menus : retour", "Échap / Retour arrière", "Clic droit", "B"),
             ("Menus : onglet précédent / suivant", "A / E", "Clic sur l'onglet", "Gâchettes"),
+            ("Personnages : couleur", "R", "Clic sur les flèches", "Y"),
             ("Menus : faire défiler une liste", "Flèches", "Molette", "Stick gauche / croix"),
             ("Plein écran", "F11 / Alt + Entrée", "", "Select"),
         ],
         controls_note="Les lettres sont celles d'un clavier AZERTY (WASD sur un clavier QWERTY). Par défaut, vos armes "
                       "attaquent seules la cible la plus proche ; en mode manuel, elles visent là où vous visez.",
+        touch_note="**Écran tactile** : posez le pouce sur la moitié gauche de l'écran, un joystick apparaît dessous "
+                   "pour vous déplacer. Sur la moitié droite, un second joystick vise (en mode manuel, vos armes "
+                   "frappent dans sa direction). Les boutons en bas à droite déclenchent le dash et changent le mode "
+                   "d'attaque (A / M) ; en haut à droite, Pause et la loupe du zoom. Dans les menus, touchez pour choisir et "
+                   "glissez pour faire défiler.",
         # 3. Ecran de jeu
         ch_screen="3. L'écran de jeu",
         screen_intro="Tout ce qu'il faut surveiller pendant une partie :",
@@ -127,7 +135,7 @@ T = {
         levelup_h="Monter de niveau",
         levelup=[
             "Chaque niveau propose **trois choix** : une nouvelle arme, un nouvel objet, ou l'amélioration de ce que "
-            "vous avez déjà (jusqu'au niveau 8 pour les armes, 5 pour les objets).",
+            "vous avez déjà (jusqu'au niveau 5 pour les armes, 4 pour les objets).",
             "Les choix **en rose** peuvent **fusionner** avec une arme ou un objet que vous possédez déjà : c'est le "
             "chemin vers une évolution. L'objet partenaire que vous avez déjà sautille sur la carte.",
             "Sous les cartes, **Relancer** propose trois nouveaux choix et **Passer** termine le niveau sans rien "
@@ -175,9 +183,9 @@ T = {
         weapons_h="Les armes",
         passives_h="Les objets",
         evos_h="Évolutions",
-        evos_intro="Une arme au **niveau 8** et son objet partenaire au **niveau maximum** : le prochain coffre la "
+        evos_intro="Une arme au **niveau 5** et son objet partenaire au **niveau maximum** : le prochain coffre la "
                    "fait évoluer. Sur les cartes de niveau, le partenaire possédé affiche son niveau "
-                   "(par exemple « Abeilles 3/8 »).",
+                   "(par exemple « Gant de puissance 3/4 »).",
         evos_cols=("Arme", "Objet", "Évolution"),
         # 6. Personnages
         ch_chars="6. Les personnages",
@@ -203,11 +211,13 @@ T = {
         fairy_intro="Des bénédictions achetées une fois pour toutes.",
         relics_h="Reliques",
         relics_intro="La première victoire de chaque stage donne sa relique ; les champions en proposent d'autres. "
-                     "Trois reliques peuvent être équipées à la fois.",
+                     "Trois reliques peuvent être équipées à la fois, dans les **Préparatifs** (juste après le choix du stage), "
+                     "rangées de la plus forte à la plus faible : légendaires (or), rares (violet), communes (bleu).",
         seals_h="Défis : les Sceaux de Ganon",
-        seals_intro="Des défis optionnels : chaque sceau rend les parties plus dures, mais rapporte plus de rubis et de points.",
+        seals_intro="Des défis optionnels, réglés dans les **Préparatifs** : chaque sceau rend les parties plus dures, mais "
+                    "rapporte plus de rubis et de points.",
         diff_h="Difficultés",
-        diff_intro="Quatre difficultés, choisies dans la Boutique. Plus c'est dur, plus la banque et le score grimpent.",
+        diff_intro="Quatre difficultés, choisies dans les Préparatifs. Plus c'est dur, plus la banque et le score grimpent.",
         profile_h="Recueil, exploits et sauvegarde",
         profile="Le Recueil montre le bestiaire, les armes, les objets et les fusions du joueur actif. Dans le bestiaire, "
                 "validez (ou cliquez) un ennemi déjà vaincu pour ouvrir sa fiche : son sprite animé à sa vraie taille "
@@ -288,9 +298,10 @@ T = {
         ],
         needs_h="What you need",
         needs=[
-            "**Windows 10 or 11** (64-bit) with a graphics card supporting Vulkan, DirectX 12 or DirectX 11, "
-            "or a recent **web browser** for the browser version.",
-            "A keyboard (and mouse), or a **gamepad** (Xbox, PlayStation, Switch Pro and most USB controllers).",
+            "**Windows 10 or 11** (64-bit), **Linux**, **macOS**, a Linux handheld (PortMaster), an **Android 8** "
+            "or newer phone or tablet, or a recent **web browser** for the browser version.",
+            "A keyboard (and mouse), a **gamepad** (Xbox, PlayStation, Switch Pro and most USB controllers), "
+            "or a **touch screen**.",
         ],
         toc_h="Contents",
         legend_h="The Legend of Hyrule",
@@ -322,7 +333,7 @@ T = {
         menu=[
             ("ui.play", "Choose a character, then a stage, and set off."),
             ("ui.player_item", "The active player (name and avatar). Opens the players screen."),
-            ("ui.shop", "Spend your red rupees: the witch and blessings, upgrades, relics, challenges, outfits, music."),
+            ("ui.shop", "Spend your red rupees: Kakariko upgrades, Great Fairy blessings, characters, outfits, music."),
             ("ui.collection", "Bestiary, weapons, items and fusions found by the active player."),
             ("ui.exploits", "Trophies (bronze, silver, gold) and statistics of the active player."),
             ("ui.scores", "The best scores of every stage: yours, the other players', the world's."),
@@ -354,14 +365,20 @@ T = {
             ("Dash (quick dodge)", "Space / K", "Right click", "A / left trigger"),
             ("Automatic or manual attacks", "Tab / R", "", "Y"),
             ("Pause", "Esc / P", "", "Start"),
+            ("Zoom (3 levels)", "E", "", "RB / R1"),
             ("Menus: confirm", "Enter / Space / J", "Left click", "A"),
             ("Menus: back", "Esc / Backspace", "Right click", "B"),
             ("Menus: previous / next tab", "Q / E", "Click the tab", "Triggers"),
+            ("Characters: color", "R", "Click the arrows", "Y"),
             ("Menus: scroll a list", "Arrows", "Mouse wheel", "Left stick / D-pad"),
             ("Fullscreen", "F11 / Alt + Enter", "", "Select"),
         ],
         controls_note="Letters are those of a QWERTY keyboard (ZQSD on an AZERTY keyboard). By default your weapons attack "
                       "the nearest enemy on their own; in manual mode they aim where you aim.",
+        touch_note="**Touch screen**: put your thumb on the left half of the screen and a joystick appears under it "
+                   "to move. On the right half, a second joystick aims (in manual mode your weapons strike in its "
+                   "direction). The buttons at the bottom right dash and switch the attack mode (A / M); at the top "
+                   "right, Pause and the zoom magnifier. In menus, tap to choose and drag to scroll.",
         ch_screen="3. The Game Screen",
         screen_intro="Everything to keep an eye on during a run:",
         hud=[
@@ -385,7 +402,7 @@ T = {
         levelup_h="Leveling up",
         levelup=[
             "Each level offers **three choices**: a new weapon, a new item, or an upgrade of what you already have "
-            "(up to level 8 for weapons, 5 for items).",
+            "(up to level 5 for weapons, 4 for items).",
             "Choices shown **in pink** can **fuse** with a weapon or item you already own: that's the road to an "
             "evolution. The partner you already have hops on the card.",
             "Below the cards, **Reroll** offers three new choices and **Skip** ends the level without taking anything. "
@@ -429,8 +446,8 @@ T = {
         weapons_h="Weapons",
         passives_h="Items",
         evos_h="Evolutions",
-        evos_intro="A weapon at **level 8** plus its partner item at **max level**: the next chest evolves it. On "
-                   "level-up cards, an owned partner shows its level (for example “Bees 3/8”).",
+        evos_intro="A weapon at **level 5** plus its partner item at **max level**: the next chest evolves it. On "
+                   "level-up cards, an owned partner shows its level (for example “Power Glove 3/4”).",
         evos_cols=("Weapon", "Item", "Evolution"),
         ch_chars="6. Characters",
         chars_intro="Each character has strengths, weaknesses and a starting weapon. The others unlock as you play. "
@@ -453,11 +470,13 @@ T = {
         fairy_intro="Blessings bought once and for all.",
         relics_h="Relics",
         relics_intro="The first win on each stage grants its relic; champions offer others. Three relics can be equipped at "
-                     "once.",
+                     "once, in the **Preparations** screen (right after choosing the stage), sorted from strongest to weakest: "
+                     "legendary (gold), rare (purple), common (blue).",
         seals_h="Challenges: Ganon's Seals",
-        seals_intro="Optional challenges: each seal makes runs harder, but earns more rupees and points.",
+        seals_intro="Optional challenges, set in the **Preparations** screen: each seal makes runs harder, but earns more "
+                    "rupees and points.",
         diff_h="Difficulties",
-        diff_intro="Four difficulties, chosen in the Shop. The harder, the higher the bank and the score.",
+        diff_intro="Four difficulties, chosen in the Preparations screen. The harder, the higher the bank and the score.",
         profile_h="Collection, achievements and save",
         profile="The Collection shows the active player's bestiary, weapons, items and fusions. In the bestiary, confirm (or "
                 "click) an enemy you have defeated to open its card: its animated sprite at its real size and its "

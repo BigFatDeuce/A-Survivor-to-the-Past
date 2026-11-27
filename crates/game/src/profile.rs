@@ -10,7 +10,7 @@ use std::path::Path;
 /// Ancien fichier unique (avant la 0.6), repris dans le premier emplacement.
 const LEGACY: &str = "profile.ron";
 const INDEX: &str = "profiles.ron";
-const VERSION: u32 = 4;
+const VERSION: u32 = 5;
 /// Nombre d'emplacements de joueurs.
 pub const SLOTS: usize = 5;
 /// Meilleures parties gardees par stage.
@@ -186,6 +186,9 @@ pub struct Profile {
     pub title: u32,
     #[serde(default)]
     pub figurines: BTreeSet<String>,
+    /// Conseils de la fee (apres deux defaites) deja donnes.
+    #[serde(default)]
+    pub fairy_tip: bool,
     /// Emplacement du profil (non enregistre : c'est le nom du fichier).
     #[serde(skip)]
     pub slot: usize,
@@ -273,6 +276,12 @@ impl Profile {
             }
             if self.figurines.remove("pikit") {
                 self.figurines.insert("boo".to_string());
+            }
+        }
+        if self.version < 5 {
+            // 0.8 : la couleur rouge de Bowsette a son propre sprite (elle reprenait celui de Bowsette Red)
+            if self.wardrobe.remove("zspr_bowsette_red") {
+                self.wardrobe.insert("zspr_bowsette_red_skin".to_string());
             }
         }
         self.version = VERSION;
@@ -460,6 +469,14 @@ mod tests {
         p.evolutions.insert("master_sword".into());
         p.migrate();
         assert!(p.evolutions.contains("master_sword"));
+    }
+
+    #[test]
+    fn bowsette_red_color_keeps_its_purchase() {
+        let mut p = Profile { version: 4, ..Default::default() };
+        p.wardrobe.insert("zspr_bowsette_red".into());
+        p.migrate();
+        assert!(p.wardrobe.contains("zspr_bowsette_red_skin") && !p.wardrobe.contains("zspr_bowsette_red"));
     }
 
     /// Ancien profil unique repris dans le premier emplacement, puis plusieurs joueurs.

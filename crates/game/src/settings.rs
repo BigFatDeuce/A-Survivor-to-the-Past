@@ -53,6 +53,9 @@ pub struct Settings {
     /// Mises a jour : automatiques (defaut), sur demande, ou desactivees.
     #[serde(default)]
     pub updates: UpdateMode,
+    /// Zoom en partie : 0 = vue la plus large, 1 et 2 = plus pres (`game::ZOOMS`).
+    #[serde(default)]
+    pub zoom: u8,
 }
 
 impl Default for Settings {
@@ -69,6 +72,7 @@ impl Default for Settings {
             aspect: Aspect::default(),
             bindings: BTreeMap::new(),
             updates: UpdateMode::default(),
+            zoom: 0,
         }
     }
 }

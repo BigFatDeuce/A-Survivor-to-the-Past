@@ -45,23 +45,35 @@ impl Report {
         // (position, taille, texte, calque)
         let mut layer = 0;
         let mut texts: Vec<(Vec2, Vec2, &str, u32)> = Vec::new();
+        let mut inks: Vec<(f32, f32)> = Vec::new();
         for p in probes {
             match p {
                 Probe::Layer => layer += 1,
-                Probe::Text { pos, size, text } if !text.trim().is_empty() => texts.push((*pos, *size, text.as_str(), layer)),
+                Probe::Text { pos, size, text, ink } if !text.trim().is_empty() => {
+                    texts.push((*pos, *size, text.as_str(), layer));
+                    inks.push(*ink);
+                }
                 _ => {}
             }
         }
         let mut layer = 0;
         let mut panels: Vec<(Vec2, Vec2, &str, u32)> = Vec::new();
+        let mut boxes: Vec<(Vec2, Vec2, &str, u32)> = Vec::new();
+        let mut covers: Vec<(Vec2, Vec2, u32)> = Vec::new();
         for p in probes {
             match p {
                 Probe::Layer => layer += 1,
                 Probe::Panel { pos, size, name } => panels.push((*pos, *size, *name, layer)),
+                Probe::Box { pos, size, opaque } => {
+                    boxes.push((*pos, *size, "fond", layer));
+                    if *opaque {
+                        covers.push((*pos, *size, layer));
+                    }
+                }
                 _ => {}
             }
         }
-        for &(pos, size, t, tl) in &texts {
+        for (i, &(pos, size, t, tl)) in texts.iter().enumerate() {
             if pos.x < -0.5 || pos.y < -0.5 || pos.x + size.x > view.x + 0.5 || pos.y + size.y > view.y + 0.5 {
                 add("hors ecran", short(t));
             }
@@ -76,13 +88,24 @@ impl Report {
                 if end.x > p.x + s.x + 0.5 || end.y > p.y + s.y + 0.5 {
                     add("deborde du cadre", format!("{} ({name})", short(t)));
                 }
-                // bandeau d'une seule ligne (un seul texte dedans) : le texte doit y etre centre verticalement
+            }
+            // cadre ou fond d'une seule ligne (nom + prix compris) : l'encre de chaque texte (ombre comprise) doit y etre
+            // centree verticalement, au demi-pixel pres (hauteur paire / impaire). Le plus petit cadre ou fond visible qui
+            // contient toute l'encre ; s'il contient d'autres textes sur d'autres lignes, c'est un bloc : pas de controle.
+            let (it, ih) = inks[i];
+            let (top, bot) = (pos.y + it, pos.y + it + ih);
+            let holder = panels
+                .iter()
+                .chain(boxes.iter())
+                .filter(|(p, s, _, pl)| *pl == tl && pos.x >= p.x - 0.5 && pos.x + size.x <= p.x + s.x + 0.5 && top >= p.y && bot <= p.y + s.y)
+                .min_by(|a, b| (a.1.x * a.1.y).total_cmp(&(b.1.x * b.1.y)));
+            if let (Some(&(p, s, name, _)), false) = (holder, t.starts_with('<')) {
                 let inside = |q: Vec2| q.x >= p.x && q.y >= p.y && q.x < p.x + s.x && q.y < p.y + s.y;
-                let alone = texts.iter().filter(|o| o.3 == tl && inside(o.0 + Vec2::new(1.0, 2.0))).count() == 1;
-                if alone && s.y < size.y * 2.0 {
-                    let off = (pos.y + size.y * 0.5) - (p.y + s.y * 0.5);
-                    if off.abs() > 2.0 {
-                        add("mal centre", format!("{} ({name}, {off:+.0} px)", short(t)));
+                let one_line = texts.iter().filter(|o| o.3 == tl && inside(o.0 + Vec2::new(1.0, 2.0))).all(|o| o.0.y < pos.y + size.y && pos.y < o.0.y + o.1.y);
+                if one_line && s.y < size.y * 2.0 {
+                    let off = (top + bot) * 0.5 - (p.y + s.y * 0.5);
+                    if off.abs() > 0.5 {
+                        add("mal centre", format!("{} ({name}, {off:+.1} px)", short(t)));
                     }
                 }
             }
@@ -98,7 +121,14 @@ impl Report {
         for i in 0..texts.len() {
             for j in i + 1..texts.len() {
                 let (a, b) = (texts[i], texts[j]);
-                if (a.2 == b.2 && a.0 == b.0) || a.3 != b.3 {
+                if (a.2 == b.2 && a.0 == b.0) || (a.3 != b.3 && (a.2.starts_with('<') || b.2.starts_with('<'))) {
+                    continue;
+                }
+                // calques differents : le texte du dessous cache par un fond opaque du calque du dessus ne compte pas
+                let (lo, hi) = if a.3 < b.3 { (a, b) } else { (b, a) };
+                let hidden = lo.3 != hi.3
+                    && covers.iter().any(|&(p, s, l)| l > lo.3 && l <= hi.3 && lo.0.x >= p.x && lo.0.y >= p.y && lo.0.x + lo.1.x <= p.x + s.x && lo.0.y + lo.1.y <= p.y + s.y);
+                if hidden {
                     continue;
                 }
                 if overlap((a.0, a.1), (b.0, b.1)) {

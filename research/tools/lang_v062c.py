@@ -13,7 +13,7 @@ def table(values):
 
 
 EXTRA = {
-    "fr": table(["Déblocages !", "Personnage", "Arme",
+    "fr": table(["Débloqués !", "Personnage", "Arme",
                  "Nouveaux personnages jouables : choisissez-les avant la partie.",
                  "Ces armes peuvent maintenant apparaître dans toutes les parties.",
                  "Nouvelle arme débloquée !", "Elle peut maintenant apparaître dans toutes les parties.",

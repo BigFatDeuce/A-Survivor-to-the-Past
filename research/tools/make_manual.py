@@ -589,6 +589,7 @@ def build(lang, atlas):
     head = "".join(f"<th>{html.escape(c)}</th>" for c in t["controls_cols"])
     b.add(f"<table><tr>{head}</tr>{rows}</table>")
     b.para(t["controls_note"])
+    b.para(t["touch_note"])
 
     # 3. ecran de jeu
     b.chapter("screen", t["ch_screen"])

@@ -75,6 +75,9 @@ pub struct Relic {
     pub rerolls: u32,
     #[serde(default)]
     pub skips: u32,
+    /// Prix a la boutique (rubis rouges) ; 0 : pas a vendre, trouvee dans les stages.
+    #[serde(default)]
+    pub cost: u64,
 }
 
 fn one() -> f32 {
@@ -109,6 +112,10 @@ pub struct WardrobeItem {
     #[serde(default)]
     pub icon: String,
     pub cost: u64,
+    /// Ajoutee au chargement (couleur d'un personnage sans entree dans meta.ron) : nom et description
+    /// faits du nom du personnage et de la couleur.
+    #[serde(skip)]
+    pub auto: bool,
 }
 
 /// Juke-box (0.6.3) : musique a acheter, puis a choisir pour l'ecran titre.
@@ -143,6 +150,9 @@ pub struct Meta {
     /// Figurines du bestiaire : prix d'un ennemi, d'un boss, du boss final (Ganon).
     #[serde(default)]
     pub figurines: (u64, u64, u64),
+    /// 0.7.1 : prix des autres couleurs des personnages (toutes a acheter a la garde-robe).
+    #[serde(default)]
+    pub skin_cost: u64,
 }
 
 impl Meta {
@@ -157,7 +167,27 @@ impl Meta {
         }
     }
 
+    /// 0.7.1 : seule la premiere couleur d'un personnage est offerte ; chaque autre devient une tenue
+    /// de la garde-robe (au prix `skin_cost`, sauf celles deja decrites dans meta.ron).
+    pub fn complete_wardrobe(&mut self, content: &sim::defs::Content) {
+        for id in crate::chars::roster(content) {
+            let def = &content.characters[&id];
+            for (sprite, _) in def.skins.iter().skip(1) {
+                if !self.wardrobe.iter().any(|w| w.sprite == *sprite) {
+                    self.wardrobe.push(WardrobeItem { character: id.clone(), sprite: sprite.clone(), icon: String::new(), cost: self.skin_cost, auto: true });
+                }
+            }
+        }
+    }
+
     /// Tenue de la garde-robe pas encore achetee (sprite d'une couleur de personnage).
+    /// Reliques de la plus forte a la plus faible (indices dans `relics`).
+    pub fn relic_order(&self) -> Vec<usize> {
+        let mut o: Vec<usize> = (0..self.relics.len()).collect();
+        o.sort_by(|&a, &b| relic_power(&self.relics[b]).total_cmp(&relic_power(&self.relics[a])));
+        o
+    }
+
     pub fn skin_locked(&self, profile: &Profile, sprite: &str) -> bool {
         self.wardrobe.iter().any(|w| w.sprite == sprite) && !profile.wardrobe.contains(sprite)
     }
@@ -265,6 +295,42 @@ impl Meta {
 }
 
 /// Effets d'une relique : statistiques, puis relances et passes.
+/// Force d'une relique : chaque statistique ramenee a un meme bareme (environ « % de puissance »),
+/// relances et passes comprises. Sert a trier et classer les reliques.
+pub fn relic_power(r: &Relic) -> f32 {
+    use sim::defs::Stat::*;
+    let stats: f32 = r
+        .stats
+        .iter()
+        .map(|&(s, v)| match s {
+            Might => v * 100.0,
+            Cooldown => -v * 120.0,
+            Amount => v * 15.0,
+            Area => v * 60.0,
+            Duration => v * 40.0,
+            Speed => v * 30.0,
+            MaxHp => v * 0.4,
+            Armor => v * 5.0,
+            MoveSpeed => v * 60.0,
+            Regen => v * 25.0,
+            Magnet => v * 15.0,
+            Growth => v * 80.0,
+            Luck => v * 30.0,
+            DashCooldown => -v * 20.0,
+        })
+        .sum();
+    stats + 3.0 * (r.rerolls + r.skips) as f32
+}
+
+/// Rang d'une relique : 0 legendaire, 1 rare, 2 commune.
+pub fn relic_tier(r: &Relic) -> usize {
+    match relic_power(r) {
+        p if p >= 10.0 => 0,
+        p if p >= 7.0 => 1,
+        _ => 2,
+    }
+}
+
 pub fn relic_fx(lang: &crate::lang::Lang, r: &Relic) -> Vec<String> {
     let mut fx: Vec<String> = r.stats.iter().map(|&(s, v)| stat_text(lang, s, v)).collect();
     if r.rerolls > 0 {
@@ -345,8 +411,16 @@ mod tests {
         assert_eq!(meta.bank_mult(&p), g, "les relances ne comptent pas comme Avarice");
         assert_eq!(meta.shop_cost(&meta.shop[0], 0), Some(150));
         assert_eq!(meta.shop_cost(&meta.shop[0], 5), None);
-        for r in meta.relics.iter().filter(|r| !r.encounter) {
-            assert!(root.join(format!("data/maps/{}.ron", r.stage)).exists(), "relique {} : stage inconnu", r.id);
+        // une seule source par relique : un stage, les rencontres ou la boutique (0.7.1)
+        for r in &meta.relics {
+            let sources = [!r.stage.is_empty(), r.encounter, r.cost > 0].iter().filter(|&&b| b).count();
+            assert_eq!(sources, 1, "relique {} : une seule source", r.id);
+            if !r.stage.is_empty() {
+                assert!(root.join(format!("data/maps/{}.ron", r.stage)).exists(), "relique {} : stage inconnu", r.id);
+            }
         }
+        // un quart environ des reliques a vendre (6 sur 21), les autres a trouver
+        let sold = meta.relics.iter().filter(|r| r.cost > 0).count() as f32 / meta.relics.len() as f32;
+        assert!((0.15..=0.3).contains(&sold), "reliques a vendre : {sold}");
     }
 }

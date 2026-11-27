@@ -40,6 +40,15 @@
     // `encounter: true` : relique proposee par les champions errants (rencontres), gardee si la partie est gagnee.
     max_relics: 3,
     relics: [
+        // 0.7.1 : reliques a acheter dans la boutique (`cost`) : cinq bon marche en tete (par prix), puis le Flacon ;
+        // environ 20 % des reliques, les autres se trouvent toujours dans les stages et les rencontres
+        (id: "apple",          icon: "icon_apple",          cost: 250, stats: [(MaxHp, 10.0)]),
+        (id: "fighter_shield", icon: "icon_fighter_shield", cost: 300, stats: [(Armor, 1.0)]),
+        (id: "magic_jar",      icon: "icon_magic_jar",      cost: 400, stats: [(Cooldown, -0.03)]),
+        // icones deja vues ailleurs (boutique de Cocorico, garde-robe) : pas d'autre objet dans les planches
+        (id: "rupee_pouch",    icon: "icon_rupees",         cost: 500, stats: [(Magnet, 0.15)]),
+        (id: "green_tunic",    icon: "icon_green_mail",     cost: 600, stats: [(Growth, 0.05)]),
+        (id: "bottle",         icon: "icon_bottle",         cost: 1500, stats: [(Regen, 0.2)]),
         (id: "pendant_courage", icon: "icon_pendant_courage", stage: "hyrule_field", stats: [(Might, 0.1)]),
         (id: "pendant_power",   icon: "icon_pendant_power",   stage: "lost_woods",   stats: [(MaxHp, 20.0)]),
         (id: "pendant_wisdom",  icon: "icon_pendant_wisdom",  stage: "desert",       stats: [(Cooldown, -0.08)]),
@@ -50,7 +59,6 @@
         (id: "big_key",      icon: "icon_big_key",      encounter: true, stats: [(Luck, 0.15)]),
         (id: "titan_mitt",   icon: "icon_titan_mitt",   encounter: true, stats: [(Might, 0.06), (Armor, 1.0)]),
         (id: "red_mail",     icon: "icon_red_mail",     encounter: true, stats: [(Armor, 2.0), (MoveSpeed, -0.04)]),
-        (id: "bottle",       icon: "icon_bottle",       encounter: true, stats: [(Regen, 0.2)]),
         (id: "shovel",       icon: "icon_shovel",       encounter: true, stats: [(Magnet, 0.3), (Growth, 0.06)]),
         (id: "small_key",    icon: "icon_small_key",    encounter: true, stats: [(DashCooldown, -0.15), (MoveSpeed, 0.04)]),
         (id: "golden_sword", icon: "icon_golden_sword", encounter: true, stats: [(Might, 0.12), (Cooldown, 0.05)]),
@@ -110,6 +118,8 @@
     ],
     // Figurines du bestiaire : ennemi, boss, Ganon
     figurines: (150, 1000, 5000),
+    // 0.7.1 : prix de chaque autre couleur d'un personnage (garde-robe) ; la premiere est offerte
+    skin_cost: 500,
     // Sceaux de Ganon : defis optionnels, chacun augmente les rubis mis en banque
     seals: [
         (id: "seal_might",  icon: "icon_sage_spirit",     enemy_hp: 1.5,     bonus: 0.25),

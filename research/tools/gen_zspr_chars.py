@@ -101,13 +101,8 @@ GOOD = [("Might", [0.1, 0.15, 0.2]), ("Luck", [0.15, 0.2, 0.25]), ("MoveSpeed", 
         ("DashCooldown", [-0.15])]
 BAD = [("Might", [-0.05, -0.1]), ("Luck", [-0.1]), ("MoveSpeed", [-0.05, -0.08]), ("Area", [-0.1]),
        ("Growth", [-0.1]), ("Cooldown", [0.1]), ("DashCooldown", [0.2]), ("Speed", [-0.1])]
-DESC = ["{n} ({g}), venu des sprites du Randomizer de A Link to the Past.",
-        "{n} ({g}), from the A Link to the Past Randomizer sprites.",
-        "{n} ({g}), aus den Sprites des A Link to the Past Randomizer.",
-        "{n} ({g}), de los sprites del Randomizer de A Link to the Past.",
-        "{n} ({g}), dagli sprite del Randomizer di A Link to the Past.",
-        "{n} ({g}), dos sprites do Randomizer de A Link to the Past.",
-        "{n} ({g})。 ゼルダの でんせつ ランダマイザーの スプライト。"]
+# 0.7.1 : ni origine ni auteur dans le jeu (CREDITS.md seulement) ; le jeu montre l'arme de depart
+DESC = [""] * 7
 # nom de l'univers dans la description (memes textes que group.* de lang_v065.py)
 GROUP_TEXT = {
     "zelda": ["Zelda", "Zelda", "Zelda", "Zelda", "Zelda", "Zelda", "ゼルダ"],
@@ -320,6 +315,13 @@ def main():
                 "// ne pas modifier.", "(", "    sheets: ["]
     chars, names, authors, skins_of, groups = {}, {}, {}, {}, {}
     taken = set()
+    # identifiants de tous les personnages : une couleur « <id>_red » ne doit pas prendre celui d'un autre
+    # personnage (Bowsette rouge / Bowsette Red : deux planches sous un meme nom, sprite qui clignote)
+    all_cids = set()
+    for f in sorted(folder.glob("*.zspr")):
+        if f.read_bytes()[:4] == b"ZSPR" and f.stem not in SKIP:
+            info = meta.get(f.stem, {})
+            all_cids.add(REPLACE.get((info.get("name") or zspr.read(f)["name"]).strip()) or ident(info.get("short_slug") or f.stem))
     for f in sorted(folder.glob("*.zspr")):
         if f.read_bytes()[:4] != b"ZSPR" or f.stem in SKIP:
             continue
@@ -339,6 +341,8 @@ def main():
                      f'            source: "zspr/{cid}.png",', "            sprites: {"]
         for r, key in enumerate(keys):
             sprite = cid if r == 0 else f"{cid}_{key}"
+            if r > 0 and sprite in all_cids:
+                sprite += "_skin"
             sk.append((sprite, key))
             manifest += [f'                "{sprite}": {{'] + anim_lines(rects, r, False) + ["                },"]
         if fb:

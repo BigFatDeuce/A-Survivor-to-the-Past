@@ -251,7 +251,7 @@ pub fn draw(list: &mut DrawList, ctx: &Ctx, lang: &Lang, slots: &[Option<SlotVie
                     text(list, main, "◀", Vec2::new(ap.x - 10.0, ap.y + asz.y * 0.5 - 6.0), 1.0, c, Align::Left);
                     text(list, main, "▶", Vec2::new(ap.x + asz.x + 2.0, ap.y + asz.y * 0.5 - 6.0), 1.0, c, Align::Left);
                 }
-                text(list, main, &v.name, Vec2::new(tx, p.y + 5.0), 2.0, if selected { GOLD } else { WHITE }, Align::Left);
+                text(list, main, &v.name, Vec2::new(tx, p.y + 1.0), 2.0, if selected { GOLD } else { WHITE }, Align::Left);
                 let line = lang
                     .get("ui.player_summary")
                     .replace("{w}", &v.won.to_string())
@@ -291,7 +291,7 @@ pub fn draw(list: &mut DrawList, ctx: &Ctx, lang: &Lang, slots: &[Option<SlotVie
             crate::hub::focus_frame(list, ctx, r.0, r.1);
         }
         let c = if k == 0 && armed { RED } else if selected { GOLD } else { SOFT };
-        text(list, main, lang.get(key), Vec2::new(r.0.x + r.1.x * 0.5, r.0.y + 4.0), 1.0, c, Align::Center);
+        text(list, main, lang.get(key), Vec2::new(r.0.x + r.1.x * 0.5, crate::hud::mid_y(main, r.0.y, r.1.y, 1.0)), 1.0, c, Align::Center);
     }
 }
 
@@ -480,12 +480,13 @@ pub fn draw_name(list: &mut DrawList, ctx: &Ctx, lang: &Lang, title: &str, name:
     if let Some(a) = avatar {
         draw_avatar(list, atlas, a, Vec2::new(fp.x - 22.0, fp.y + fs.y * 0.5), 20.0, t, WHITE);
     }
-    let w = text(list, main, name, Vec2::new(fp.x + 8.0, fp.y + 5.0), 1.0, WHITE, Align::Left);
+    let fy = crate::hud::mid_y(main, fp.y, fs.y, 1.0);
+    let w = text(list, main, name, Vec2::new(fp.x + 8.0, fy), 1.0, WHITE, Align::Left);
     if name.chars().count() < MAX_LEN && (rt * 2.0).fract() < 0.6 {
-        list.rect(white, Vec2::new(fp.x + 9.0 + w, fp.y + 16.0), Vec2::new(6.0, 1.0), GOLD);
+        list.rect(white, Vec2::new(fp.x + 9.0 + w, fy + 12.0), Vec2::new(6.0, 1.0), GOLD);
     }
     let count = format!("{}/{MAX_LEN}", name.chars().count());
-    text(list, main, &count, Vec2::new(fp.x + fs.x - 6.0, fp.y + 5.0), 1.0, DIMMED, Align::Right);
+    text(list, main, &count, Vec2::new(fp.x + fs.x - 6.0, fy), 1.0, DIMMED, Align::Right);
     for (k, &(p, s)) in l.cells.iter().enumerate() {
         let selected = k == sel;
         list.rect(white, p, s, with_alpha(BACK, if selected { 0.95 } else { 0.7 }));
@@ -503,7 +504,7 @@ pub fn draw_name(list: &mut DrawList, ctx: &Ctx, lang: &Lang, title: &str, name:
             }
             Some(c) => {
                 let col = if selected { GOLD } else { SOFT };
-                text(list, main, &c.to_string(), Vec2::new(p.x + s.x * 0.5, p.y + 3.0), 1.0, col, Align::Center);
+                text(list, main, &c.to_string(), Vec2::new(p.x + s.x * 0.5, crate::hud::mid_y(main, p.y, s.y, 1.0)), 1.0, col, Align::Center);
             }
             None => {}
         }
@@ -515,7 +516,7 @@ pub fn draw_name(list: &mut DrawList, ctx: &Ctx, lang: &Lang, title: &str, name:
         if selected {
             crate::hub::focus_frame(list, ctx, r.0, r.1);
         }
-        text(list, main, lang.get(key), Vec2::new(r.0.x + r.1.x * 0.5, r.0.y + 4.0), 1.0, if selected { GOLD } else { SOFT }, Align::Center);
+        text(list, main, lang.get(key), Vec2::new(r.0.x + r.1.x * 0.5, crate::hud::mid_y(main, r.0.y, r.1.y, 1.0)), 1.0, if selected { GOLD } else { SOFT }, Align::Center);
     }
     text(list, main, lang.get("ui.name_hint"), Vec2::new(view.x * 0.5, l.hint_y), 1.0, SOFT, Align::Center);
 }

@@ -174,6 +174,32 @@ fn amp_to_db(a: f32) -> Decibels {
     }
 }
 
+/// Sortie audio par defaut ; si elle refuse (consoles Linux : peripherique « default » d'ALSA absent ou
+/// occupe), chaque autre sortie est essayee. La sortie retenue est notee dans le journal.
+fn open_manager() -> Result<AudioManager, String> {
+    let first = AudioManager::<DefaultBackend>::new(AudioManagerSettings::default());
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Err(e) = &first {
+        use kira::backend::cpal::{cpal, cpal::traits::HostTrait, CpalBackendSettings};
+        log::warn!("sortie audio par defaut : {e}");
+        for d in cpal::default_host().output_devices().into_iter().flatten() {
+            let name = d.to_string();
+            let settings = AudioManagerSettings {
+                backend_settings: CpalBackendSettings { device: Some(d), config: None },
+                ..AudioManagerSettings::default()
+            };
+            match AudioManager::<DefaultBackend>::new(settings) {
+                Ok(m) => {
+                    log::info!("sortie audio : {name}");
+                    return Ok(m);
+                }
+                Err(e) => log::warn!("sortie audio {name} : {e}"),
+            }
+        }
+    }
+    first.map_err(|e| e.to_string())
+}
+
 impl Audio {
     /// Initialise la sortie audio ; en cas d'echec le jeu continue en silence.
     pub fn new(root: &Path) -> Audio {
@@ -201,7 +227,7 @@ impl Audio {
             rng: 0x9e37_79b9,
             volumes: Volumes::default(),
         };
-        match AudioManager::<DefaultBackend>::new(AudioManagerSettings::default()) {
+        match open_manager() {
             Ok(mut m) => {
                 let lp = || FilterBuilder::new().mode(FilterMode::LowPass).cutoff(20000.0).resonance(0.05);
                 let mut music = TrackBuilder::new();

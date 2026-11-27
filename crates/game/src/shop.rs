@@ -1,6 +1,7 @@
-//! Boutique (entre les parties) : Kakariko (ameliorations), Grande Fee (benedictions et offrandes),
-//! reliques (a equiper), defis (difficulte, Sceaux de Ganon), garde-robe (tenues) et juke-box
-//! (musique de l'ecran titre). Contenu des onglets et achats.
+//! Boutique (entre les parties) : Cocorico (ameliorations), Grande Fee (benedictions et offrandes),
+//! personnages, garde-robe (tenues) et juke-box (musique de l'ecran titre). Les reliques (a equiper)
+//! et les defis (difficulte, Sceaux de Ganon) se reglent juste avant de partir, dans l'ecran des
+//! Preparatifs (0.8) : memes onglets, autre ecran. Contenu des onglets et achats.
 use crate::hub::{Row, DIMMED, GREEN, RED};
 use crate::lang::Lang;
 use crate::meta::{perk_text, relic_fx, stat_text, Meta};
@@ -8,15 +9,21 @@ use crate::profile::Profile;
 use engine::assets::Atlas;
 use engine::draw::rgb;
 
-/// 0.6.4 : la Grande Fee (et la sorciere, en tete) ouvre la boutique ; 0.6.5 : personnages a acheter.
-pub const TABS: [&str; 7] = ["ui.tab.fairy", "ui.tab.kakariko", "ui.tab.relics", "ui.tab.challenges", "ui.tab.characters", "ui.tab.wardrobe", "ui.tab.jukebox"];
-pub const TAB_FAIRY: usize = 0;
-pub const TAB_KAKARIKO: usize = 1;
-pub const TAB_RELICS: usize = 2;
-pub const TAB_CHALLENGES: usize = 3;
-pub const TAB_CHARS: usize = 4;
-pub const TAB_WARDROBE: usize = 5;
-pub const TAB_JUKEBOX: usize = 6;
+/// 0.8 : Cocorico ouvre la boutique, puis la Grande Fee ; reliques et defis passent aux Preparatifs.
+pub const TABS: [&str; 7] = ["ui.tab.kakariko", "ui.tab.fairy", "ui.tab.characters", "ui.tab.wardrobe", "ui.tab.jukebox", "ui.tab.relics", "ui.tab.challenges"];
+pub const TAB_KAKARIKO: usize = 0;
+pub const TAB_FAIRY: usize = 1;
+pub const TAB_CHARS: usize = 2;
+pub const TAB_WARDROBE: usize = 3;
+pub const TAB_JUKEBOX: usize = 4;
+pub const TAB_RELICS: usize = 5;
+pub const TAB_CHALLENGES: usize = 6;
+/// Onglets de la boutique, puis ceux des Preparatifs (avant de lancer une partie).
+pub const SHOP: std::ops::Range<usize> = TAB_KAKARIKO..TAB_RELICS;
+pub const PREP: std::ops::Range<usize> = TAB_RELICS..TABS.len();
+
+/// Couleurs des rangs de reliques : legendaire, rare, commune.
+pub const TIER_COLORS: [engine::draw::Color; 3] = [rgb(255, 205, 70), rgb(200, 140, 255), rgb(130, 200, 255)];
 
 /// Nom d'une musique d'apres son identifiant (titres anglais officiels de la bande originale) :
 /// « princess_zelda_s_rescue » -> « Princess Zelda's Rescue ».
@@ -57,6 +64,15 @@ pub fn titled_name(title: u32, name: &str) -> String {
 }
 
 const PRICE: engine::draw::Color = rgb(248, 216, 88);
+
+/// Tenues montrees a la garde-robe : celles des personnages deja debloques (ou achetes), pour ne pas
+/// noyer la liste sous les centaines de couleurs des personnages encore inconnus.
+pub fn wardrobe_items<'a>(meta: &'a Meta, content: &sim::defs::Content, p: &Profile) -> Vec<&'a crate::meta::WardrobeItem> {
+    meta.wardrobe
+        .iter()
+        .filter(|w| content.characters.get(&w.character).is_some_and(|d| crate::chars::unlocked(content, d, p)))
+        .collect()
+}
 
 fn icon(atlas: &Atlas, name: &str) -> Option<engine::assets::AnimId> {
     atlas.find(name, "0")
@@ -167,20 +183,22 @@ pub fn rows(meta: &Meta, content: &sim::defs::Content, p: &Profile, lang: &Lang,
                     mark: owned,
                     ..Default::default()
                 });
-                let mut d = lang.get(&format!("char.{id}.desc")).to_string();
-                if !def.credit.is_empty() {
-                    d = format!("{d} {}", lang.get("ui.char_credit").replace("{s}", &def.credit));
-                }
-                details.push(format!("{d} {}", lang.get(if owned { "ui.char_bought" } else { "ui.char_buy" })));
+                let d = crate::chars::desc(lang, def);
+                // ce que le joueur achete : coeurs, vitesse, avantages et defauts, puis la description
+                details.push(format!("{}\n{d} {}", crate::chars::stats_line(lang, def), lang.get(if owned { "ui.char_bought" } else { "ui.char_buy" })));
             }
         }
         TAB_WARDROBE => {
-            for w in &meta.wardrobe {
+            for w in wardrobe_items(meta, content, p) {
                 let owned = p.wardrobe.contains(&w.sprite);
-                let worn = content.characters.get(&w.character).is_some_and(|d| d.skins.get(crate::chars::skin(d, p, &w.character)).is_some_and(|s| s.0 == w.sprite));
+                let def = content.characters.get(&w.character);
+                let worn = def.is_some_and(|d| d.skins.get(crate::chars::skin(d, p, &w.character, meta)).is_some_and(|s| s.0 == w.sprite));
+                // couleur ajoutee au chargement : « Personnage : couleur »
+                let color = def.and_then(|d| d.skins.iter().find(|s| s.0 == w.sprite)).map(|s| lang.get(&format!("skin.{}", s.1)).to_string()).unwrap_or_default();
+                let cname = crate::chars::name(lang, &w.character);
                 rows.push(Row {
                     icon: icon(atlas, &w.icon).or_else(|| atlas.find(&w.sprite, "idle_down")),
-                    label: lang.get(&format!("wardrobe.{}.name", w.sprite)).to_string(),
+                    label: if w.auto { format!("{cname} : {color}") } else { lang.get(&format!("wardrobe.{}.name", w.sprite)).to_string() },
                     value: if worn {
                         lang.get("ui.equipped").to_string()
                     } else if owned {
@@ -198,7 +216,8 @@ pub fn rows(meta: &Meta, content: &sim::defs::Content, p: &Profile, lang: &Lang,
                     mark: worn,
                     ..Default::default()
                 });
-                details.push(format!("{} {}", lang.get(&format!("wardrobe.{}.desc", w.sprite)), lang.get(if owned { "ui.wardrobe_wear" } else { "ui.wardrobe_buy" })));
+                let desc = if w.auto { lang.get("ui.wardrobe_auto_desc").replace("{c}", &cname) } else { lang.get(&format!("wardrobe.{}.desc", w.sprite)).to_string() };
+                details.push(format!("{desc} {}", lang.get(if owned { "ui.wardrobe_wear" } else { "ui.wardrobe_buy" })));
             }
         }
         TAB_JUKEBOX => {
@@ -233,30 +252,50 @@ pub fn rows(meta: &Meta, content: &sim::defs::Content, p: &Profile, lang: &Lang,
         }
         TAB_RELICS => {
             let n = p.equipped.len();
-            for r in &meta.relics {
+            // de la plus forte a la plus faible, le nom a la couleur de son rang
+            for r in meta.relic_order().into_iter().map(|k| &meta.relics[k]) {
                 let found = p.relics.contains(&r.id);
                 let on = p.equipped.contains(&r.id);
+                let tier = crate::meta::relic_tier(r);
                 rows.push(Row {
-                    label_color: None,
+                    label_color: (found || r.cost > 0).then_some(TIER_COLORS[tier]),
                     icon: icon(atlas, &r.icon),
-                    icon_dim: !found,
-                    label: if found { lang.get(&format!("relic.{}.name", r.id)).to_string() } else { "???".into() },
+                    icon_dim: !found && r.cost == 0,
+                    // a vendre : nom et prix visibles avant l'achat
+                    label: if found || r.cost > 0 { lang.get(&format!("relic.{}.name", r.id)).to_string() } else { "???".into() },
                     value: if on {
                         lang.get("ui.equipped").to_string()
                     } else if found {
                         String::new()
+                    } else if r.cost > 0 {
+                        r.cost.to_string()
                     } else {
                         lang.get("ui.not_found").to_string()
                     },
-                    value_color: Some(if on { GREEN } else { DIMMED }),
-                    dim: !found,
+                    value_color: Some(if on {
+                        GREEN
+                    } else if !found && r.cost > 0 {
+                        if r.cost <= p.rupees {
+                            PRICE
+                        } else {
+                            RED
+                        }
+                    } else {
+                        DIMMED
+                    }),
+                    dim: !found && r.cost == 0,
                     mark: on,
                 });
-                let fx = relic_fx(lang, r);
+                let mut fx = relic_fx(lang, r);
+                if let Some(first) = fx.first_mut() {
+                    *first = format!("{} : {first}", lang.get(&format!("ui.tier.{tier}")));
+                }
                 let slots = lang.get("ui.relic_slots").replace("{a}", &n.to_string()).replace("{b}", &meta.max_relics.to_string());
                 details.push(if found {
                     // les emplacements sur leur propre ligne (retour 0.6.1)
                     format!("{}\n{}", fx.join(", "), slots)
+                } else if r.cost > 0 {
+                    format!("{}\n{}", fx.join(", "), lang.get("ui.relic_buy").replace("{n}", &r.cost.to_string()))
                 } else {
                     if r.encounter {
                         lang.get("ui.relic_hint_encounter").to_string()
@@ -352,7 +391,19 @@ pub fn act(meta: &Meta, content: &sim::defs::Content, p: &mut Profile, tab: usiz
             Outcome::Done
         }
         TAB_RELICS if dir == 0 => {
-            let Some(r) = meta.relics.get(k) else { return Outcome::Nothing };
+            let Some(r) = meta.relic_order().get(k).map(|&i| &meta.relics[i]) else { return Outcome::Nothing };
+            if !p.relics.contains(&r.id) && r.cost > 0 {
+                // achat : equipee d'office s'il reste un emplacement (comme une relique trouvee)
+                if r.cost > p.rupees {
+                    return Outcome::Refused("ui.not_enough");
+                }
+                p.rupees -= r.cost;
+                p.relics.insert(r.id.clone());
+                if p.equipped.len() < meta.max_relics {
+                    p.equipped.push(r.id.clone());
+                }
+                return Outcome::Done;
+            }
             if !p.relics.contains(&r.id) {
                 return Outcome::Refused("ui.locked");
             }
@@ -381,7 +432,7 @@ pub fn act(meta: &Meta, content: &sim::defs::Content, p: &mut Profile, tab: usiz
         }
         // la tenue est ensuite portee par le jeu (il connait les couleurs du personnage)
         TAB_WARDROBE if dir == 0 => {
-            let Some(w) = meta.wardrobe.get(k) else { return Outcome::Nothing };
+            let Some(w) = wardrobe_items(meta, content, p).get(k).copied() else { return Outcome::Nothing };
             if p.wardrobe.contains(&w.sprite) {
                 return Outcome::Selected;
             }

@@ -33,7 +33,7 @@ ROWS = {
     "skin.gray": ["Gris", "Gray", "Grau", "Gris", "Grigio", "Cinza", "はいいろ"],
     "skin.brown": ["Brun", "Brown", "Braun", "Marrón", "Marrone", "Marrom", "ちゃいろ"],
     # forme du Monde des Tenebres (le lapin de Link ; chaque sprite du Randomizer a la sienne)
-    "skin.dark": ["Ténèbres", "Dark World", "Schattenwelt", "Mundo Oscuro", "Mondo Oscuro", "Mundo Sombrio", "やみの せかい"],
+    "skin.dark": ["Monde des Ténèbres", "Dark World", "Schattenwelt", "Mundo Oscuro", "Mondo Oscuro", "Mundo Sombrio", "やみの せかい"],
     "skin.p1": ["Tenue 1", "Outfit 1", "Outfit 1", "Traje 1", "Abito 1", "Traje 1", "ふく 1"],
     "skin.p2": ["Tenue 2", "Outfit 2", "Outfit 2", "Traje 2", "Abito 2", "Traje 2", "ふく 2"],
     "skin.p3": ["Tenue 3", "Outfit 3", "Outfit 3", "Traje 3", "Abito 3", "Traje 3", "ふく 3"],

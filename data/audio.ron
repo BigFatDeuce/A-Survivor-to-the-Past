@@ -85,6 +85,8 @@
         "menu_open":         (max_voices: 1, min_interval: 0.1, volume: 0.45, pitch_jitter: 0.0),
         "menu_close":        (max_voices: 1, min_interval: 0.1, volume: 0.45, pitch_jitter: 0.0),
         "message_finish":    (max_voices: 1, min_interval: 0.06, volume: 0.42, pitch_jitter: 0.0),
+        // lettres des dialogues (fee) : discret, pas plus de 20 par seconde
+        "message":           (max_voices: 1, min_interval: 0.05, volume: 0.2, pitch_jitter: 0.0),
         "arrow_1":           (max_voices: 3, min_interval: 0.06, volume: 0.32, pitch_jitter: 0.08),
         "arrow_2":           (max_voices: 3, min_interval: 0.06, volume: 0.32, pitch_jitter: 0.08),
         "boomerang":         (max_voices: 2, min_interval: 0.12, volume: 0.3, pitch_jitter: 0.06),
@@ -205,6 +207,9 @@
         "equip":         ["button"],
         "relic":         ["heart_piece_1"],
         "save_code":     ["message_finish"],
+        "text":          ["message"],
+        "dialog_open":   ["menu_open"],
+        "dialog_close":  ["menu_close"],
         "victory":       ["warp"],
         // 0.4
         "hookshot":      ["hookshot"],
@@ -233,6 +238,8 @@
         "din_fire":      ["fire"],
         // 0.5
         "encounter":     ["secret"],
+        // une fusion est proposee au choix de niveau (jingle des secrets d'A Link to the Past)
+        "fusion_offer":  ["secret"],
         "encounter_won": ["item_get_3"],
         "encounter_fled": ["menu_close"],
         "reward":        ["item_get_2"],

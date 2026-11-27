@@ -25,6 +25,7 @@ mod chars;
 mod content;
 mod controls;
 mod director;
+mod fairy_tip;
 mod fortune;
 mod game;
 mod clipboard;
@@ -44,18 +45,21 @@ mod settings;
 mod shop;
 mod stages;
 mod storage;
+mod touch;
 mod weather;
 mod title;
 mod trophies;
 mod uicheck;
-// version web : rien a mettre a jour (le site sert la derniere version)
-#[cfg_attr(target_arch = "wasm32", path = "update_web.rs")]
+// version web : rien a mettre a jour (le site sert la derniere version) ; Android : l'APK se met a jour a la main
+#[cfg_attr(any(target_arch = "wasm32", target_os = "android"), path = "update_web.rs")]
 mod update;
 mod visuals;
 mod witch;
 
 #[cfg(not(target_arch = "wasm32"))]
-use std::path::{Path, PathBuf};
+use std::path::Path;
+#[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
+use std::path::PathBuf;
 
 /// Reglages de depart d'une session normale (ecran titre).
 fn default_options() -> game::Options {
@@ -119,7 +123,7 @@ Discord: About / À propos"
     }));
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
 fn main() {
     env_logger::Builder::from_env(
         env_logger::Env::default().default_filter_or("info,wgpu_core=warn,wgpu_hal=warn,naga=warn,symphonia=warn"),
@@ -253,6 +257,76 @@ fn main() {
         i += 1;
     }
     engine::app::run(cfg, move |ctx| game::Game::new(ctx, opts));
+}
+
+/// Android (bibliotheque chargee par NativeActivity) : les fichiers du jeu sont dans l'APK (`assets/game.pak`),
+/// extraits au premier lancement de chaque version dans le dossier prive de l'appli, qui devient la racine du
+/// jeu (reglages et sauvegardes a cote, comme sur ordinateur).
+#[cfg(target_os = "android")]
+#[no_mangle]
+fn android_main(app: engine::app::AndroidApp) {
+    let filter = env_filter::Builder::new().parse("info,symphonia=warn,symphonia_format_ogg=warn,wgpu_core=warn,wgpu_hal=warn,naga=warn").build();
+    android_logger::init_once(android_logger::Config::default().with_max_level(log::LevelFilter::Info).with_tag("astp").with_filter(filter));
+    let Some(dir) = app.internal_data_path() else {
+        log::error!("dossier prive de l'appli introuvable");
+        return;
+    };
+    if let Err(e) = android::install(&app, &dir) {
+        log::error!("installation des fichiers du jeu : {e}");
+        return;
+    }
+    let _ = std::env::set_current_dir(&dir);
+    let root = engine::assets::find_root();
+    crash_report(&root);
+    // premier lancement : langue du telephone
+    if !root.join("settings.ron").is_file() {
+        let mut s = settings::Settings::default();
+        if let Some(code) = app.config().language().map(|l| l.to_lowercase()) {
+            if crate::lang::LANGS.contains(&code.as_str()) {
+                s.lang = code;
+            }
+        }
+        s.save(&root);
+    }
+    let set = settings::Settings::load(&root);
+    let mut cfg = engine::app::Config::default();
+    cfg.video = set.video;
+    cfg.aspect = set.aspect;
+    let _ = engine::app::ANDROID_APP.set(app);
+    engine::app::run(cfg, move |ctx| game::Game::new(ctx, default_options()));
+}
+
+#[cfg(target_os = "android")]
+mod android {
+    use std::io::Read;
+    use std::path::Path;
+
+    /// Extrait `game.pak` (assets de l'APK) dans `dir` si la version installee n'est pas celle-ci.
+    pub fn install(app: &engine::app::AndroidApp, dir: &Path) -> Result<(), String> {
+        let stamp = dir.join("installed_version");
+        let want = env!("CARGO_PKG_VERSION");
+        if std::fs::read_to_string(&stamp).ok().as_deref() == Some(want) {
+            return Ok(());
+        }
+        let mut asset = app.asset_manager().open(c"game.pak").ok_or("game.pak absent de l'APK")?;
+        let mut pak = Vec::new();
+        asset.read_to_end(&mut pak).map_err(|e| e.to_string())?;
+        // anciens fichiers du jeu retires (une version peut en supprimer) ; reglages et profils gardes
+        for d in ["data", "assets"] {
+            let _ = std::fs::remove_dir_all(dir.join(d));
+        }
+        let entries = engine::vfs::parse(&pak)?;
+        for (name, a, b) in &entries {
+            let p = dir.join(name);
+            if let Some(parent) = p.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+            std::fs::write(&p, &pak[*a..*b]).map_err(|e| format!("{name} : {e}"))?;
+        }
+        std::fs::write(&stamp, want).map_err(|e| e.to_string())?;
+        log::info!("fichiers du jeu installes : {} (v{want})", entries.len());
+        Ok(())
+    }
 }
 
 /// Navigateur : la page a deja telecharge le paquet du jeu (`window.astpPak`).

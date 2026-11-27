@@ -86,6 +86,12 @@ impl DrawList {
         if size.x <= 0.0 || size.y <= 0.0 {
             return;
         }
+        // controle des ecrans : fonds d'une ligne (boutons, lignes de liste, bandeaux) bien visibles
+        if color[3] >= 0.2 && size.y >= 9.0 && size.x >= 12.0 && self.space() == crate::gfx::Space::Ui {
+            if let Some(probe) = self.probe.as_mut() {
+                probe.push(crate::gfx::Probe::Box { pos, size, opaque: color[3] >= 0.85 });
+            }
+        }
         let p = Params { scale: size, color, ..Default::default() };
         self.push(instance(white, pos, &p));
     }
@@ -123,7 +129,9 @@ impl DrawList {
         if let (Some(probe), true) = (self.probe.as_mut(), ui) {
             let size = Vec2::new(w, font.line_height as f32 * scale);
             let missing: Vec<char> = s.chars().filter(|&c| c != ' ' && !c.is_control() && font.glyph(c).is_none()).collect();
-            probe.push(crate::gfx::Probe::Text { pos: Vec2::new(x0, pos.y), size, text: s.to_string() });
+            // boite de mise en page, sans `nudge` (le decalage ne fait que centrer l'encre dans la ligne)
+            let ink = ink_band(font, scale, shadow.is_some());
+            probe.push(crate::gfx::Probe::Text { pos: Vec2::new(x0, pos.y - font.nudge as f32 * scale), size, text: s.to_string(), ink });
             for ch in missing {
                 probe.push(crate::gfx::Probe::MissingGlyph { ch, text: s.to_string() });
             }
@@ -154,3 +162,11 @@ impl DrawList {
     }
 }
 
+/// Bande verticale de l'encre des majuscules (contour et ombre compris) par rapport au haut de la ligne de mise en
+/// page : (decalage, hauteur). Sert au controle des ecrans.
+pub fn ink_band(font: &Font, scale: f32, shadow: bool) -> (f32, f32) {
+    match font.glyph('A').or_else(|| font.glyph('0')) {
+        Some(g) => ((font.nudge + g.oy) as f32 * scale, (g.h as f32 + if shadow { 1.0 } else { 0.0 }) * scale),
+        None => (0.0, font.line_height as f32 * scale),
+    }
+}

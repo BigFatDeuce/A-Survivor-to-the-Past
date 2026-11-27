@@ -6,7 +6,7 @@
     speed: 86.0,
     radius: 5.0,
     magnet: 34.0,
-    // retour J1 : recharge du dash allongee (0.9 -> 1.8 s)
+    // recharge du dash longue (1,8 s) : on ne traverse pas la foule a volonte
     dash: (speed: 330.0, duration: 0.15, cooldown: 1.8),
     weapon: "sword",
     weapon_sprite: "sword1",

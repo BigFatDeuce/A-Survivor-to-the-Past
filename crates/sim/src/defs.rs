@@ -609,6 +609,9 @@ pub struct RulesDef {
     pub xp_step: f32,
     /// Increment supplementaire apres le niveau 20.
     pub xp_step_late: f32,
+    /// Degats de toutes les armes en plus (0.15 = +15 %).
+    #[serde(default)]
+    pub damage_bonus: f32,
     /// Onde de choc a la montee de niveau (repousse sans blesser).
     pub levelup_wave_radius: f32,
     pub levelup_wave_force: f32,

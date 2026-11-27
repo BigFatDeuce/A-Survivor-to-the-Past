@@ -17,25 +17,25 @@ ROOT = rd.ROOT
 OUT = ROOT / "site"
 
 UI = {
-    "en": dict(download="Download", web="Play in your browser", soon=f"Alpha {rd.VERSION} for Windows, Linux, macOS, handhelds (PortMaster, experimental) and the browser",
+    "en": dict(download="Download", web="Play in your browser", soon=f"Alpha {rd.VERSION} for Windows, Linux, macOS, handhelds (PortMaster, experimental), Android and the browser",
                discord="Join the Discord", github="Source code", lang="Language", nav_what="The game",
                nav_shots="Screenshots", nav_evo="Evolutions", nav_road="Roadmap", horde="A horde at 3:30", manual="Instruction booklet (PDF)"),
-    "fr": dict(download="Télécharger", web="Jouer dans le navigateur", soon=f"Alpha {rd.VERSION} pour Windows, Linux, macOS, consoles portables (PortMaster, expérimental) et le navigateur",
+    "fr": dict(download="Télécharger", web="Jouer dans le navigateur", soon=f"Alpha {rd.VERSION} pour Windows, Linux, macOS, consoles portables (PortMaster, expérimental), Android et le navigateur",
                discord="Rejoindre le Discord", github="Code source", lang="Langue", nav_what="Le jeu",
                nav_shots="Captures", nav_evo="Évolutions", nav_road="Feuille de route", horde="Une horde à 3:30", manual="Livret d'instructions (PDF)"),
-    "de": dict(download="Herunterladen", web="Im Browser spielen", soon=f"Alpha {rd.VERSION} für Windows, Linux, macOS, Handhelds (PortMaster, experimentell) und den Browser",
+    "de": dict(download="Herunterladen", web="Im Browser spielen", soon=f"Alpha {rd.VERSION} für Windows, Linux, macOS, Handhelds (PortMaster, experimentell), Android und den Browser",
                discord="Zum Discord", github="Quellcode", lang="Sprache", nav_what="Das Spiel",
                nav_shots="Bilder", nav_evo="Entwicklungen", nav_road="Fahrplan", horde="Eine Horde bei 3:30", manual="Spielanleitung (PDF)"),
-    "es": dict(download="Descargar", web="Jugar en el navegador", soon=f"Alfa {rd.VERSION} para Windows, Linux, macOS, portátiles (PortMaster, experimental) y el navegador",
+    "es": dict(download="Descargar", web="Jugar en el navegador", soon=f"Alfa {rd.VERSION} para Windows, Linux, macOS, portátiles (PortMaster, experimental), Android y el navegador",
                discord="Únete al Discord", github="Código fuente", lang="Idioma", nav_what="El juego",
                nav_shots="Capturas", nav_evo="Evoluciones", nav_road="Hoja de ruta", horde="Una horda a los 3:30", manual="Manual de instrucciones (PDF)"),
-    "it": dict(download="Scarica", web="Gioca nel browser", soon=f"Alfa {rd.VERSION} per Windows, Linux, macOS, console portatili (PortMaster, sperimentale) e il browser",
+    "it": dict(download="Scarica", web="Gioca nel browser", soon=f"Alfa {rd.VERSION} per Windows, Linux, macOS, console portatili (PortMaster, sperimentale), Android e il browser",
                discord="Entra nel Discord", github="Codice sorgente", lang="Lingua", nav_what="Il gioco",
                nav_shots="Immagini", nav_evo="Evoluzioni", nav_road="Tabella di marcia", horde="Un'orda a 3:30", manual="Libretto di istruzioni (PDF)"),
-    "pt": dict(download="Baixar", web="Jogar no navegador", soon=f"Alfa {rd.VERSION} para Windows, Linux, macOS, portáteis (PortMaster, experimental) e o navegador",
+    "pt": dict(download="Baixar", web="Jogar no navegador", soon=f"Alfa {rd.VERSION} para Windows, Linux, macOS, portáteis (PortMaster, experimental), Android e o navegador",
                discord="Entrar no Discord", github="Código-fonte", lang="Idioma", nav_what="O jogo",
                nav_shots="Imagens", nav_evo="Evoluções", nav_road="Próximos passos", horde="Uma horda aos 3:30", manual="Manual de instruções (PDF)"),
-    "ja": dict(download="ダウンロード", web="ブラウザでプレイ", soon=f"アルファ {rd.VERSION}：Windows・Linux・macOS・携帯機（PortMaster、試験版）・ブラウザ",
+    "ja": dict(download="ダウンロード", web="ブラウザでプレイ", soon=f"アルファ {rd.VERSION}：Windows・Linux・macOS・携帯機（PortMaster、試験版）・Android・ブラウザ",
                discord="Discord に参加", github="ソースコード", lang="言語", nav_what="ゲーム",
                nav_shots="スクリーンショット", nav_evo="進化", nav_road="今後の予定", horde="3:30 の大群", manual="取扱説明書（PDF）"),
 }
@@ -51,8 +51,9 @@ def md(s):
     s = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", s)
     s = re.sub(r"\*(.+?)\*", r"<em>\1</em>", s)
     s = re.sub(r"`(.+?)`", r"<code>\1</code>", s)
-    # le lien vers LICENSE pointe vers le depot
+    # les liens vers LICENSE et CREDITS.md pointent vers le depot (absents du site)
     s = s.replace('href="LICENSE"', f'href="{rd.REPO}/blob/main/LICENSE"')
+    s = s.replace('href="CREDITS.md"', f'href="{rd.REPO}/blob/main/CREDITS.md"')
     return s
 
 

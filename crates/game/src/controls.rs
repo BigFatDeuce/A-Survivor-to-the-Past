@@ -7,7 +7,7 @@ use engine::input::{Binding, Bindings, Input, KeyCode, MouseButton, PadButton};
 pub const TABS: [&str; 2] = ["ui.tab.keyboard", "ui.tab.gamepad"];
 
 /// Actions reattribuables (dans l'ordre de l'ecran) ; la ligne suivante remet tout a zero.
-pub const ACTIONS: [&str; 8] = ["up", "down", "left", "right", "attack", "dash", "toggle_auto", "pause"];
+pub const ACTIONS: [&str; 9] = ["up", "down", "left", "right", "attack", "dash", "toggle_auto", "zoom", "pause"];
 pub const RESET: usize = ACTIONS.len();
 
 /// Attente d'une touche : abandon apres ce delai (s).

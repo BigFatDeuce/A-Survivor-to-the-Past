@@ -7,10 +7,10 @@ members = [
     "crates/game",
     "tools/forge",
 ]
-exclude = ["research"]
+exclude = ["research", "crates/android"]
 
 [workspace.package]
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"
 
 [workspace.dependencies]

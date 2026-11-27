@@ -47,6 +47,8 @@ pub struct NavIn {
     /// Onglet precedent / suivant (gachettes, Q / E).
     pub tab_prev: bool,
     pub tab_next: bool,
+    /// Couleur suivante du personnage (R, Y).
+    pub skin: bool,
     /// Molette : lignes a faire defiler (positif = vers le bas de la liste).
     pub wheel: i32,
 }
@@ -54,6 +56,9 @@ pub struct NavIn {
 /// Stick analogique transforme en appuis (avec repetition quand on le maintient).
 pub struct Nav {
     held: [f32; 4],
+    /// Temps depuis le dernier pas par direction : deux sources pour un meme appui (manette lue par le jeu
+    /// et touches envoyees par gptokeyb sur les consoles PortMaster) ne comptent qu'une fois.
+    since: [f32; 4],
     last_mouse: Vec2,
     /// Reste de molette (pave tactile : fractions de cran).
     wheel_acc: f32,
@@ -61,7 +66,7 @@ pub struct Nav {
 
 impl Nav {
     pub fn new() -> Nav {
-        Nav { held: [-1.0; 4], last_mouse: Vec2::ZERO, wheel_acc: 0.0 }
+        Nav { held: [-1.0; 4], since: [1.0; 4], last_mouse: Vec2::ZERO, wheel_acc: 0.0 }
     }
 
     pub fn read(&mut self, ctx: &Ctx, b: &Bindings, dt: f32) -> NavIn {
@@ -92,12 +97,25 @@ impl Nav {
         self.wheel_acc -= i.wheel();
         let wheel = self.wheel_acc.trunc();
         self.wheel_acc -= wheel;
+        let mut dir = [
+            i.action_pressed(b, "menu_up") || stick[0],
+            i.action_pressed(b, "menu_down") || stick[1],
+            i.action_pressed(b, "menu_left") || stick[2],
+            i.action_pressed(b, "menu_right") || stick[3],
+        ];
+        for (d, t) in dir.iter_mut().zip(&mut self.since) {
+            *t += dt;
+            *d &= *t >= 0.09;
+            if *d {
+                *t = 0.0;
+            }
+        }
         let digits = [KeyCode::Digit1, KeyCode::Digit2, KeyCode::Digit3, KeyCode::Digit4, KeyCode::Digit5];
         NavIn {
-            up: i.action_pressed(b, "menu_up") || stick[0],
-            down: i.action_pressed(b, "menu_down") || stick[1],
-            left: i.action_pressed(b, "menu_left") || stick[2],
-            right: i.action_pressed(b, "menu_right") || stick[3],
+            up: dir[0],
+            down: dir[1],
+            left: dir[2],
+            right: dir[3],
             // la souris valide par clic sur un element, pas n'importe ou
             confirm: i.action_pressed(b, "confirm") && !mouse_btn,
             back: i.action_pressed(b, "back") || i.action_pressed(b, "pause"),
@@ -107,6 +125,7 @@ impl Nav {
             digit: digits.iter().position(|&k| i.key_pressed(k)),
             tab_prev: i.action_pressed(b, "tab_prev"),
             tab_next: i.action_pressed(b, "tab_next"),
+            skin: i.action_pressed(b, "skin"),
             wheel: wheel as i32,
         }
     }
@@ -197,11 +216,14 @@ pub struct OfferInfo {
     pub max: u32,
     /// Partenaire d'evolution : (icone, nom, deja possede). Le nom d'un partenaire possede porte
     /// son niveau (« Abeilles 3/8 ») : la fusion demande les deux au niveau maximal.
-    pub evo: Vec<(AnimId, String, bool)>,
+    /// Partenaires de fusion : icone, nom, possede, inconnu (arme pas encore debloquee : « ??? »).
+    pub evo: Vec<(AnimId, String, bool, bool)>,
     /// Texte devant `evo` (vide : « Evolue avec »).
     pub evo_label: String,
     /// Objet garde apres la partie (relique) : carte doree, bandeau et etincelles.
     pub keep: bool,
+    /// Fusion proposee (1) ou fusion ultime (2) : la carte la plus mise en valeur de l'ecran.
+    pub fusion: u8,
 }
 
 fn signed(v: f32) -> String {
@@ -283,7 +305,7 @@ pub fn offer_info(world: &World, vis: &Vis, lang: &Lang, o: Offer) -> OfferInfo 
                     if let Some(l) = lv {
                         name = format!("{name} {l}/{}", c.passives[pid as usize].max_level());
                     }
-                    (vis.passives[pid as usize], name, lv.is_some())
+                    (vis.passives[pid as usize], name, lv.is_some(), false)
                 })
                 .collect();
             OfferInfo {
@@ -297,6 +319,7 @@ pub fn offer_info(world: &World, vis: &Vis, lang: &Lang, o: Offer) -> OfferInfo 
                 evo,
                 evo_label: String::new(),
                 keep: false,
+                fusion: 0,
             }
         }
         Offer::NewPassive(id) | Offer::UpgradePassive(id) => {
@@ -321,12 +344,16 @@ pub fn offer_info(world: &World, vis: &Vis, lang: &Lang, o: Offer) -> OfferInfo 
                 .enumerate()
                 .filter(|(k, _)| world.partner_free(id) && world.recipes_of(*k as u16).iter().any(|e| &e.passive == pid))
                 .map(|(k, w)| {
+                    // arme pas encore debloquee (boss intermediaire) : le joueur ne peut pas l'avoir
+                    if world.locked_weapons.contains(&(k as u16)) {
+                        return (vis.weapons[k].icon, "???".to_string(), false, true);
+                    }
                     let lv = world.weapon_level(k as u16);
                     let mut name = lang.get(&format!("weapon.{}.name", c.weapon_ids[k])).to_string();
                     if let Some(l) = lv {
                         name = format!("{name} {l}/{}", w.max_level());
                     }
-                    (vis.weapons[k].icon, name, lv.is_some())
+                    (vis.weapons[k].icon, name, lv.is_some(), false)
                 })
                 .collect();
             OfferInfo {
@@ -340,6 +367,7 @@ pub fn offer_info(world: &World, vis: &Vis, lang: &Lang, o: Offer) -> OfferInfo 
                 evo,
                 evo_label: String::new(),
                 keep: false,
+                fusion: 0,
             }
         }
         Offer::Heal => OfferInfo {
@@ -353,6 +381,7 @@ pub fn offer_info(world: &World, vis: &Vis, lang: &Lang, o: Offer) -> OfferInfo 
             evo: Vec::new(),
             evo_label: String::new(),
             keep: false,
+            fusion: 0,
         },
         Offer::Rupees => OfferInfo {
             icon: vis.icon_rupees,
@@ -365,19 +394,39 @@ pub fn offer_info(world: &World, vis: &Vis, lang: &Lang, o: Offer) -> OfferInfo 
             evo: Vec::new(),
             evo_label: String::new(),
             keep: false,
+            fusion: 0,
         },
-        Offer::Evolve(into) => OfferInfo {
-            icon: vis.weapons[into as usize].icon,
-            name: crate::hud::hl_fusion(lang.get(&format!("weapon.{}.name", c.weapon_ids[into as usize]))),
-            tag: lang.get("ui.evolution").to_string(),
-            is_new: true,
-            desc: crate::records::fusion_recipe(c, lang, into as usize).unwrap_or_default(),
-            level: 0,
-            max: 0,
-            evo: Vec::new(),
-            evo_label: String::new(),
-            keep: false,
-        },
+        Offer::Evolve(into) => {
+            let id = &c.weapon_ids[into as usize];
+            // recette : l'arme et son partenaire, tous deux en main
+            let (from, recipe) = c
+                .weapons
+                .iter()
+                .enumerate()
+                .find_map(|(k, w)| w.recipes().find(|e| &e.into == id).map(|e| (k, e)))
+                .map_or((None, None), |(k, e)| (Some(k), Some(e)));
+            let mut evo = Vec::new();
+            if let Some(k) = from {
+                evo.push((vis.weapons[k].icon, lang.get(&format!("weapon.{}.name", c.weapon_ids[k])).to_string(), true, false));
+            }
+            if let Some(pid) = recipe.and_then(|e| c.passive_index(&e.passive)) {
+                evo.push((vis.passives[pid as usize], lang.get(&format!("passive.{}.name", c.passive_ids[pid as usize])).to_string(), true, false));
+            }
+            let ultimate = from.is_some_and(|k| c.weapons[k].ultimate.as_ref().is_some_and(|u| &u.into == id));
+            OfferInfo {
+                icon: vis.weapons[into as usize].icon,
+                name: crate::hud::hl_fusion(lang.get(&format!("weapon.{id}.name"))),
+                tag: lang.get("ui.evolution").to_string(),
+                is_new: true,
+                desc: lang.get(&format!("weapon.{id}.desc")).to_string(),
+                level: 0,
+                max: 0,
+                evo,
+                evo_label: lang.get("ui.fusion_of").to_string(),
+                keep: false,
+                fusion: if ultimate { 2 } else { 1 },
+            }
+        }
     }
 }
 
@@ -400,7 +449,7 @@ pub fn card_rects_ex(view: Vec2, n: usize, extra: f32) -> Vec<(Vec2, Vec2)> {
 }
 
 /// Delai avant d'accepter un choix (evite de valider par erreur en attaquant).
-pub const LEVELUP_LOCK: f32 = 0.35;
+pub const LEVELUP_LOCK: f32 = 0.3;
 
 /// Place reservee sous les cartes de montee de niveau pour Relancer / Passer.
 pub const LEVELUP_EXTRA: f32 = 30.0;
@@ -425,7 +474,15 @@ pub fn levelup_buttons(view: Vec2, n: usize) -> [(Vec2, Vec2); 2] {
 #[allow(clippy::too_many_arguments)]
 pub fn draw_levelup(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang: &Lang, offers: &[Offer], sel: usize, t: f32) {
     let infos: Vec<OfferInfo> = offers.iter().map(|&o| offer_info(world, vis, lang, o)).collect();
-    draw_cards_ex(list, ctx, vis, lang, (lang.get("ui.levelup"), lang.get("ui.choose"), GOLD), &infos, sel, t, LEVELUP_EXTRA);
+    // une fusion est proposee : le sous-titre l'annonce
+    let sub = if infos.iter().any(|i| i.fusion > 0) {
+        crate::hud::hl_fusion(lang.get("ui.choose_fusion"))
+    } else if offers.iter().all(|o| matches!(o, Offer::Heal | Offer::Rupees)) {
+        lang.get("ui.choose_fallback").to_string()
+    } else {
+        lang.get("ui.choose").to_string()
+    };
+    draw_cards_ex(list, ctx, vis, lang, (lang.get("ui.levelup"), &sub, GOLD), &infos, sel, t, LEVELUP_EXTRA, None);
     // Relancer / Passer : nombre restant dans la partie ; grise quand il n'en reste plus
     let main = ctx.atlas.font("main");
     let white = &vis.white;
@@ -450,7 +507,7 @@ pub fn draw_levelup(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, la
         }
         let label = format!("{}  ({})", labels[k], counts[k]);
         let c = if selected { WHITE } else { SOFT };
-        text(list, main, &label, Vec2::new(pos.x + size.x * 0.5, pos.y + 5.0), 1.0, with_alpha(c, a), Align::Center);
+        text(list, main, &label, Vec2::new(pos.x + size.x * 0.5, crate::hud::mid_y(main, pos.y, size.y, 1.0)), 1.0, with_alpha(c, a), Align::Center);
     }
 }
 
@@ -479,9 +536,10 @@ pub fn draw_evo_choice(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis,
                 desc: lang.get(&format!("weapon.{}.desc", c.weapon_ids[into as usize])).to_string(),
                 level: 0,
                 max: 0,
-                evo: vec![(vis.weapons[from as usize].icon, lang.get(&format!("weapon.{}.name", c.weapon_ids[from as usize])).to_string(), true)],
+                evo: vec![(vis.weapons[from as usize].icon, lang.get(&format!("weapon.{}.name", c.weapon_ids[from as usize])).to_string(), true, false)],
                 evo_label: lang.get("ui.evo_from").to_string(),
                 keep: false,
+                fusion: 1,
             }
         })
         .collect();
@@ -492,39 +550,65 @@ pub fn draw_evo_choice(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis,
 /// Cartes de choix (montee de niveau, recompense de rencontre) : titre, sous-titre et couleur du titre.
 #[allow(clippy::too_many_arguments)]
 pub fn draw_cards(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: (&str, &str, Color), infos: &[OfferInfo], sel: usize, t: f32) {
-    draw_cards_ex(list, ctx, vis, lang, head, infos, sel, t, 0.0);
+    draw_cards_ex(list, ctx, vis, lang, head, infos, sel, t, 0.0, None);
+}
+
+/// Cartes d'un choix a part (butin d'un champion) : fond, bordure, coins ornes et etiquettes a la
+/// couleur `theme`, fond de l'ecran teinte ; on ne les confond pas avec une montee de niveau.
+#[allow(clippy::too_many_arguments)]
+pub fn draw_cards_themed(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: (&str, &str, Color), infos: &[OfferInfo], sel: usize, t: f32, theme: Color) {
+    draw_cards_ex(list, ctx, vis, lang, head, infos, sel, t, 0.0, Some(theme));
 }
 
 #[allow(clippy::too_many_arguments)]
-fn draw_cards_ex(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: (&str, &str, Color), infos: &[OfferInfo], sel: usize, t: f32, extra: f32) {
+fn draw_cards_ex(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: (&str, &str, Color), infos: &[OfferInfo], sel: usize, t: f32, extra: f32, theme: Option<Color>) {
     let view = ctx.view;
     let atlas = &ctx.atlas;
     let main = atlas.font("main");
     let white = &vis.white;
-    dim(list, vis, view, with_alpha(DIM, (t / 0.15).min(1.0)));
+    // choix a part : l'ecran entier prend un voile de sa couleur
+    let veil = theme.map_or(DIM, |c| [c[0] * 0.12, c[1] * 0.06, c[2] * 0.16, DIM[3]]);
+    dim(list, vis, view, with_alpha(veil, (t / 0.15).min(1.0)));
     let rects = card_rects_ex(view, infos.len(), extra);
     let y0 = rects.first().map_or(94.0, |r| r.0.y);
-    let pop = if t < 0.1 { 3.0 } else { 2.0 };
-    text(list, main, head.0, Vec2::new(view.x * 0.5, y0 - 54.0 - (pop - 2.0) * 7.0), pop, head.2, Align::Center);
+    let big = crate::hud::title_scale(main, head.0, view.x, 2.0);
+    let pop = if t < 0.1 { big + 1.0 } else { big };
+    text(list, main, head.0, Vec2::new(view.x * 0.5, y0 - 54.0 - (pop - 2.0) * 7.0 + (2.0 - big) * 7.0), pop, head.2, Align::Center);
     text(list, main, head.1, Vec2::new(view.x * 0.5, y0 - 19.0), 1.0, SOFT, Align::Center);
     let locked = t < LEVELUP_LOCK;
     let rt = ctx.real_time as f32;
     for (k, ((pos, size), info)) in rects.into_iter().zip(infos).enumerate() {
         // fusion possible avec un objet (ou une arme) deja possede : la carte brille en rose
-        let fusion = info.evo.iter().any(|e| e.2) && !info.keep;
+        let star = info.fusion;
+        let fusion = info.evo.iter().any(|e| e.2) && !info.keep && star == 0;
         let keep = info.keep;
+        // fusion proposee : couleur de la carte (rose ; or pour la fusion ultime)
+        let hc_star = if star == 2 { KEEP } else { FUSION };
         // entree echelonnee par la droite
         let u = ((t - k as f32 * 0.05) / 0.18).clamp(0.0, 1.0);
         let e = 1.0 - (1.0 - u) * (1.0 - u);
         let selected = k == sel;
         let pos = pos + Vec2::new(((1.0 - e) * 60.0).round() + if selected { 4.0 } else { 0.0 }, 0.0);
         let a = e;
-        list.rect(white, pos, size, with_alpha(if keep { KEEP_BG } else if fusion { FUSION_BG } else { CARD_BG }, a));
+        let bg = if keep || star == 2 {
+            KEEP_BG
+        } else if fusion || star > 0 {
+            FUSION_BG
+        } else if let Some(c) = theme {
+            [c[0] * 0.22, c[1] * 0.12, c[2] * 0.26, 0.95]
+        } else {
+            CARD_BG
+        };
+        list.rect(white, pos, size, with_alpha(bg, a));
         let pulse = 0.75 + 0.25 * (rt * 6.0).sin();
         let border = if selected {
             with_alpha(GOLD, a * if locked { 0.6 } else { pulse })
+        } else if star > 0 {
+            with_alpha(hc_star, a * (0.75 + 0.25 * (rt * 5.0).sin()))
         } else if keep {
             with_alpha(KEEP, a * (0.7 + 0.3 * (rt * 4.0).sin()))
+        } else if let Some(c) = theme {
+            with_alpha(c, a * (0.6 + 0.2 * (rt * 3.0).sin()))
         } else if fusion {
             with_alpha(FUSION, a * (0.55 + 0.35 * (rt * 4.0).sin()))
         } else {
@@ -536,25 +620,38 @@ fn draw_cards_ex(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: (
         } else if selected {
             frame_rect(list, white, pos + Vec2::ONE, size - Vec2::splat(2.0), with_alpha(border, 0.5));
         }
-        if fusion || keep {
-            // halo qui respire autour de la carte (rose : fusion ; or : objet garde), et des
-            // etincelles qui en font le tour
-            let hc = if keep { KEEP } else { FUSION };
-            let glow = if keep { 0.4 + 0.25 * (rt * 4.0).sin() } else { 0.25 + 0.2 * (rt * 4.0).sin() };
+        if let Some(c) = theme {
+            // coins ornes, hors de la carte : la forme dit « choix a part » avant la couleur
+            let cc = with_alpha(c, a);
+            for (x, y, sx, sy) in [(0.0, 0.0, -1.0, -1.0), (1.0, 0.0, 1.0, -1.0), (0.0, 1.0, -1.0, 1.0), (1.0, 1.0, 1.0, 1.0)] {
+                let corner = pos + Vec2::new(x * size.x, y * size.y);
+                let o = corner + Vec2::new(if sx < 0.0 { -4.0 } else { 2.0 }, if sy < 0.0 { -4.0 } else { 2.0 });
+                let hx = if sx < 0.0 { o.x } else { o.x - 8.0 };
+                let vy = if sy < 0.0 { o.y } else { o.y - 8.0 };
+                list.rect(white, Vec2::new(hx, o.y), Vec2::new(10.0, 2.0), cc);
+                list.rect(white, Vec2::new(o.x, vy), Vec2::new(2.0, 10.0), cc);
+            }
+        }
+        if fusion || keep || star > 0 {
+            // halo qui respire autour de la carte (rose : fusion possible ; or : objet garde) et des
+            // etincelles qui en font le tour ; fusion proposee : le halo le plus fort, reflet compris
+            let strong = keep || star > 0;
+            let hc = if star > 0 { hc_star } else if keep { KEEP } else { FUSION };
+            let glow = if strong { 0.4 + 0.25 * (rt * 4.0).sin() } else { 0.25 + 0.2 * (rt * 4.0).sin() };
             list.set(Space::Ui, Blend::Add);
             frame_rect(list, white, pos - Vec2::splat(2.0), size + Vec2::splat(4.0), with_alpha(hc, glow * a));
             frame_rect(list, white, pos - Vec2::splat(3.0), size + Vec2::splat(6.0), with_alpha(hc, glow * 0.5 * a));
-            if keep {
+            if strong {
                 frame_rect(list, white, pos - Vec2::splat(5.0), size + Vec2::splat(10.0), with_alpha(hc, glow * 0.25 * a));
                 // reflet qui balaie la carte
                 let sweep = ((rt * 0.6).fract() * (size.x + 60.0)) - 30.0;
                 for i in 0..6 {
                     let x = (pos.x + sweep + i as f32 * 3.0).clamp(pos.x, pos.x + size.x - 2.0);
-                    list.rect(white, Vec2::new(x.round(), pos.y + 1.0), Vec2::new(2.0, size.y - 2.0), [1.0, 0.9, 0.5, 0.05 * a]);
+                    list.rect(white, Vec2::new(x.round(), pos.y + 1.0), Vec2::new(2.0, size.y - 2.0), with_alpha(hc, 0.05 * a));
                 }
             }
             let per = 2.0 * (size.x + size.y);
-            let n = if keep { 4 } else { 2 };
+            let n = if star > 0 { 6 } else if keep { 4 } else { 2 };
             for s in 0..n {
                 let d = ((rt * 140.0 + s as f32 * per / n as f32) % per + per) % per;
                 let q = if d < size.x {
@@ -571,29 +668,47 @@ fn draw_cards_ex(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: (
             }
             list.set(Space::Ui, Blend::Alpha);
         }
-        if keep {
-            // bandeau dore a cheval sur le bord haut : « Gardee apres la partie »
-            let label = lang.get("ui.keep_banner");
+        if keep || star > 0 {
+            // bandeau a cheval sur le bord haut : « Gardee apres la partie » (or), « Fusion ! » (rose),
+            // « Fusion ultime ! » (or)
+            let label = match star {
+                1 => lang.get("ui.fusion_banner"),
+                2 => lang.get("ui.fusion_ultimate"),
+                _ => lang.get("ui.keep_banner"),
+            };
+            let (fill, edge, ink) = if star == 1 { (FUSION, rgb(110, 20, 95), rgb(60, 0, 50)) } else { (KEEP, rgb(120, 70, 0), rgb(60, 30, 0)) };
             let lw = main.measure(label) as f32 + 12.0;
-            let bp = Vec2::new((pos.x + size.x * 0.5 - lw * 0.5).round(), pos.y - 7.0);
-            list.rect(white, bp, Vec2::new(lw, 13.0), with_alpha(KEEP, a));
-            frame_rect(list, white, bp, Vec2::new(lw, 13.0), with_alpha(rgb(120, 70, 0), a));
-            text(list, main, label, Vec2::new(bp.x + lw * 0.5, bp.y + 1.0), 1.0, with_alpha(rgb(60, 30, 0), a), Align::Center);
+            let bp = Vec2::new((pos.x + size.x * 0.5 - lw * 0.5).round(), pos.y - 8.0);
+            list.rect(white, bp, Vec2::new(lw, 16.0), with_alpha(fill, a));
+            frame_rect(list, white, bp, Vec2::new(lw, 16.0), with_alpha(edge, a));
+            text(list, main, label, Vec2::new(bp.x + lw * 0.5, crate::hud::mid_y(main, bp.y, 16.0, 1.0)), 1.0, with_alpha(ink, a), Align::Center);
         }
         // icone x2 dans sa case
         let ib = Vec2::new(44.0, 44.0);
         let ip = pos + Vec2::new(10.0, (size.y - ib.y) * 0.5);
         list.rect(white, ip, ib, [0.0, 0.0, 0.0, 0.5 * a]);
         frame_rect(list, white, ip, ib, [1.0, 1.0, 1.0, 0.25 * a]);
-        list.frame(atlas.frame(info.icon, 0.0), ip + ib * 0.5, &Params::default().scale(Vec2::splat(2.0)).color([1.0, 1.0, 1.0, a]));
+        let mut icon_at = ip + ib * 0.5;
+        if star > 0 {
+            // l'arme obtenue rayonne dans sa case et flotte doucement
+            list.set(Space::Ui, Blend::Add);
+            let glow = 0.18 + 0.1 * (rt * 4.0).sin();
+            for r in [18.0f32, 13.0, 8.0] {
+                let gp = (ip + ib * 0.5 - Vec2::splat(r)).round();
+                list.rect(white, gp, Vec2::splat(r * 2.0), with_alpha(hc_star, glow * a));
+            }
+            list.set(Space::Ui, Blend::Alpha);
+            icon_at.y -= (1.5 * (rt * 3.0).sin()).round();
+        }
+        list.frame(atlas.frame(info.icon, 0.0), icon_at, &Params::default().scale(Vec2::splat(2.0)).color([1.0, 1.0, 1.0, a]));
         // touche directe
         text(list, atlas.font("hud"), &(k + 1).to_string(), pos + Vec2::new(4.0, 4.0), 1.0, [1.0, 1.0, 1.0, 0.4 * a], Align::Left);
         let tx = ip.x + ib.x + 10.0;
-        let name_c = if keep { KEEP } else if selected { WHITE } else { SOFT };
+        let name_c = if keep || star == 2 { KEEP } else if star == 1 { FUSION_LIGHT } else if selected { WHITE } else { SOFT };
         text(list, main, &info.name, Vec2::new(tx, pos.y + 6.0), 1.0, with_alpha(name_c, a), Align::Left);
         let mut tag_w = 0.0;
         if !info.tag.is_empty() {
-            let c = if info.is_new { NEW_GREEN } else { GOLD };
+            let c = if star > 0 { hc_star } else if let (Some(c), false) = (theme, keep) { c } else if info.is_new { NEW_GREEN } else { GOLD };
             tag_w = text(list, main, &info.tag, Vec2::new(pos.x + size.x - 8.0, pos.y + 6.0), 1.0, with_alpha(c, a), Align::Right);
         }
         // pastilles de niveau, sur la ligne du nom, a gauche de l'etiquette
@@ -630,13 +745,14 @@ fn draw_cards_ex(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: (
             } else {
                 lang.get("ui.evolves")
             };
-            let lc = if fusion { FUSION } else { rgb(190, 170, 110) };
+            let lc = if star > 0 { hc_star } else if fusion { FUSION } else { rgb(190, 170, 110) };
             let mut x = tx + text(list, main, lbl, Vec2::new(tx, y), 1.0, with_alpha(lc, a), Align::Left) + 10.0;
-            for (icon, name, owned) in &info.evo {
+            for (icon, name, owned, hidden) in &info.evo {
                 let c = if *owned { FUSION_LIGHT } else { [1.0, 1.0, 1.0, 0.55] };
-                // l'objet deja possede sautille
+                // l'objet deja possede sautille ; inconnu : silhouette sombre
                 let hop = if *owned { (2.0 * (rt * 6.0).sin().abs()).round() } else { 0.0 };
-                list.frame(atlas.frame(*icon, 0.0), Vec2::new(x, y + 6.0 - hop), &Params::default().color(with_alpha(if *owned { WHITE } else { c }, a)));
+                let ic = if *hidden { [0.05, 0.05, 0.1, 0.9] } else if *owned { WHITE } else { c };
+                list.frame(atlas.frame(*icon, 0.0), Vec2::new(x, y + 6.0 - hop), &Params::default().color(with_alpha(ic, a)));
                 x += 10.0;
                 // partenaire possede : nom mis en valeur (la fusion est a portee)
                 let shown = if *owned { crate::hud::hl_fusion(name) } else { name.clone() };
@@ -803,7 +919,7 @@ pub fn draw_chest(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang
 
     let title = if reward.evolution.is_some() { lang.get("ui.evolution") } else { lang.get("ui.chest") };
     let tc = if reward.evolution.is_some() { rgb(255, 160, 255) } else { GOLD };
-    text(list, main, title, Vec2::new(view.x * 0.5, 46.0), 2.0, tc, Align::Center);
+    text(list, main, title, Vec2::new(view.x * 0.5, 46.0), crate::hud::title_scale(main, title, view.x, 2.0), tc, Align::Center);
     if !open {
         return;
     }
@@ -863,7 +979,7 @@ pub fn draw_chest(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang
         let yy = y + (1.0 - uu) * 8.0;
         list.rect(white, Vec2::new(x - 6.0, yy - 4.0), Vec2::new(w + 12.0, 20.0), with_alpha(BACK, uu * 0.8));
         list.frame(atlas.frame(icon, 0.0), Vec2::new(x + 6.0, yy + 6.0), &Params::default().color([1.0, 1.0, 1.0, uu]));
-        text(list, main, &line, Vec2::new(x + 20.0, yy), 1.0, with_alpha(WHITE, uu), Align::Left);
+        text(list, main, &line, Vec2::new(x + 20.0, crate::hud::mid_y(main, yy - 4.0, 20.0, 1.0)), 1.0, with_alpha(WHITE, uu), Align::Left);
         y += 24.0;
     }
     if t >= CHEST_DONE && (ctx.real_time * 2.0).fract() < 0.7 {
@@ -1128,13 +1244,41 @@ pub enum AfterUnlock {
     Restart,
 }
 
-/// Instant d'apparition du deblocage `i` ; on peut continuer a `unlock_at(n - 1) + 0.6`.
-pub fn unlock_at(i: usize) -> f32 {
-    0.5 + i as f32 * 0.55
+/// Ecart entre deux apparitions : plus la page est pleine, plus elles s'enchainent (une page
+/// pleine se revele en 4 s environ).
+pub fn unlock_gap(n: usize) -> f32 {
+    (4.0 / n.max(1) as f32).clamp(0.15, 0.55)
+}
+
+/// Instant d'apparition du deblocage `i` d'une page de `n`.
+pub fn unlock_at(i: usize, n: usize) -> f32 {
+    0.5 + i as f32 * unlock_gap(n)
+}
+
+/// Fin de l'animation d'une page de `n` deblocages.
+pub fn unlocks_done(n: usize) -> f32 {
+    unlock_at(n.saturating_sub(1), n) + 0.6
+}
+
+/// Pas d'appui au debut de l'ecran (boutons encore martelés pendant la partie), ni juste apres
+/// la fin de l'animation : « Continuer » n'apparait qu'a ce moment-la.
+pub const UNLOCK_LOCK: f32 = 0.6;
+pub const UNLOCK_SETTLE: f32 = 0.3;
+
+/// Deblocages par page : autant que la grille en tient avec les plus petites figures (3 rangees
+/// en 16:9) ; les suivants viennent sur les pages d'apres.
+pub fn unlocks_per_page(view: Vec2) -> usize {
+    let cols = (((view.x - 16.0) / 84.0).floor() as usize).clamp(3, 8);
+    // memes mesures que draw_unlocks a l'echelle 1, trois notes sous la grille
+    let room = (view.y - 32.0 - 13.0 * 3.0 - 4.0) - 62.0;
+    cols * ((room / 70.0).floor() as usize).max(1)
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn draw_unlocks(list: &mut DrawList, ctx: &Ctx, content: &sim::defs::Content, vis: &Vis, lang: &Lang, items: &[Unlock], t: f32) {
+pub fn draw_unlocks(list: &mut DrawList, ctx: &Ctx, content: &sim::defs::Content, vis: &Vis, lang: &Lang, all: &[Unlock], t: f32) {
+    let items = &all[..all.len().min(unlocks_per_page(ctx.view))];
+    let more = all.len() - items.len();
+    let n_items = items.len();
     use std::f32::consts::TAU;
     let view = ctx.view;
     let atlas = &ctx.atlas;
@@ -1145,7 +1289,8 @@ pub fn draw_unlocks(list: &mut DrawList, ctx: &Ctx, content: &sim::defs::Content
     dim(list, vis, view, with_alpha(DIM, fade_in * 0.9));
     list.rect(white, Vec2::ZERO, view, [0.0, 0.0, 0.02, 0.3 * fade_in]);
     let cx = (view.x * 0.5).round();
-    let ts = if t < 0.12 { 4.0 } else { 3.0 };
+    let big = crate::hud::title_scale(main, lang.get("ui.unlocks_title"), view.x, 3.0);
+    let ts = if t < 0.12 { big + 1.0 } else { big };
     text(list, main, &crate::hud::hl(lang.get("ui.unlocks_title")), Vec2::new(cx, 22.0), ts, WHITE, Align::Center);
     // grille : autant de colonnes que la largeur le permet, rangees equilibrees ; plus il y a de
     // rangees, plus les figures sont petites, pour que tout tienne entre le titre et les notes
@@ -1179,7 +1324,7 @@ pub fn draw_unlocks(list: &mut DrawList, ctx: &Ctx, content: &sim::defs::Content
     let (top, bottom) = (62.0, notes_y - 4.0);
     let y0 = (top + ((bottom - top - rows as f32 * row_h) * 0.5).max(0.0) + above).round();
     for (i, it) in items.iter().enumerate() {
-        let ti = unlock_at(i);
+        let ti = unlock_at(i, n_items);
         if t < ti {
             continue;
         }
@@ -1252,13 +1397,14 @@ pub fn draw_unlocks(list: &mut DrawList, ctx: &Ctx, content: &sim::defs::Content
             text(list, main, label, Vec2::new(at.x, ny), 1.0, with_alpha(col_main, a * 0.8), Align::Center);
         }
     }
-    let done = unlock_at(items.len().saturating_sub(1)) + 0.6;
+    let done = unlocks_done(n_items);
     if t >= done {
         for (k, s) in notes.iter().enumerate() {
             text(list, main, s, Vec2::new(cx, notes_y + 13.0 * k as f32), 1.0, SOFT, Align::Center);
         }
-        if (ctx.real_time * 2.0).fract() < 0.7 {
-            text(list, main, lang.get("ui.continue"), Vec2::new(cx, view.y - 26.0), 1.0, SOFT, Align::Center);
+        if t >= done + UNLOCK_SETTLE && (ctx.real_time * 2.0).fract() < 0.7 {
+            let next = if more > 0 { lang.get("ui.unlocks_more").replace("{n}", &more.to_string()) } else { lang.get("ui.continue").to_string() };
+            text(list, main, &next, Vec2::new(cx, view.y - 26.0), 1.0, if more > 0 { GOLD } else { SOFT }, Align::Center);
         }
     }
 }
@@ -1277,25 +1423,31 @@ fn pause_y(view: Vec2, k: usize) -> f32 {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn draw_pause(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, sel: usize, world: &World, known: &std::collections::BTreeSet<String>) {
+pub fn draw_pause(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, sel: usize, world: &World, known: &std::collections::BTreeSet<String>, fallback: Option<Offer>) {
     let view = ctx.view;
     let main = ctx.atlas.font("main");
     dim(list, vis, view, DIM);
     text(list, main, lang.get("ui.paused"), Vec2::new(view.x * 0.5, (view.y * 0.12).round()), 3.0, WHITE, Align::Center);
-    for (k, key) in PAUSE_ITEMS.iter().enumerate() {
+    // bonus de niveau garde (tout est au maximum) : une ligne de plus, qui l'inverse
+    let mut items: Vec<String> = PAUSE_ITEMS.iter().map(|k| lang.get(k).to_string()).collect();
+    if let Some(f) = fallback {
+        let name = lang.get(if f == Offer::Heal { "ui.heal" } else { "ui.rupees" });
+        items.push(lang.get("ui.fallback_row").replace("{a}", &crate::hud::hl(name)));
+    }
+    for (k, label) in items.iter().enumerate() {
         let y = pause_y(view, k);
         let c = if k == sel { GOLD } else { SOFT };
         if k == sel {
-            let w = main.measure(lang.get(key)) as f32;
+            let w = main.measure(label) as f32;
             let bw = (w + 48.0).max(160.0);
-            crate::hub::focus_frame(list, ctx, Vec2::new(((view.x - bw) * 0.5).round(), y - 4.0), Vec2::new(bw, 20.0));
+            crate::hub::focus_frame(list, ctx, Vec2::new(((view.x - bw) * 0.5).round(), y - 3.0), Vec2::new(bw, 20.0));
         }
-        let w = text(list, main, lang.get(key), Vec2::new(view.x * 0.5, y), 1.0, c, Align::Center);
+        let w = text(list, main, label, Vec2::new(view.x * 0.5, y), 1.0, c, Align::Center);
         if k == sel {
             text(list, main, "▶", Vec2::new(((view.x - w) * 0.5 - 14.0).round(), y), 1.0, GOLD, Align::Left);
         }
     }
-    let y0 = pause_y(view, PAUSE_ITEMS.len()) + 16.0;
+    let y0 = pause_y(view, items.len()) + 16.0;
     // fusions possibles avec les armes en main (a la place de l'aide des commandes)
     if draw_fusions(list, ctx, vis, lang, world, known, y0) {
         return;
@@ -1411,8 +1563,8 @@ pub fn input_rects(nav: &NavIn, rects: &[(Vec2, Vec2)], sel: &mut usize) -> (Opt
     (nav.confirm.then_some(*sel), moved)
 }
 
-pub fn input_pause(nav: &NavIn, view: Vec2, sel: &mut usize) -> (Option<usize>, bool) {
-    input_menu(nav, view, PAUSE_ITEMS.len(), sel, |k| pause_y(view, k), 220.0)
+pub fn input_pause(nav: &NavIn, view: Vec2, sel: &mut usize, fallback: bool) -> (Option<usize>, bool) {
+    input_menu(nav, view, PAUSE_ITEMS.len() + fallback as usize, sel, |k| pause_y(view, k), 260.0)
 }
 
 /// Lignes du menu Options.
@@ -1500,7 +1652,7 @@ pub fn draw_options(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, sel:
         let selected = k == sel;
         let c = if selected { GOLD } else { SOFT };
         if selected {
-            crate::hub::focus_frame(list, ctx, Vec2::new(x0 - 4.0, y - 4.0), Vec2::new(w + 8.0, 20.0));
+            crate::hub::focus_frame(list, ctx, Vec2::new(x0 - 4.0, y - 3.0), Vec2::new(w + 8.0, 20.0));
             text(list, main, "▶", Vec2::new(x0 - 16.0, y), 1.0, GOLD, Align::Left);
         }
         let label = match o {
@@ -1642,7 +1794,7 @@ pub fn draw_dead(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang:
     let view = ctx.view;
     let main = ctx.atlas.font("main");
     dim(list, vis, view, [0.1, 0.0, 0.02, 0.72]);
-    text(list, main, lang.get("ui.gameover"), Vec2::new(view.x * 0.5, (view.y * 0.16).round()), 3.0, rgb(255, 90, 90), Align::Center);
+    text(list, main, lang.get("ui.gameover"), Vec2::new(view.x * 0.5, (view.y * 0.16).round()), crate::hud::title_scale(main, lang.get("ui.gameover"), view.x, 3.0), rgb(255, 90, 90), Align::Center);
     let p = &world.player;
     let secs = world.time as u32;
     let rows = [

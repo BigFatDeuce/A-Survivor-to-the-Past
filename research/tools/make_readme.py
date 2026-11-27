@@ -67,7 +67,7 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
                   boss="Boss: Hinox", options="Options (language, filters, volumes)", about="About"),
         filters_cap="Video filters: none · CRT / Game Boy Advance · Game Boy / Scanlines · CRT in 4:3",
         play_h="Play",
-        play=f"""The game is in **early alpha** (version {VERSION}). **Windows**: download the latest version from the [Releases page]({REPO}/releases/latest), extract the whole zip and launch `A Survivor to the Past.exe`. Windows may warn that the game is not signed: click *More info* → *Run anyway*. **Linux, macOS and handhelds** (PortMaster, experimental): same page, take the zip for your system and follow its `README.txt`. The game then **updates itself**: at launch it checks GitHub for a new version, downloads it in the background and installs it at the next launch (Options → Updates: Automatic / Ask me / Off). Your settings are kept and no personal data is sent: updates only contact GitHub, and the world leaderboard only contacts the game's website when you open it or publish a score (nickname and score).
+        play=f"""The game is in **early alpha** (version {VERSION}). **Windows**: download the latest version from the [Releases page]({REPO}/releases/latest), extract the whole zip and launch `A Survivor to the Past.exe`. Windows may warn that the game is not signed: click *More info* → *Run anyway*. **Linux, macOS and handhelds** (PortMaster, experimental): same page, take the zip for your system and follow its `README.txt`. **Android** (phones and tablets, touch controls): same page, download the `.apk` and open it (allow installs from your browser); it does not update itself. The game then **updates itself**: at launch it checks GitHub for a new version, downloads it in the background and installs it at the next launch (Options → Updates: Automatic / Ask me / Off). Your settings are kept and no personal data is sent: updates only contact GitHub, and the world leaderboard only contacts the game's website when you open it or publish a score (nickname and score).
 
 **Browser**: [play directly on the website]({SITE}play/), nothing to install. It works best on a computer, in Chrome, Edge or Firefox, and your progress is saved in the browser. Linux, macOS and Android versions will come later. Meanwhile you can build the game from source with [Rust](https://rustup.rs) (stable):""",
         linux="On Linux, also install the ALSA and udev development packages (`libasound2-dev`, `libudev-dev`).",
@@ -83,8 +83,6 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
         road=[
             'Real hand-made maps and more playable characters',
             'More bosses with their own attacks and animations',
-            'Touch controls for phones and tablets',
-            'Builds for Linux, macOS and Android',
         ],
         comm_h="Community",
         comm=f"""This is a project made for fun. For other projects, sharing, ideas, suggestions or bug reports, come and talk on **[Discord]({DISCORD})**.
@@ -137,7 +135,7 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
                   boss="Boss : Hinox", options="Options (langue, filtres, volumes)", about="À propos"),
         filters_cap="Filtres vidéo : aucun · CRT / Game Boy Advance · Game Boy / Scanlines · CRT en 4:3",
         play_h="Jouer",
-        play=f"""Le jeu est en **alpha** (version {VERSION}). **Windows** : téléchargez la dernière version sur la [page des versions]({REPO}/releases/latest), extrayez tout le zip et lancez `A Survivor to the Past.exe`. Windows peut prévenir que le jeu n'est pas signé : cliquez sur *Informations complémentaires* → *Exécuter quand même*. **Linux, macOS et consoles portables** (PortMaster, expérimental) : même page, prenez le zip de votre système et suivez son `README.txt`. Ensuite, le jeu **se met à jour tout seul** : au lancement, il vérifie sur GitHub s'il existe une nouvelle version, la télécharge en arrière-plan et l'installe au lancement suivant (Options → Mises à jour : Automatiques / Me demander / Non). Vos réglages sont conservés et aucune donnée personnelle n'est envoyée : les mises à jour ne contactent que GitHub, et le classement mondial ne contacte le site du jeu que lorsque vous l'ouvrez ou publiez un score (pseudo et score).
+        play=f"""Le jeu est en **alpha** (version {VERSION}). **Windows** : téléchargez la dernière version sur la [page des versions]({REPO}/releases/latest), extrayez tout le zip et lancez `A Survivor to the Past.exe`. Windows peut prévenir que le jeu n'est pas signé : cliquez sur *Informations complémentaires* → *Exécuter quand même*. **Linux, macOS et consoles portables** (PortMaster, expérimental) : même page, prenez le zip de votre système et suivez son `README.txt`. **Android** (téléphones et tablettes, commandes tactiles) : même page, téléchargez le fichier `.apk` et ouvrez-le (autorisez l'installation depuis votre navigateur) ; il ne se met pas à jour tout seul. Ensuite, le jeu **se met à jour tout seul** : au lancement, il vérifie sur GitHub s'il existe une nouvelle version, la télécharge en arrière-plan et l'installe au lancement suivant (Options → Mises à jour : Automatiques / Me demander / Non). Vos réglages sont conservés et aucune donnée personnelle n'est envoyée : les mises à jour ne contactent que GitHub, et le classement mondial ne contacte le site du jeu que lorsque vous l'ouvrez ou publiez un score (pseudo et score).
 
 **Navigateur** : [jouez directement sur le site]({SITE}play/), sans rien installer. Idéal sur ordinateur, dans Chrome, Edge ou Firefox ; votre progression est enregistrée dans le navigateur. Les versions Linux, macOS et Android viendront plus tard. En attendant, vous pouvez compiler le jeu depuis les sources avec [Rust](https://rustup.rs) (stable) :""",
         linux="Sous Linux, installez aussi les paquets de développement ALSA et udev (`libasound2-dev`, `libudev-dev`).",
@@ -153,8 +151,6 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
         road=[
             "De vraies cartes dessinées à la main et d'autres personnages jouables",
             "D'autres boss avec leurs propres attaques et animations",
-            'Commandes tactiles pour téléphones et tablettes',
-            'Versions Linux, macOS et Android',
         ],
         comm_h="Communauté",
         comm=f"""C'est un projet fait pour le plaisir. Pour d'autres projets, partager, proposer des idées ou signaler des bugs, rendez-vous sur le **[Discord]({DISCORD})**.
@@ -207,7 +203,7 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
                   boss="Boss: Hinox", options="Optionen (Sprache, Filter, Lautstärke)", about="Über das Spiel"),
         filters_cap="Videofilter: keiner · CRT / Game Boy Advance · Game Boy / Scanlines · CRT in 4:3",
         play_h="Spielen",
-        play=f"""Das Spiel ist in der **Alpha-Phase** (Version {VERSION}). **Windows**: Lade die neueste Version von der [Release-Seite]({REPO}/releases/latest) herunter, entpacke das ganze Zip und starte `A Survivor to the Past.exe`. Windows warnt eventuell, dass das Spiel nicht signiert ist: Klicke auf *Weitere Informationen* → *Trotzdem ausführen*. **Linux, macOS und Handhelds** (PortMaster, experimentell): gleiche Seite, nimm das Zip für dein System und folge seiner `README.txt`. Danach **aktualisiert sich das Spiel selbst**: Beim Start prüft es auf GitHub, ob es eine neue Version gibt, lädt sie im Hintergrund herunter und installiert sie beim nächsten Start (Optionen → Updates: Automatisch / Nachfragen / Aus). Deine Einstellungen bleiben erhalten und es werden keine persönlichen Daten gesendet: Updates kontaktieren nur GitHub, und die Weltrangliste kontaktiert die Website des Spiels nur, wenn du sie öffnest oder eine Punktzahl veröffentlichst (Spitzname und Punktzahl).
+        play=f"""Das Spiel ist in der **Alpha-Phase** (Version {VERSION}). **Windows**: Lade die neueste Version von der [Release-Seite]({REPO}/releases/latest) herunter, entpacke das ganze Zip und starte `A Survivor to the Past.exe`. Windows warnt eventuell, dass das Spiel nicht signiert ist: Klicke auf *Weitere Informationen* → *Trotzdem ausführen*. **Linux, macOS und Handhelds** (PortMaster, experimentell): gleiche Seite, nimm das Zip für dein System und folge seiner `README.txt`. **Android** (Smartphones und Tablets, Touch-Steuerung): gleiche Seite, lade die `.apk` herunter und öffne sie (erlaube Installationen aus deinem Browser); sie aktualisiert sich nicht selbst. Danach **aktualisiert sich das Spiel selbst**: Beim Start prüft es auf GitHub, ob es eine neue Version gibt, lädt sie im Hintergrund herunter und installiert sie beim nächsten Start (Optionen → Updates: Automatisch / Nachfragen / Aus). Deine Einstellungen bleiben erhalten und es werden keine persönlichen Daten gesendet: Updates kontaktieren nur GitHub, und die Weltrangliste kontaktiert die Website des Spiels nur, wenn du sie öffnest oder eine Punktzahl veröffentlichst (Spitzname und Punktzahl).
 
 **Browser**: [direkt auf der Website spielen]({SITE}play/), ohne Installation. Am besten am Computer, in Chrome, Edge oder Firefox; dein Fortschritt wird im Browser gespeichert. Versionen für Linux, macOS und Android folgen später. Bis dahin kannst du das Spiel mit [Rust](https://rustup.rs) (stable) aus dem Quellcode bauen:""",
         linux="Unter Linux werden außerdem die Entwicklungspakete für ALSA und udev benötigt (`libasound2-dev`, `libudev-dev`).",
@@ -223,8 +219,6 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
         road=[
             'Echte, handgemachte Karten und weitere spielbare Figuren',
             'Weitere Bosse mit eigenen Angriffen und Animationen',
-            'Touch-Steuerung für Smartphones und Tablets',
-            'Versionen für Linux, macOS und Android',
         ],
         comm_h="Community",
         comm=f"""Dies ist ein Projekt aus Spaß. Für andere Projekte, Austausch, Ideen, Vorschläge oder Fehlerberichte: komm auf den **[Discord]({DISCORD})**.
@@ -277,7 +271,7 @@ Guía a Link entre hordas cada vez más grandes, recoge rupias para subir de niv
                   boss="Jefe: Hinox", options="Opciones (idioma, filtros, volumen)", about="Acerca de"),
         filters_cap="Filtros de vídeo: ninguno · CRT / Game Boy Advance · Game Boy / Scanlines · CRT en 4:3",
         play_h="Jugar",
-        play=f"""El juego está en **alfa** (versión {VERSION}). **Windows**: descarga la última versión en la [página de versiones]({REPO}/releases/latest), extrae todo el zip y ejecuta `A Survivor to the Past.exe`. Windows puede avisar de que el juego no está firmado: haz clic en *Más información* → *Ejecutar de todas formas*. **Linux, macOS y portátiles** (PortMaster, experimental): misma página, elige el zip de tu sistema y sigue su `README.txt`. Después, el juego **se actualiza solo**: al iniciarse comprueba en GitHub si hay una versión nueva, la descarga en segundo plano y la instala en el siguiente inicio (Opciones → Actualizaciones: Automáticas / Preguntar / No). Tus ajustes se conservan y no se envía ningún dato personal: las actualizaciones solo contactan con GitHub, y la clasificación mundial solo contacta con la web del juego cuando la abres o publicas una puntuación (apodo y puntuación).
+        play=f"""El juego está en **alfa** (versión {VERSION}). **Windows**: descarga la última versión en la [página de versiones]({REPO}/releases/latest), extrae todo el zip y ejecuta `A Survivor to the Past.exe`. Windows puede avisar de que el juego no está firmado: haz clic en *Más información* → *Ejecutar de todas formas*. **Linux, macOS y portátiles** (PortMaster, experimental): misma página, elige el zip de tu sistema y sigue su `README.txt`. **Android** (móviles y tabletas, controles táctiles): misma página, descarga el `.apk` y ábrelo (permite instalar desde tu navegador); no se actualiza solo. Después, el juego **se actualiza solo**: al iniciarse comprueba en GitHub si hay una versión nueva, la descarga en segundo plano y la instala en el siguiente inicio (Opciones → Actualizaciones: Automáticas / Preguntar / No). Tus ajustes se conservan y no se envía ningún dato personal: las actualizaciones solo contactan con GitHub, y la clasificación mundial solo contacta con la web del juego cuando la abres o publicas una puntuación (apodo y puntuación).
 
 **Navegador**: [juega directamente en la web]({SITE}play/), sin instalar nada. Funciona mejor en ordenador, en Chrome, Edge o Firefox, y tu progreso se guarda en el navegador. Las versiones para Linux, macOS y Android llegarán más adelante. Mientras tanto, puedes compilar el juego desde el código fuente con [Rust](https://rustup.rs) (stable):""",
         linux="En Linux, instala también los paquetes de desarrollo de ALSA y udev (`libasound2-dev`, `libudev-dev`).",
@@ -293,8 +287,6 @@ Guía a Link entre hordas cada vez más grandes, recoge rupias para subir de niv
         road=[
             'Mapas de verdad hechos a mano y más personajes jugables',
             'Más jefes con sus propios ataques y animaciones',
-            'Controles táctiles para móviles y tabletas',
-            'Versiones para Linux, macOS y Android',
         ],
         comm_h="Comunidad",
         comm=f"""Es un proyecto hecho por diversión. Para otros proyectos, compartir, ideas, propuestas o errores, ven al **[Discord]({DISCORD})**.
@@ -347,7 +339,7 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
                   boss="Boss: Hinox", options="Opzioni (lingua, filtri, volumi)", about="Informazioni"),
         filters_cap="Filtri video: nessuno · CRT / Game Boy Advance · Game Boy / Scanlines · CRT in 4:3",
         play_h="Giocare",
-        play=f"""Il gioco è in **alfa** (versione {VERSION}). **Windows**: scarica l'ultima versione dalla [pagina delle release]({REPO}/releases/latest), estrai tutto lo zip e avvia `A Survivor to the Past.exe`. Windows potrebbe avvisare che il gioco non è firmato: fai clic su *Ulteriori informazioni* → *Esegui comunque*. **Linux, macOS e console portatili** (PortMaster, sperimentale): stessa pagina, prendi lo zip del tuo sistema e segui il suo `README.txt`. Poi il gioco **si aggiorna da solo**: all'avvio controlla su GitHub se c'è una nuova versione, la scarica in background e la installa all'avvio successivo (Opzioni → Aggiornamenti: Automatici / Chiedi / No). Le tue impostazioni restano e non viene inviato alcun dato personale: gli aggiornamenti contattano solo GitHub, e la classifica mondiale contatta il sito del gioco solo quando la apri o pubblichi un punteggio (soprannome e punteggio).
+        play=f"""Il gioco è in **alfa** (versione {VERSION}). **Windows**: scarica l'ultima versione dalla [pagina delle release]({REPO}/releases/latest), estrai tutto lo zip e avvia `A Survivor to the Past.exe`. Windows potrebbe avvisare che il gioco non è firmato: fai clic su *Ulteriori informazioni* → *Esegui comunque*. **Linux, macOS e console portatili** (PortMaster, sperimentale): stessa pagina, prendi lo zip del tuo sistema e segui il suo `README.txt`. **Android** (telefoni e tablet, comandi touch): stessa pagina, scarica l'`.apk` e aprilo (consenti l'installazione dal browser); non si aggiorna da solo. Poi il gioco **si aggiorna da solo**: all'avvio controlla su GitHub se c'è una nuova versione, la scarica in background e la installa all'avvio successivo (Opzioni → Aggiornamenti: Automatici / Chiedi / No). Le tue impostazioni restano e non viene inviato alcun dato personale: gli aggiornamenti contattano solo GitHub, e la classifica mondiale contatta il sito del gioco solo quando la apri o pubblichi un punteggio (soprannome e punteggio).
 
 **Browser**: [gioca direttamente sul sito]({SITE}play/), senza installare nulla. Meglio su computer, con Chrome, Edge o Firefox; i progressi sono salvati nel browser. Le versioni per Linux, macOS e Android arriveranno più avanti. Nel frattempo puoi compilare il gioco dai sorgenti con [Rust](https://rustup.rs) (stable):""",
         linux="Su Linux installa anche i pacchetti di sviluppo di ALSA e udev (`libasound2-dev`, `libudev-dev`).",
@@ -363,8 +355,6 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
         road=[
             'Mappe vere fatte a mano e altri personaggi giocabili',
             'Altri boss con attacchi e animazioni propri',
-            'Comandi touch per telefoni e tablet',
-            'Versioni per Linux, macOS e Android',
         ],
         comm_h="Comunità",
         comm=f"""È un progetto fatto per divertimento. Per altri progetti, condivisioni, idee, proposte o bug, vieni sul **[Discord]({DISCORD})**.
@@ -417,7 +407,7 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
                   boss="Chefe: Hinox", options="Opções (idioma, filtros, volumes)", about="Sobre"),
         filters_cap="Filtros de vídeo: nenhum · CRT / Game Boy Advance · Game Boy / Scanlines · CRT em 4:3",
         play_h="Jogar",
-        play=f"""O jogo está em **alfa** (versão {VERSION}). **Windows**: baixe a versão mais recente na [página de versões]({REPO}/releases/latest), extraia o zip inteiro e abra `A Survivor to the Past.exe`. O Windows pode avisar que o jogo não é assinado: clique em *Mais informações* → *Executar assim mesmo*. **Linux, macOS e portáteis** (PortMaster, experimental): mesma página, pegue o zip do seu sistema e siga o `README.txt` dele. Depois, o jogo **se atualiza sozinho**: ao iniciar, ele verifica no GitHub se há uma nova versão, baixa em segundo plano e instala no próximo início (Opções → Atualizações: Automáticas / Perguntar / Não). Suas configurações são mantidas e nenhum dado pessoal é enviado: as atualizações só contatam o GitHub, e o ranking mundial só contata o site do jogo quando você o abre ou publica uma pontuação (apelido e pontuação).
+        play=f"""O jogo está em **alfa** (versão {VERSION}). **Windows**: baixe a versão mais recente na [página de versões]({REPO}/releases/latest), extraia o zip inteiro e abra `A Survivor to the Past.exe`. O Windows pode avisar que o jogo não é assinado: clique em *Mais informações* → *Executar assim mesmo*. **Linux, macOS e portáteis** (PortMaster, experimental): mesma página, pegue o zip do seu sistema e siga o `README.txt` dele. **Android** (celulares e tablets, controles por toque): mesma página, baixe o `.apk` e abra-o (permita instalar pelo navegador); ele não se atualiza sozinho. Depois, o jogo **se atualiza sozinho**: ao iniciar, ele verifica no GitHub se há uma nova versão, baixa em segundo plano e instala no próximo início (Opções → Atualizações: Automáticas / Perguntar / Não). Suas configurações são mantidas e nenhum dado pessoal é enviado: as atualizações só contatam o GitHub, e o ranking mundial só contata o site do jogo quando você o abre ou publica uma pontuação (apelido e pontuação).
 
 **Navegador**: [jogue direto no site]({SITE}play/), sem instalar nada. Funciona melhor no computador, no Chrome, Edge ou Firefox, e seu progresso fica salvo no navegador. As versões para Linux, macOS e Android virão depois. Enquanto isso, você pode compilar o jogo a partir do código-fonte com [Rust](https://rustup.rs) (stable):""",
         linux="No Linux, instale também os pacotes de desenvolvimento do ALSA e do udev (`libasound2-dev`, `libudev-dev`).",
@@ -433,8 +423,6 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
         road=[
             'Mapas de verdade feitos à mão e mais personagens jogáveis',
             'Mais chefes com ataques e animações próprios',
-            'Controles de toque para celulares e tablets',
-            'Versões para Linux, macOS e Android',
         ],
         comm_h="Comunidade",
         comm=f"""É um projeto feito por diversão. Para outros projetos, compartilhar, ideias, sugestões ou bugs, venha para o **[Discord]({DISCORD})**.
@@ -487,7 +475,7 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
                   boss="ボス：ヒノックス", options="オプション（言語・フィルター・音量）", about="このゲームについて"),
         filters_cap="映像フィルター：なし · CRT / ゲームボーイアドバンス · ゲームボーイ / スキャンライン · CRT（4:3）",
         play_h="遊ぶ",
-        play=f"""このゲームは**アルファ版**（バージョン {VERSION}）です。**Windows**：[リリースページ]({REPO}/releases/latest)から最新版をダウンロードし、zip をすべて展開して `A Survivor to the Past.exe` を起動してください。署名がないため Windows に警告された場合は、*詳細情報* → *実行* をクリックします。**Linux・macOS・携帯機**（PortMaster、試験版）：同じページで自分のシステム用の zip を選び、中の `README.txt` に従ってください。その後は**自動でアップデート**されます。起動時に GitHub で新しいバージョンを確認し、バックグラウンドでダウンロードして次回起動時にインストールします（オプション → アップデート：じどう / かくにん する / オフ）。設定はそのまま残り、個人情報は送信されません。アップデートの通信先は GitHub だけで、世界ランキングは開いたときやスコアを公開したときだけゲームのサイトに接続します（ニックネームとスコア）。
+        play=f"""このゲームは**アルファ版**（バージョン {VERSION}）です。**Windows**：[リリースページ]({REPO}/releases/latest)から最新版をダウンロードし、zip をすべて展開して `A Survivor to the Past.exe` を起動してください。署名がないため Windows に警告された場合は、*詳細情報* → *実行* をクリックします。**Linux・macOS・携帯機**（PortMaster、試験版）：同じページで自分のシステム用の zip を選び、中の `README.txt` に従ってください。**Android**（スマートフォン・タブレット、タッチ操作）：同じページで `.apk` をダウンロードして開いてください（ブラウザからのインストールを許可）。自動アップデートはありません。その後は**自動でアップデート**されます。起動時に GitHub で新しいバージョンを確認し、バックグラウンドでダウンロードして次回起動時にインストールします（オプション → アップデート：じどう / かくにん する / オフ）。設定はそのまま残り、個人情報は送信されません。アップデートの通信先は GitHub だけで、世界ランキングは開いたときやスコアを公開したときだけゲームのサイトに接続します（ニックネームとスコア）。
 
 **ブラウザ**：[サイト上で直接プレイ]({SITE}play/)でき、インストールは不要です。パソコンの Chrome、Edge、Firefox がおすすめで、進行状況はブラウザに保存されます。Linux・macOS・Android 版は今後予定しています。それまでは [Rust](https://rustup.rs)（stable）でソースからビルドできます：""",
         linux="Linux では ALSA と udev の開発パッケージ（`libasound2-dev`、`libudev-dev`）も必要です。",
@@ -503,8 +491,6 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
         road=[
             '手作りの本格的なマップと新しいプレイアブルキャラクター',
             '独自の攻撃とアニメーションを持つボスの追加',
-            'スマートフォン・タブレット向けのタッチ操作',
-            'Linux・macOS・Android 版',
         ],
         comm_h="コミュニティ",
         comm=f"""楽しみのためのプロジェクトです。ほかの作品、共有、アイデア、提案、バグ報告は **[Discord]({DISCORD})** へどうぞ。

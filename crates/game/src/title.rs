@@ -66,7 +66,13 @@ impl Links {
         {
             web_sys::window().and_then(|w| w.open_with_url_and_target(url, "_blank").ok().flatten()).is_some()
         }
-        #[cfg(not(target_arch = "wasm32"))]
+        // shortcut: Android n'ouvre pas encore les liens (il faudrait un Intent par JNI), le jeu le dit au joueur
+        #[cfg(target_os = "android")]
+        {
+            log::warn!("liens non pris en charge sur Android : {url}");
+            false
+        }
+        #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
         match open::that_detached(url) {
             Ok(()) => true,
             Err(e) => {
@@ -83,6 +89,8 @@ pub struct TitleVis {
     spark: AnimId,
     drop: AnimId,
     splash: AnimId,
+    /// Ganon vaincu (dernier stage gagne par ce joueur) : le logo s'illumine.
+    pub champion: bool,
 }
 
 impl TitleVis {
@@ -94,6 +102,7 @@ impl TitleVis {
             spark: a.get("fx_spark", "0"),
             drop: a.get("fx_rain_drop", "0"),
             splash: a.get("fx_rain_splash", "0"),
+            champion: false,
         }
     }
 }
@@ -206,7 +215,27 @@ fn draw_scene(list: &mut DrawList, ctx: &Ctx, v: &TitleVis, l: &Layout, t: f32) 
     }
     let bob = ((t * 1.4).sin() * 1.5).round();
     let logo_pos = l.logo + Vec2::new(0.0, bob);
+    if v.champion {
+        // rayons dores qui tournent lentement derriere la Triforce
+        let tri = logo_pos + Vec2::new(0.0, 12.0 * l.k);
+        let pulse = 0.8 + 0.2 * (t * 1.7).sin();
+        list.set(Space::Ui, Blend::Add);
+        for r in 0..16 {
+            let ang = r as f32 / 16.0 * std::f32::consts::TAU + t * 0.15;
+            let len = if r % 2 == 0 { 78.0 } else { 52.0 } * l.k;
+            // faisceau large et pale, coeur fin et vif (le blanc 1x1 tourne autour de son coin)
+            for (w, a) in [(5.0 * l.k, 0.10), (1.5 * l.k, 0.16)] {
+                let side = Vec2::from_angle(ang + std::f32::consts::FRAC_PI_2) * (w * 0.5);
+                let c = with_alpha(if r % 2 == 0 { GOLD } else { WHITE }, a * pulse);
+                list.frame(white, tri - side, &Params::default().scale(Vec2::new(len, w)).rot(ang).color(c));
+            }
+        }
+        list.set(Space::Ui, Blend::Alpha);
+    }
     list.frame(atlas.frame(v.logo, 0.0), logo_pos, &Params::default().scale(Vec2::splat(l.k)));
+    if v.champion {
+        draw_champion(list, ctx, v, l, logo_pos, t);
+    }
     // eclat sur le pommeau de l'epee
     let st = t % 4.5;
     if st < 0.45 {
@@ -216,6 +245,34 @@ fn draw_scene(list: &mut DrawList, ctx: &Ctx, v: &TitleVis, l: &Layout, t: f32) 
         list.set(Space::Ui, Blend::Alpha);
     }
     draw_rain(list, ctx, v, l, t);
+}
+
+/// Logo apres la victoire sur Ganon : le logo luit au rythme d'un souffle, un eclat descend la lame,
+/// des poussieres d'or montent autour (pixels du decor x `l.k`).
+fn draw_champion(list: &mut DrawList, ctx: &Ctx, v: &TitleVis, l: &Layout, logo_pos: Vec2, t: f32) {
+    let atlas = &ctx.atlas;
+    let white = &atlas.white;
+    let k = l.k;
+    list.set(Space::Ui, Blend::Add);
+    let glow = 0.1 + 0.1 * (t * 1.7).sin().max(0.0);
+    list.frame(atlas.frame(v.logo, 0.0), logo_pos, &Params::default().scale(Vec2::splat(k)).color(with_alpha(GOLD, glow)));
+    // eclat qui parcourt la lame, du pommeau a la pointe, toutes les 3 s
+    let st = (t + 1.5) % 3.0;
+    if st < 0.7 {
+        let p = logo_pos + Vec2::new(0.0, (-50.0 + st / 0.7 * 106.0) * k);
+        list.frame(atlas.frame(v.spark, st * 0.6), p.round(), &Params::default().scale(Vec2::splat(2.0)));
+    }
+    // poussieres d'or
+    for i in 0..18u32 {
+        let cycle = 2.6 + (hash(i, 11) % 100) as f32 / 60.0;
+        let ph = ((t + (hash(i, 5) % 1000) as f32 / 1000.0 * cycle) / cycle).fract();
+        let x = ((hash(i, 9) % 1000) as f32 / 1000.0 - 0.5) * 96.0 + (t * 1.3 + i as f32).sin() * 3.0;
+        let y = 64.0 - ph * 130.0;
+        let a = (ph * 4.0).min(1.0) * (1.0 - ph) * 0.9;
+        let s = if i % 3 == 0 { 3.0 } else { 2.0 };
+        list.rect(white, (logo_pos + Vec2::new(x, y) * k).round(), Vec2::splat(s), with_alpha(if i % 4 == 0 { WHITE } else { GOLD }, a));
+    }
+    list.set(Space::Ui, Blend::Alpha);
 }
 
 /// Bande du lac dans le decor (pixels du decor) : seules les gouttes qui y tombent eclaboussent.
@@ -306,7 +363,7 @@ pub fn draw_title(
         let players = *item == TitleItem::Players;
         let room = s.x - 12.0 - 10.0 * is - if players { 22.0 } else { 0.0 };
         let is = if main.measure(label) as f32 * is > room { 1.0 } else { is };
-        let ty = (p.y + (s.y - main.line_height as f32 * is) * 0.5 + is).round();
+        let ty = crate::hud::mid_y(main, p.y, s.y, is);
         if k == sel {
             crate::hub::focus_frame(list, ctx, p, s);
             let blink = (t * 3.0).fract() < 0.75;
@@ -406,9 +463,9 @@ pub fn draw_about(
         let c = if k == sel { GOLD } else { SOFT };
         if k == sel {
             crate::hub::focus_frame(list, ctx, p, s);
-            text(list, main, "▶", Vec2::new(p.x - 10.0, p.y + 3.0), 1.0, GOLD, Align::Left);
+            text(list, main, "▶", Vec2::new(p.x - 10.0, crate::hud::mid_y(main, p.y, s.y, 1.0)), 1.0, GOLD, Align::Left);
         }
-        text(list, main, lang.get(key), Vec2::new(p.x + 4.0, p.y + 3.0), 1.0, c, Align::Left);
+        text(list, main, lang.get(key), Vec2::new(p.x + 4.0, crate::hud::mid_y(main, p.y, s.y, 1.0)), 1.0, c, Align::Left);
     }
     // adresse du lien choisi (ou confirmation d'ouverture)
     let foot = Vec2::new(pp.x + ps.x * 0.5, pp.y + ps.y - 17.0);

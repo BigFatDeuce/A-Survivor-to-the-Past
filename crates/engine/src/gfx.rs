@@ -104,7 +104,11 @@ pub struct Batch {
 #[derive(Clone, Debug)]
 pub enum Probe {
     /// Texte dessine en coordonnees d'interface : rectangle et contenu.
-    Text { pos: Vec2, size: Vec2, text: String },
+    /// `ink` : haut de l'encre des majuscules (ombre comprise) par rapport a `pos.y`, et sa hauteur.
+    Text { pos: Vec2, size: Vec2, text: String, ink: (f32, f32) },
+    /// Rectangle plein visible (fond de ligne, bouton, bandeau, carte) : un texte d'une ligne dedans doit y etre
+    /// centre ; `opaque` : il cache ce qui est dessine dessous.
+    Box { pos: Vec2, size: Vec2, opaque: bool },
     /// Cadre ou panneau qui doit contenir les textes qui y commencent.
     Panel { pos: Vec2, size: Vec2, name: &'static str },
     /// Caractere absent de la police.
@@ -141,7 +145,7 @@ impl DrawList {
     /// Declare une zone pleine (icones, jauges) qu'aucun texte ne doit chevaucher.
     pub fn probe_block(&mut self, pos: Vec2, size: Vec2, name: &str) {
         if let Some(p) = self.probe.as_mut() {
-            p.push(Probe::Text { pos, size, text: format!("<{name}>") });
+            p.push(Probe::Text { pos, size, text: format!("<{name}>"), ink: (0.0, size.y) });
         }
     }
 
@@ -203,6 +207,8 @@ struct VOut {
     @location(3) @interpolate(flat) xf: vec3<f32>,
     @location(4) @interpolate(flat) color: vec4<f32>,
     @location(5) @interpolate(flat) flash: vec4<f32>,
+    // taille d'un pixel d'ecran en pixels logiques
+    @location(6) @interpolate(flat) d: f32,
 };
 
 fn xform(p: vec2<f32>, s: vec2<f32>, c: f32, sn: f32) -> vec2<f32> {
@@ -238,22 +244,45 @@ fn vs(in: VIn) -> VOut {
     out.xf = vec3<f32>(in.scale, in.rot);
     out.color = in.color;
     out.flash = in.flash;
+    out.d = 1.0 / view.scale;
     return out;
+}
+
+// Couleur d'un pixel logique (cellule de la grille ecran du sprite) : pixels carres meme tourne ou
+// agrandi ; transparent hors du sprite.
+fn texel(cell: vec2<f32>, uv: vec4<f32>, pivot: vec2<f32>, xf: vec3<f32>, color: vec4<f32>) -> vec4<f32> {
+    let c = cos(xf.z);
+    let sn = sin(xf.z);
+    let qs = cell + vec2<f32>(0.5);
+    let r = vec2<f32>(qs.x * c + qs.y * sn, -qs.x * sn + qs.y * c);
+    let p = r / xf.xy + pivot;
+    if (p.x < 0.0 || p.y < 0.0 || p.x >= uv.z || p.y >= uv.w) {
+        return vec4<f32>(0.0);
+    }
+    return textureLoad(tex, vec2<i32>(floor(uv.xy + p)), 0) * color;
+}
+
+fn premul(c: vec4<f32>) -> vec4<f32> {
+    return vec4<f32>(c.rgb * c.a, c.a);
 }
 
 @fragment
 fn fs(in: VOut) -> @location(0) vec4<f32> {
-    let c = cos(in.xf.z);
-    let sn = sin(in.xf.z);
-    // echantillonnage dans la grille logique du sprite : pixels carres meme tourne/agrandi
-    let qs = floor(in.q) + vec2<f32>(0.5);
-    let r = vec2<f32>(qs.x * c + qs.y * sn, -qs.x * sn + qs.y * c);
-    let p = r / in.xf.xy + in.pivot;
-    if (p.x < 0.0 || p.y < 0.0 || p.x >= in.uv.z || p.y >= in.uv.w) {
-        discard;
+    // Le pixel d'ecran couvre [q - d/2, q + d/2] en pixels logiques. A une echelle entiere il tombe
+    // dans un seul pixel logique (rendu identique au plus proche voisin) ; a une echelle non entiere
+    // (zoom), celui qui chevauche une limite melange ses deux voisins au prorata : tous les pixels du
+    // jeu ont la meme taille a l'ecran, seuls leurs bords sont adoucis.
+    let lo = floor(in.q - vec2<f32>(in.d * 0.5));
+    let w = clamp((in.q + vec2<f32>(in.d * 0.5) - lo - vec2<f32>(1.0)) / in.d, vec2<f32>(0.0), vec2<f32>(1.0));
+    var col = texel(lo, in.uv, in.pivot, in.xf, in.color);
+    if (w.x > 0.001 || w.y > 0.001) {
+        let a = texel(lo + vec2<f32>(1.0, 0.0), in.uv, in.pivot, in.xf, in.color);
+        let b = texel(lo + vec2<f32>(0.0, 1.0), in.uv, in.pivot, in.xf, in.color);
+        let e = texel(lo + vec2<f32>(1.0, 1.0), in.uv, in.pivot, in.xf, in.color);
+        // melange premultiplie : un voisin transparent n'assombrit pas la couleur
+        let m = mix(mix(premul(col), premul(a), w.x), mix(premul(b), premul(e), w.x), w.y);
+        col = vec4<f32>(m.rgb / max(m.a, 1e-5), m.a);
     }
-    let t = vec2<i32>(floor(in.uv.xy + p));
-    var col = textureLoad(tex, t, 0) * in.color;
     if (col.a < 0.004) {
         discard;
     }
@@ -283,6 +312,7 @@ struct Scene {
 
 pub struct Gfx {
     pub window: Arc<Window>,
+    instance: wgpu::Instance,
     surface: wgpu::Surface<'static>,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
@@ -535,6 +565,7 @@ impl Gfx {
         let inst_buf = Self::make_inst_buf(&device, inst_cap);
         let mut g = Gfx {
             window,
+            instance,
             surface,
             device,
             queue,
@@ -657,6 +688,22 @@ impl Gfx {
         self.origin = Vec2::new(((sw - w) * 0.5).floor(), ((sh - h) * 0.5).floor());
     }
 
+    /// Android : la surface est perdue quand l'appli passe en arriere-plan ; nouvelle surface au retour.
+    pub fn recreate_surface(&mut self) {
+        match self.instance.create_surface(self.window.clone()) {
+            Ok(s) => self.surface = s,
+            Err(e) => {
+                log::error!("surface : {e}");
+                return;
+            }
+        }
+        let size = self.window.inner_size();
+        self.config.width = size.width.max(1);
+        self.config.height = size.height.max(1);
+        self.surface.configure(&self.device, &self.config);
+        self.update_scale();
+    }
+
     pub fn resize(&mut self, w: u32, h: u32) {
         if w == 0 || h == 0 {
             return;
@@ -682,7 +729,7 @@ impl Gfx {
         self.capture = Some(path);
     }
 
-    pub fn render(&mut self, list: &DrawList, camera: Vec2, clear: [f32; 3]) {
+    pub fn render(&mut self, list: &DrawList, camera: Vec2, zoom: f32, clear: [f32; 3]) {
         self.ensure_scene();
         let (w, h) = (self.region.0 as f32, self.region.1 as f32);
         let post = PostUniform {
@@ -697,7 +744,7 @@ impl Gfx {
             origin: camera.to_array(),
             offset: [(w * 0.5).round(), (h * 0.5).round()],
             screen: [w, h],
-            scale: s,
+            scale: s * zoom,
             _p: 0.0,
         };
         let ui = ViewUniform { origin: [0.0, 0.0], offset: [0.0, 0.0], screen: [w, h], scale: s, _p: 0.0 };

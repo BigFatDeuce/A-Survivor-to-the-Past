@@ -60,7 +60,8 @@ pub fn families(content: &Content, meta: &Meta, p: &Profile) -> Vec<Family> {
         Family::new("bestiary", "icon_book", [20, 40, bestiary], n(crate::records::bestiary_known(content, p).len())),
         Family::new("figurines", "icon_vaati_jar", [5, 25, bestiary], n(p.figurines.len())),
         Family::new("relics", "icon_pendant_power", [3, 8, n(meta.relics.len())], n(p.relics.len())),
-        Family::new("wardrobe", "icon_green_mail", [1, 6, n(meta.wardrobe.len())], n(p.wardrobe.len())),
+        // tenues decrites dans meta.ron (pas les centaines de couleurs ajoutees en 0.7.1)
+        Family::new("wardrobe", "icon_green_mail", [1, 6, n(meta.wardrobe.iter().filter(|w| !w.auto).count())], n(p.wardrobe.len())),
         Family::new("titles", "icon_fairy", [1, 2, n(meta.titles.len())], n(p.title as usize)),
         Family::new("banked", "icon_rupees", [5_000, 50_000, 500_000], t.banked),
         Family::new("chests", "icon_small_key", [25, 250, 1_000], n(t.chests as usize)),

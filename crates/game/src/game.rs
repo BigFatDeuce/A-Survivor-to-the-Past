@@ -2,6 +2,7 @@
 use crate::chars;
 use crate::content::{load_bindings, load_content, AudioConfig};
 use crate::director::{Director, Moment};
+use crate::fairy_tip;
 use crate::hub;
 use crate::hud::{Hud, GOLD};
 use crate::juice::{Juice, NumKind};
@@ -70,6 +71,9 @@ pub struct Options {
     pub scripted: bool,
 }
 
+/// Niveaux de zoom en partie : la vue la plus large (celle d'avant la 0.8) puis deux plus proches.
+pub const ZOOMS: [f32; 3] = [1.0, 1.25, 1.5];
+
 enum State {
     /// Ecran titre (hors partie).
     Title { sel: usize },
@@ -83,6 +87,8 @@ enum State {
     Chest { reward: ChestReward, big: bool, t: f32 },
     /// Fin de partie : personnages et armes debloques, montres l'un apres l'autre, puis `next`.
     Unlocks { items: Vec<menus::Unlock>, t: f32, next: menus::AfterUnlock },
+    /// Conseils de la fee sur l'ecran titre (page, temps de la page, question « passer ? »).
+    Fairy { page: usize, t: f32, ask: Option<usize> },
     /// Plusieurs armes pretes pour le meme objet partenaire : le joueur choisit celle qui evolue.
     EvoChoice { options: Vec<(usize, u16)>, big: bool, sel: usize, t: f32 },
     /// Champion errant vaincu : recompense au choix.
@@ -96,11 +102,16 @@ enum State {
     /// Choix du personnage, puis du stage (sur le decor du titre).
     /// `page` : univers (chars::GROUPS) ; `sel` : rang dans la page (n : Retour, n + 1 : univers).
     CharSelect { page: usize, sel: usize },
+    /// Achat d'une couleur depuis le choix du personnage : question « Tu la prends ? » (0 = Non).
+    SkinBuy { page: usize, sel: usize, skin: usize, ans: usize },
     StageSelect { sel: usize },
     /// Porte franchie : stage gagne.
     Victory { t: f32, sel: usize },
     /// Boutique (Kakariko, Grande Fee, reliques, defis).
     Shop { tab: usize, sel: usize },
+    /// Preparatifs (0.8), entre le choix du stage et la partie : ligne 0 = « Partir ! », puis les
+    /// onglets Reliques et Defis (`shop::PREP`).
+    Prep { tab: usize, sel: usize },
     /// Profil (bestiaire, armurerie, statistiques, sauvegarde) ; `armed` : import a confirmer.
     Records { tab: usize, sel: usize, armed: bool },
     /// Commandes (depuis les options) ; `wait` : action en attente d'une touche et temps restant.
@@ -135,14 +146,17 @@ impl State {
             State::Title { .. }
                 | State::About { .. }
                 | State::CharSelect { .. }
+                | State::SkinBuy { .. }
                 | State::StageSelect { .. }
                 | State::Shop { .. }
+                | State::Prep { .. }
                 | State::Records { .. }
                 | State::Players { .. }
                 | State::NameEntry { .. }
                 | State::Scores { .. }
                 | State::Controls { from_title: true, .. }
                 | State::Options { from_title: true, .. }
+                | State::Fairy { .. }
         )
     }
 }
@@ -183,6 +197,19 @@ pub struct Game {
     mass_fx_cd: f32,
     /// Ignore les appuis (dash, bascule) juste apres la fermeture d'un menu.
     suppress: bool,
+    /// Commandes tactiles en partie.
+    touch: crate::touch::Touch,
+    /// Tout est au maximum : bonus de niveau choisi une fois (Fee ou Rubis), repris ensuite sans ecran ;
+    /// se change dans le menu Pause. Remis a zero a chaque partie.
+    fallback: Option<Offer>,
+    /// Couleur regardee dans le choix du personnage (personnage, indice) : peut ne pas etre achetee.
+    skin_browse: Option<(String, usize)>,
+    /// Zoom du monde (glisse vers `ZOOMS[settings.zoom]`), puis celui affiche : arrondi pour que les
+    /// tuiles de 16 pixels tombent sur des pixels entiers de l'ecran (pas de jointures pendant le glissement).
+    zoom: f32,
+    view_zoom: f32,
+    /// Reste de molette pour le zoom (pave tactile : fractions de cran).
+    zoom_wheel: f32,
     boss_music: bool,
     title_vis: TitleVis,
     links: Links,
@@ -331,6 +358,12 @@ impl Game {
             tick_area_hits: 0,
             mass_fx_cd: 0.0,
             suppress: false,
+            touch: crate::touch::Touch::default(),
+            zoom: 1.0,
+            skin_browse: None,
+            fallback: None,
+            view_zoom: 1.0,
+            zoom_wheel: 0.0,
             boss_music: false,
             title_vis: TitleVis::new(ctx),
             weather_vis: WeatherVis::new(&ctx.atlas),
@@ -382,6 +415,7 @@ impl Game {
             .collect();
         g.world.shot_hit = g.shot_hit.clone();
         g.stage_ids = stages::stage_ids(&g.content);
+        g.meta.complete_wardrobe(&g.content);
         g.slots = profiles::all_slots(&ctx.root);
         g.run_kills = vec![0; g.content.enemies.len()];
         if let Some(v) = g.opts.video {
@@ -392,8 +426,12 @@ impl Game {
         let mut skins = g.profile.clone();
         if let Some(k) = g.opts.skin {
             skins.skins.insert(g.opts.character.clone(), k);
+            // essai d'une couleur : portee meme sans l'avoir achetee (profil copie, pas enregistre)
+            if let Some(s) = g.content.characters.get(&g.opts.character).and_then(|d| d.skins.get(k)) {
+                skins.wardrobe.insert(s.0.clone());
+            }
         }
-        chars::apply_skins(&mut g.content, &skins);
+        chars::apply_skins(&mut g.content, &skins, &g.meta);
         let map = g.opts.map.clone();
         g.set_map(ctx, &map);
         g.hud.relics = g.relic_icons(&ctx.atlas);
@@ -405,6 +443,8 @@ impl Game {
         let direct = o.play || o.demo || o.bench.is_some() || o.start_time > 0.0 || !o.give.is_empty();
         g.state = match g.opts.menu.as_deref() {
             Some("title") => State::Title { sel: 0 },
+            // logo du champion (captures)
+            Some("champion") => State::Title { sel: 0 },
             Some("about") => State::About { sel: 0, toast: 0.0 },
             Some("pause") => State::Paused { sel: 1 },
             Some("options") => State::Options { sel: 1, from_title: false },
@@ -412,9 +452,33 @@ impl Game {
             Some("gameover") => State::Dead { t: 1.0, sel: 0 },
             Some("stages") => State::StageSelect { sel: 0 },
             Some("chars") => g.char_select(),
+            // couleurs toutes achetees (profil en memoire seulement, pas enregistre) : bouton des couleurs
+            Some("chars_skins") => {
+                let all: Vec<String> = g.meta.wardrobe.iter().map(|w| w.sprite.clone()).collect();
+                g.profile.wardrobe.extend(all);
+                g.char_select()
+            }
             Some("victory") => State::Victory { t: 3.0, sel: 0 },
             Some("levelup") => State::LevelUp { offers: g.world.roll_offers(), sel: 0, t: 1.0 },
+            // fusion proposee (et fusion ultime) au milieu de choix ordinaires (captures)
+            Some(m @ ("levelup_fusion" | "levelup_ultimate")) => {
+                let c = g.world.content.clone();
+                let into = if m == "levelup_ultimate" { "master_sword" } else { "combat_sword" };
+                let mut offers: Vec<Offer> = c.weapon_index(into).map(Offer::Evolve).into_iter().collect();
+                offers.extend(["quiver", "lamp"].iter().filter_map(|id| c.passive_index(id)).map(Offer::NewPassive));
+                State::LevelUp { offers, sel: 1, t: 1.0 }
+            }
+            // objets dont un partenaire de fusion n'est pas encore debloque : « ??? » (captures)
+            Some("levelup_locked") => {
+                let c = g.world.content.clone();
+                let offers = ["quiver", "lamp", "pegasus_boots"].iter().filter_map(|id| c.passive_index(id)).map(Offer::NewPassive).collect();
+                State::LevelUp { offers, sel: 0, t: 1.0 }
+            }
             // deblocages de fin de partie : 3 personnages et 2 armes (captures)
+            Some("fairy") => State::Fairy { page: 0, t: 3.0, ask: None },
+            Some("fairy_skip") => State::Fairy { page: 1, t: 3.0, ask: Some(0) },
+            // tout le roster d'un coup : plusieurs pages (captures)
+            Some("unlocks_all") => State::Unlocks { items: chars::roster(&g.content).into_iter().map(menus::Unlock::Char).collect(), t: 0.0, next: menus::AfterUnlock::Title },
             Some("unlocks") => {
                 let mut items: Vec<menus::Unlock> = ["sheik", "mario", "vivi"].iter().map(|s| menus::Unlock::Char(s.to_string())).collect();
                 items.extend(["slingshot", "ocarina"].iter().filter_map(|id| g.content.weapon_index(id)).map(menus::Unlock::Weapon));
@@ -474,7 +538,9 @@ impl Game {
             }
             Some("shop") => State::Shop { tab: 0, sel: 0 },
             // onglets de la boutique et fiche du bestiaire (captures)
-            Some(m) if m.starts_with("shop") => State::Shop { tab: m[4..].parse().unwrap_or(0), sel: 1 },
+            Some("prep") => State::Prep { tab: shop::TAB_RELICS, sel: 0 },
+            Some(m) if m.starts_with("prep") => State::Prep { tab: shop::PREP.start + m[4..].parse::<usize>().unwrap_or(0).min(shop::PREP.len() - 1), sel: 1 },
+            Some(m) if m.starts_with("shop") => State::Shop { tab: m[4..].parse::<usize>().unwrap_or(0).min(shop::SHOP.len() - 1), sel: 1 },
             Some(m) if m.starts_with("beast") => {
                 let k = m[5..].parse().unwrap_or(0);
                 g.beast = Some((k, 0.0));
@@ -601,9 +667,9 @@ impl Game {
 
     /// Deblocages de la partie qui vient de finir : personnages puis armes.
     fn collect_unlocks(&mut self) {
-        // 0.6.5 : des centaines de personnages, plusieurs seuils parfois franchis d'un coup : l'ecran en
-        // montre 16 au plus (les autres sont debloques aussi, avec l'etincelle des nouveaux)
-        let mut items: Vec<menus::Unlock> = self.last_chars.iter().take(16).cloned().map(menus::Unlock::Char).collect();
+        // 0.6.5 : des centaines de personnages, plusieurs seuils parfois franchis d'un coup : tous
+        // montres, page apres page (menus::unlocks_per_page)
+        let mut items: Vec<menus::Unlock> = self.last_chars.iter().cloned().map(menus::Unlock::Char).collect();
         items.extend(self.run_new_weapons.drain(..).map(menus::Unlock::Weapon));
         self.pending_unlocks = items;
     }
@@ -881,6 +947,9 @@ impl Game {
         self.thunder = None;
         ctx.audio.stop_ambience(0.5);
         self.world = Self::make_world(&self.content, &self.opts, ctx.view);
+        self.fallback = None;
+        // nouvelle partie : directement au zoom choisi
+        self.zoom = ZOOMS[self.settings.zoom as usize % ZOOMS.len()];
         self.world.shot_hit = self.shot_hit.clone();
         self.apply_mods();
         self.juice.clear();
@@ -949,21 +1018,24 @@ impl Game {
         if i.action(b, "right") {
             mv.x += 1.0;
         }
-        let mv = (mv.normalize_or_zero() + i.stick(false)).clamp_length_max(1.0);
-        let attack = i.action(b, "attack");
-        let dash = !self.suppress && i.action_pressed(b, "dash");
-        let toggle_auto = !self.suppress && i.action_pressed(b, "toggle_auto");
+        let t = self.touch.read(i, ctx.scale as f32);
+        let mv = (mv.normalize_or_zero() + i.stick(false) + t.mv).clamp_length_max(1.0);
+        // visee tactile (doigt a droite) : l'epee frappe dans sa direction
+        let attack = i.action(b, "attack") || t.aim.is_some();
+        let dash = !self.suppress && (i.action_pressed(b, "dash") || t.dash);
+        let toggle_auto = !self.suppress && (i.action_pressed(b, "toggle_auto") || t.toggle);
         let aim = match i.last_device {
             Device::Mouse => {
                 let cam = self.cam.unwrap_or(self.world.player.pos);
                 let off = (Vec2::new(ctx.view.x, ctx.view.y) * ctx.scale as f32 * 0.5).round();
-                let m = cam + (i.mouse_px - off) / ctx.scale as f32;
+                let m = cam + (i.mouse_px - off) / (ctx.scale as f32 * self.view_zoom);
                 Some(m - (self.world.player.pos - Vec2::new(0.0, 8.0)))
             }
             Device::Gamepad => {
                 let r = i.stick(true);
                 (r.length_squared() > 0.05).then_some(r)
             }
+            Device::Touch => t.aim,
             Device::Keyboard => None,
         };
         PlayerInput { move_dir: mv, aim, attack, dash, toggle_auto }
@@ -1506,6 +1578,28 @@ impl Game {
         }
     }
 
+    /// « Le Link bleu, ca te fera 500 rubis rouges. Tu le prends ? » (question d'achat d'une couleur).
+    fn skin_question(&self, id: &str, skin: usize) -> String {
+        let def = &self.content.characters[id];
+        let price = chars::skin_price(&self.meta, &self.profile, &def.skins[skin].0).unwrap_or(0);
+        self.lang
+            .get("ui.skin_ask")
+            .replace("{c}", &crate::hud::hl(self.lang.get(&format!("skin.{}", def.skins[skin].1))))
+            .replace("{n}", &crate::hud::hl(&chars::name(&self.lang, id)))
+            .replace("{p}", &crate::hud::hl(&price.to_string()))
+    }
+
+    /// Choix d'une montee de niveau : une fusion proposee passe en tete (preselectionnee) et le jingle
+    /// des secrets d'A Link to the Past l'annonce.
+    fn levelup_offers(&mut self, ctx: &mut Ctx) -> Vec<Offer> {
+        let mut offers = self.world.roll_offers();
+        offers.sort_by_key(|o| !matches!(o, Offer::Evolve(_)));
+        if matches!(offers.first(), Some(Offer::Evolve(_))) {
+            self.sfx(ctx, "fusion_offer");
+        }
+        offers
+    }
+
     /// Niveaux et coffres en attente : ouvre l'ecran correspondant.
     fn check_pending(&mut self, ctx: &mut Ctx) -> bool {
         // test de charge : choix automatiques, sans ecran
@@ -1530,8 +1624,20 @@ impl Game {
             }
             return false;
         }
+        // tout est au maximum et le bonus de niveau est deja choisi : il s'applique sans ecran
+        if let Some(f) = self.fallback {
+            let mut given = false;
+            while self.world.pending_levels > 0 && self.world.roll_offers().iter().all(|o| matches!(o, Offer::Heal | Offer::Rupees)) {
+                self.world.pending_levels -= 1;
+                self.world.apply_offer(f);
+                given = true;
+            }
+            if given {
+                self.sfx(ctx, if f == Offer::Heal { "fairy_pickup" } else { "pick" });
+            }
+        }
         if self.world.pending_levels > 0 {
-            let offers = self.world.roll_offers();
+            let offers = self.levelup_offers(ctx);
             self.state = State::LevelUp { offers, sel: 0, t: 0.0 };
             ctx.audio.duck_music(0.45, 0.2);
             return true;
@@ -1735,45 +1841,62 @@ impl Game {
     }
 
     /// Logique des menus (temps reel).
-    fn update_shop(&mut self, ctx: &mut Ctx, nav: &NavIn, mut tab: usize, mut sel: usize) -> State {
-        let ntabs = shop::TABS.len();
+    /// Boutique, ou Preparatifs (`prep`) : memes onglets, ligne 0 des Preparatifs = « Partir ! ».
+    /// None : la partie vient d'etre lancee.
+    fn update_shop(&mut self, ctx: &mut Ctx, nav: &NavIn, mut tab: usize, mut sel: usize, prep: bool) -> Option<State> {
+        let book = if prep { shop::PREP } else { shop::SHOP };
+        let off = prep as usize;
+        let ntabs = book.len();
+        let make = |tab, sel| if prep { State::Prep { tab, sel } } else { State::Shop { tab, sel } };
         let (rows, _) = shop::rows(&self.meta, &self.content, &self.profile, &self.lang, &ctx.atlas, tab);
-        let n = rows.len();
-        let input = hub::input(nav, ctx.view, ntabs, tab, n, &mut sel);
+        let n = rows.len() + off;
+        let mut rel = tab - book.start;
+        let input = hub::input(nav, ctx.view, ntabs, rel, n, &mut sel);
         let side = match input {
             hub::Input::Left(k) => Some((k, -1)),
             hub::Input::Right(k) => Some((k, 1)),
             _ => None,
         };
         if let Some((k, dir)) = side {
-            if k < n && shop::row_uses_sides(tab, k) {
-                self.shop_act(ctx, tab, k, dir);
+            if k >= off && k < n && shop::row_uses_sides(tab, k - off) {
+                self.shop_act(ctx, tab, k - off, dir);
             } else {
-                tab = (tab as i32 + dir).rem_euclid(ntabs as i32) as usize;
+                rel = (rel as i32 + dir).rem_euclid(ntabs as i32) as usize;
+                tab = book.start + rel;
                 sel = 0;
                 self.sfx(ctx, "cursor");
             }
-            return State::Shop { tab, sel };
+            return Some(make(tab, sel));
         }
         match input {
             hub::Input::Back => {
                 self.sfx(ctx, "confirm");
-                return State::Title { sel: TITLE_SHOP };
+                return Some(if prep {
+                    State::StageSelect { sel: self.stage_ids.iter().position(|s| *s == self.opts.map).unwrap_or(0) }
+                } else {
+                    State::Title { sel: TITLE_SHOP }
+                });
             }
             hub::Input::Moved => self.sfx(ctx, "cursor"),
             hub::Input::Tab(k) => {
-                if k != tab {
-                    tab = k;
+                if k != rel {
+                    tab = book.start + k;
                     if sel != hub::TABS_ROW {
                         sel = 0;
                     }
                     self.sfx(ctx, "cursor");
                 }
             }
-            hub::Input::Pick(k) => self.shop_act(ctx, tab, k, 0),
+            hub::Input::Pick(0) if prep => {
+                self.sfx(ctx, "confirm");
+                ctx.audio.stop_music(0.6);
+                self.restart(ctx);
+                return None;
+            }
+            hub::Input::Pick(k) => self.shop_act(ctx, tab, k - off, 0),
             _ => {}
         }
-        State::Shop { tab, sel }
+        Some(make(tab, sel))
     }
 
     fn shop_act(&mut self, ctx: &mut Ctx, tab: usize, k: usize, dir: i32) {
@@ -1782,10 +1905,11 @@ impl Game {
             match tab {
                 // garde-robe : la tenue achetee (ou choisie) est portee tout de suite
                 shop::TAB_WARDROBE => {
-                    if let Some(w) = self.meta.wardrobe.get(k) {
-                        if let Some(i) = self.content.characters.get(&w.character).and_then(|d| d.skins.iter().position(|s| s.0 == w.sprite)) {
-                            self.profile.skins.insert(w.character.clone(), i);
-                            chars::apply_skins(&mut self.content, &self.profile);
+                    let w = shop::wardrobe_items(&self.meta, &self.content, &self.profile).get(k).map(|w| (w.character.clone(), w.sprite.clone()));
+                    if let Some((ch, sprite)) = w {
+                        if let Some(i) = self.content.characters.get(&ch).and_then(|d| d.skins.iter().position(|s| s.0 == sprite)) {
+                            self.profile.skins.insert(ch, i);
+                            chars::apply_skins(&mut self.content, &self.profile, &self.meta);
                         }
                     }
                 }
@@ -1925,7 +2049,7 @@ impl Game {
                             let slot = self.profile.slot;
                             self.profile = p;
                             self.profile.slot = slot;
-                            chars::apply_skins(&mut self.content, &self.profile);
+                            chars::apply_skins(&mut self.content, &self.profile, &self.meta);
                             self.profile.save(&ctx.root);
                             self.sfx(ctx, "relic");
                             self.toast("ui.imported");
@@ -2028,7 +2152,7 @@ impl Game {
         self.profile.save(root);
         self.profile = Profile::load_slot(root, slot).unwrap_or_else(|| Profile::fresh(slot, profiles::DEFAULT_NAME, 0));
         profiles::set_active(root, slot);
-        chars::apply_skins(&mut self.content, &self.profile);
+        chars::apply_skins(&mut self.content, &self.profile, &self.meta);
         self.slots = profiles::all_slots(root);
     }
 
@@ -2084,7 +2208,7 @@ impl Game {
                     }
                 };
                 profiles::set_active(&root, self.profile.slot);
-                chars::apply_skins(&mut self.content, &self.profile);
+                chars::apply_skins(&mut self.content, &self.profile, &self.meta);
                 self.slots = profiles::all_slots(&root);
                 sel = self.profile.slot;
                 self.sfx(ctx, "confirm");
@@ -2128,7 +2252,7 @@ impl Game {
                 p.save(&root);
                 self.profile = p;
                 profiles::set_active(&root, k);
-                chars::apply_skins(&mut self.content, &self.profile);
+                chars::apply_skins(&mut self.content, &self.profile, &self.meta);
                 self.slots = profiles::all_slots(&root);
                 self.sfx(ctx, "relic");
                 let s = self.lang.get("ui.player_created").replace("{s}", &name);
@@ -2328,7 +2452,16 @@ impl Game {
             State::Shop { tab, sel } => {
                 let (r, d) = shop::rows(&self.meta, &self.content, &self.profile, lang, &ctx.atlas, tab);
                 let corner = Some((self.vis.icon_rupees, self.profile.rupees.to_string()));
-                (lang.get("ui.shop"), &shop::TABS[..], tab, sel, r, d, corner)
+                (lang.get("ui.shop"), &shop::TABS[shop::SHOP], tab - shop::SHOP.start, sel, r, d, corner)
+            }
+            State::Prep { tab, sel } => {
+                let (mut r, mut d) = shop::rows(&self.meta, &self.content, &self.profile, lang, &ctx.atlas, tab);
+                let stage = stages::stage_name(lang, &self.opts.map);
+                let who = chars::name(lang, &self.opts.character);
+                r.insert(0, hub::Row { label: lang.get("ui.prep_go").to_string(), label_color: Some(hub::GREEN), value: stage.clone(), value_color: Some(GOLD), ..Default::default() });
+                d.insert(0, lang.get("ui.prep_go_desc").replace("{c}", &crate::hud::hl(&who)).replace("{s}", &crate::hud::hl(&stage)));
+                let corner = Some((self.vis.icon_rupees, self.profile.rupees.to_string()));
+                (lang.get("ui.prep"), &shop::TABS[shop::PREP], tab - shop::PREP.start, sel, r, d, corner)
             }
             State::Records { tab, sel, armed } => {
                 let (r, d) = records::rows(&self.content, &self.meta, &ctx.atlas, &self.vis, &self.profile, lang, tab, armed);
@@ -2444,7 +2577,8 @@ impl Game {
     fn update_menus(&mut self, ctx: &mut Ctx, nav: &NavIn, dt: f32) {
         let view = ctx.view;
         self.hub_toast.1 = (self.hub_toast.1 - dt).max(0.0);
-        let pause = ctx.input.action_pressed(&self.bindings, "pause");
+        let touch_pause = self.touch.update(&ctx.input, view, ctx.scale as f32, matches!(self.state, State::Playing));
+        let pause = ctx.input.action_pressed(&self.bindings, "pause") || touch_pause;
         self.poll_publish(ctx);
         let state = std::mem::replace(&mut self.state, State::Playing);
         self.state = match state {
@@ -2475,24 +2609,24 @@ impl Game {
                     Some(TitleItem::Shop) => {
                         self.sfx(ctx, "confirm");
                         self.hub_toast.1 = 0.0;
-                        State::Shop { tab: 0, sel: 0 }
+                        State::Shop { tab: 0, sel: hub::TABS_ROW }
                     }
                     Some(TitleItem::Scores) => {
                         self.sfx(ctx, "confirm");
                         self.hub_toast.1 = 0.0;
                         self.slots = profiles::all_slots(&ctx.root);
                         let stage = self.stage_ids.iter().position(|s| *s == self.world.map_id).unwrap_or(0);
-                        State::Scores { tab: scores::MINE, sel: 0, stage, version: String::new() }
+                        State::Scores { tab: scores::MINE, sel: hub::TABS_ROW, stage, version: String::new() }
                     }
                     Some(TitleItem::Collection) => {
                         self.sfx(ctx, "confirm");
                         self.hub_toast.1 = 0.0;
-                        State::Records { tab: 0, sel: 0, armed: false }
+                        State::Records { tab: 0, sel: hub::TABS_ROW, armed: false }
                     }
                     Some(TitleItem::Exploits) => {
                         self.sfx(ctx, "confirm");
                         self.hub_toast.1 = 0.0;
-                        State::Records { tab: records::TAB_TROPHIES, sel: 0, armed: false }
+                        State::Records { tab: records::TAB_TROPHIES, sel: hub::TABS_ROW, armed: false }
                     }
                     Some(TitleItem::Options) => {
                         self.sfx(ctx, "confirm");
@@ -2534,22 +2668,31 @@ impl Game {
                 }
             }
             State::CharSelect { mut page, mut sel } => {
+                let was_tabs = sel == chars::page_roster(&self.content, page).len() + 1;
                 let (pick, moved, turn) = chars::input_select(nav, view, chars::page_roster(&self.content, page).len(), &mut sel);
                 if moved {
                     self.sfx(ctx, "cursor");
                 }
+                // gachettes, Q / E : univers precedent / suivant, comme les onglets des autres menus
+                let trigger = if nav.tab_next { 1 } else if nav.tab_prev { -1 } else { 0 };
+                let turn = if trigger != 0 { trigger } else { turn };
                 if turn != 0 {
-                    // autre univers : le curseur reste sur le choix de l'univers
+                    // autre univers : le curseur reste sur le choix de l'univers, ou revient au premier personnage
                     page = (page as i32 + turn).rem_euclid(chars::GROUPS.len() as i32) as usize;
-                    sel = chars::page_roster(&self.content, page).len() + 1;
+                    let n = chars::page_roster(&self.content, page).len();
+                    sel = if trigger != 0 && !was_tabs && n > 0 { 0 } else { n + 1 };
                     self.sfx(ctx, "cursor");
                 }
                 let ids = chars::page_roster(&self.content, page);
                 let n = ids.len();
-                // Q / E, gachettes (ou clic sur le bouton des couleurs) : couleur du personnage
-                let mut side = if nav.tab_next { 1 } else if nav.tab_prev { -1 } else { 0 };
+                // autre personnage : la couleur regardee (pas achetee) est oubliee
+                if moved || turn != 0 {
+                    self.skin_browse = None;
+                }
+                // R, Y (ou clic sur une fleche du bouton des couleurs) : couleur du personnage
+                let mut side = if nav.skin { 1 } else { 0 };
                 if nav.click {
-                    if let Some((bp, bs)) = chars::skin_button(ctx, &self.content, &self.meta, &self.profile, &ids, sel) {
+                    if let Some((bp, bs)) = chars::skin_button(ctx, &self.content, &self.profile, &ids, sel) {
                         let m = nav.mouse;
                         if m.x >= bp.x && m.y >= bp.y && m.x < bp.x + bs.x && m.y < bp.y + bs.y {
                             side = if m.x < bp.x + bs.x * 0.5 { -1 } else { 1 };
@@ -2559,16 +2702,21 @@ impl Game {
                 if side != 0 && sel < n {
                     let id = ids[sel].clone();
                     let def = &self.content.characters[&id];
-                    // tenues de la garde-robe : seulement celles achetees
-                    let owned = chars::owned_skins(def, &self.profile, &self.meta);
-                    let m = owned.len();
+                    // toutes les couleurs defilent ; une couleur achetee est portee aussitot, une autre
+                    // est seulement montree (grisee, avec son prix : A l'achete)
+                    let m = def.skins.len();
                     if m > 1 && chars::unlocked(&self.content, def, &self.profile) {
-                        let cur = chars::skin(def, &self.profile, &id);
-                        let i = owned.iter().position(|&o| o == cur).unwrap_or(0);
-                        let k = owned[if side > 0 { (i + 1) % m } else { (i + m - 1) % m }];
-                        self.profile.skins.insert(id, k);
-                        self.profile.save(&ctx.root);
-                        chars::apply_skins(&mut self.content, &self.profile);
+                        let browse = self.skin_browse.as_ref().filter(|b| b.0 == id).map(|b| b.1);
+                        let cur = chars::shown_skin(def, &self.profile, &id, &self.meta, browse);
+                        let k = if side > 0 { (cur + 1) % m } else { (cur + m - 1) % m };
+                        if chars::skin_price(&self.meta, &self.profile, &def.skins[k].0).is_some() {
+                            self.skin_browse = Some((id, k));
+                        } else {
+                            self.skin_browse = None;
+                            self.profile.skins.insert(id, k);
+                            self.profile.save(&ctx.root);
+                            chars::apply_skins(&mut self.content, &self.profile, &self.meta);
+                        }
                         self.sfx(ctx, "cursor");
                     }
                 }
@@ -2581,8 +2729,28 @@ impl Game {
                             self.sfx(ctx, "confirm");
                             State::Title { sel: 0 }
                         }
+                        // couleur regardee pas encore achetee : A propose de l'acheter (ou le dit trop chere)
+                        Some(k) if self.skin_browse.as_ref().is_some_and(|b| b.0 == ids[k]) && !nav.click => {
+                            let skin = self.skin_browse.as_ref().map_or(0, |b| b.1);
+                            let def = &self.content.characters[&ids[k]];
+                            match chars::skin_price(&self.meta, &self.profile, &def.skins[skin].0) {
+                                Some(p) if p > self.profile.rupees => {
+                                    self.sfx(ctx, "error");
+                                    State::CharSelect { page, sel }
+                                }
+                                Some(_) => {
+                                    self.sfx(ctx, "dialog_open");
+                                    State::SkinBuy { page, sel, skin, ans: 0 }
+                                }
+                                None => {
+                                    self.skin_browse = None;
+                                    State::CharSelect { page, sel }
+                                }
+                            }
+                        }
                         Some(k) if chars::unlocked(&self.content, &self.content.characters[&ids[k]], &self.profile) => {
                             self.sfx(ctx, "confirm");
+                            self.skin_browse = None;
                             self.opts.character = ids[k].clone();
                             if self.profile.character != ids[k] {
                                 self.profile.character = ids[k].clone();
@@ -2598,6 +2766,38 @@ impl Game {
                         }
                         None => State::CharSelect { page, sel },
                     }
+                }
+            }
+            State::SkinBuy { page, sel, skin, mut ans } => {
+                let ids = chars::page_roster(&self.content, page);
+                let q = fairy_tip::question(ctx, &self.skin_question(&ids[sel], skin));
+                let (pick, moved) = q.input(nav, &mut ans);
+                if moved {
+                    self.sfx(ctx, "cursor");
+                }
+                match pick {
+                    Some(1) => {
+                        let id = ids[sel].clone();
+                        let sprite = self.content.characters[&id].skins[skin].0.clone();
+                        match chars::skin_price(&self.meta, &self.profile, &sprite) {
+                            Some(p) if p <= self.profile.rupees => {
+                                self.profile.rupees -= p;
+                                self.profile.wardrobe.insert(sprite);
+                                self.profile.skins.insert(id, skin);
+                                self.profile.save(&ctx.root);
+                                chars::apply_skins(&mut self.content, &self.profile, &self.meta);
+                                self.skin_browse = None;
+                                self.sfx(ctx, "buy");
+                            }
+                            _ => self.sfx(ctx, "error"),
+                        }
+                        State::CharSelect { page, sel }
+                    }
+                    Some(_) => {
+                        self.sfx(ctx, "dialog_close");
+                        State::CharSelect { page, sel }
+                    }
+                    None => State::SkinBuy { page, sel, skin, ans },
                 }
             }
             State::StageSelect { mut sel } => {
@@ -2616,12 +2816,11 @@ impl Game {
                             self.char_select()
                         }
                         Some(k) if stages::unlocked(&self.stage_ids, &self.profile, k) => {
+                            // Preparatifs : reliques et defis, « Partir ! » deja selectionne
                             self.sfx(ctx, "confirm");
                             let id = self.stage_ids[k].clone();
                             self.set_map(ctx, &id);
-                            ctx.audio.stop_music(0.6);
-                            self.restart(ctx);
-                            return;
+                            State::Prep { tab: shop::TAB_RELICS, sel: 0 }
                         }
                         Some(_) => {
                             self.sfx(ctx, "error");
@@ -2666,7 +2865,12 @@ impl Game {
                     }
                 }
             }
-            State::Shop { tab, sel } => self.update_shop(ctx, nav, tab, sel),
+            State::Shop { tab, sel } => self.update_shop(ctx, nav, tab, sel, false).unwrap_or(State::Title { sel: TITLE_SHOP }),
+            State::Prep { tab, sel } => match self.update_shop(ctx, nav, tab, sel, true) {
+                Some(s) => s,
+                // partie lancee : l'etat est deja celui de la partie
+                None => return,
+            },
             State::Records { tab, sel, armed } => self.update_records(ctx, nav, tab, sel, armed),
             State::Players { sel, armed } => self.update_players(ctx, nav, sel, armed),
             State::NameEntry { purpose, text, sel } => self.update_name(ctx, nav, purpose, text, sel),
@@ -2708,7 +2912,7 @@ impl Game {
                 }
             }
             State::Paused { mut sel } => {
-                let (pick, moved) = menus::input_pause(nav, view, &mut sel);
+                let (pick, moved) = menus::input_pause(nav, view, &mut sel, self.fallback.is_some());
                 if moved {
                     self.sfx(ctx, "cursor");
                 }
@@ -2741,10 +2945,16 @@ impl Game {
                         }
                         return;
                     }
-                    Some(_) => {
+                    Some(3) => {
                         self.sfx(ctx, "confirm");
                         self.quit_to_title(ctx);
                         return;
+                    }
+                    // bonus de niveau garde : Fee <-> Rubis
+                    Some(_) => {
+                        self.fallback = Some(if self.fallback == Some(Offer::Heal) { Offer::Rupees } else { Offer::Heal });
+                        self.sfx(ctx, "confirm");
+                        State::Paused { sel }
                     }
                     None => State::Paused { sel },
                 }
@@ -2767,13 +2977,13 @@ impl Game {
                     OptAction::Step(Opt::Controls, _) => {
                         self.sfx(ctx, "confirm");
                         let tab = (ctx.input.last_device == Device::Gamepad) as usize;
-                        State::Controls { tab, sel: 0, wait: None, from_title }
+                        State::Controls { tab, sel: hub::TABS_ROW, wait: None, from_title }
                     }
                     // sauvegarde (export / import) : depuis l'ecran titre seulement (pas en pleine partie)
                     OptAction::Step(Opt::Save, _) if from_title => {
                         self.sfx(ctx, "confirm");
                         self.hub_toast.1 = 0.0;
-                        State::Records { tab: records::TAB_SAVE, sel: 0, armed: false }
+                        State::Records { tab: records::TAB_SAVE, sel: hub::TABS_ROW, armed: false }
                     }
                     OptAction::Step(Opt::Save, _) => {
                         self.sfx(ctx, "error");
@@ -2805,7 +3015,7 @@ impl Game {
                     Some(menus::LevelPick::Reroll) => {
                         self.world.mods.rerolls -= 1;
                         self.sfx(ctx, "reroll");
-                        let offers = self.world.roll_offers();
+                        let offers = self.levelup_offers(ctx);
                         let sel = if self.world.mods.rerolls > 0 { sel } else { 0 };
                         State::LevelUp { offers, sel, t: 0.15 }
                     }
@@ -2829,6 +3039,9 @@ impl Game {
                         };
                         self.world.apply_offer(offers[k]);
                         self.world.pending_levels = self.world.pending_levels.saturating_sub(1);
+                        if matches!(offers[k], Offer::Heal | Offer::Rupees) {
+                            self.fallback = Some(offers[k]);
+                        }
                         if let Some(evo) = from {
                             self.state = State::Chest { reward: ChestReward { evolution: Some(evo), upgrades: Vec::new() }, big: false, t: 0.0 };
                             return;
@@ -2838,6 +3051,10 @@ impl Game {
                         }
                         self.juice.flash([1.0, 1.0, 1.0, 0.25], 0.12);
                         self.resume(ctx);
+                        // niveaux a la suite : l'ecran suivant arrive sans nouveau fondu, attente raccourcie
+                        if let State::LevelUp { t, .. } = &mut self.state {
+                            *t = 0.15;
+                        }
                         return;
                     }
                     None => State::LevelUp { offers, sel, t },
@@ -2892,19 +3109,28 @@ impl Game {
                     None => State::EvoChoice { options, big, sel, t },
                 }
             }
-            State::Unlocks { items, t, next } => {
+            State::Unlocks { mut items, t, next } => {
                 let t2 = t + dt;
-                for (i, it) in items.iter().enumerate() {
-                    let ti = menus::unlock_at(i);
-                    if t < ti && t2 >= ti {
+                // page affichee : les premiers ; les autres attendent la page suivante
+                let n = items.len().min(menus::unlocks_per_page(view));
+                // pages pleines : un son sur deux ou trois, pas une rafale
+                let every = (0.3 / menus::unlock_gap(n)).ceil() as usize;
+                for (i, it) in items[..n].iter().enumerate() {
+                    let ti = menus::unlock_at(i, n);
+                    if t < ti && t2 >= ti && i % every == 0 {
                         self.sfx(ctx, if matches!(it, menus::Unlock::Char(_)) { "char_unlock" } else { "weapon_unlock" });
                     }
                 }
-                let done = menus::unlock_at(items.len().saturating_sub(1)) + 0.6;
-                if nav.confirm || nav.click || (self.opts.demo && t2 > done + 1.0) {
-                    if t2 < done {
-                        // appui pendant l'animation : tout apparait d'un coup
-                        State::Unlocks { items, t: done, next }
+                let done = menus::unlocks_done(n);
+                let pressed = (nav.confirm || nav.click) && t2 > menus::UNLOCK_LOCK;
+                if pressed && t2 < done {
+                    // appui pendant l'animation : tout apparait d'un coup (puis courte attente)
+                    State::Unlocks { items, t: done, next }
+                } else if (pressed && t2 >= done + menus::UNLOCK_SETTLE) || (self.opts.demo && t2 > done + 1.0) {
+                    if items.len() > n {
+                        self.sfx(ctx, "cursor");
+                        items.drain(..n);
+                        State::Unlocks { items, t: 0.0, next }
                     } else {
                         self.sfx(ctx, "confirm");
                         match next {
@@ -2988,7 +3214,26 @@ impl Game {
                     }
                 }
             }
+            State::Fairy { page, t, ask } => match fairy_tip::update(ctx, &self.lang, nav, dt, page, t, ask) {
+                fairy_tip::Step::Stay { page, t, ask } => State::Fairy { page, t, ask },
+                fairy_tip::Step::Sfx(s, page, t, ask) => {
+                    self.sfx(ctx, s);
+                    State::Fairy { page, t, ask }
+                }
+                fairy_tip::Step::Done => {
+                    self.sfx(ctx, "fairy");
+                    State::Title { sel: TITLE_SHOP }
+                }
+            },
         };
+        // apres deux defaites, une fee vient parler de la Boutique (une fois, l'ecran titre installe)
+        if matches!(self.state, State::Title { .. }) && self.menu_t > 0.8 && fairy_tip::due(&self.profile) && !self.opts.uicheck && !self.opts.demo && !self.opts.scripted {
+            self.sfx(ctx, "fairy");
+            // une seule fois par profil, meme si le jeu est quitte pendant qu'elle parle
+            self.profile.fairy_tip = true;
+            self.profile.save(&ctx.root);
+            self.state = State::Fairy { page: 0, t: 0.0, ask: None };
+        }
     }
 
     /// Meteo, teinte de la carte et porte de sortie (apres le monde, avant l'interface).
@@ -2999,13 +3244,13 @@ impl Game {
             weather::draw_portal(list, ctx, &self.weather_vis, &white, at, w.portal_t, ctx.real_time as f32);
         }
         let pp = w.player.prev.lerp(w.player.pos, alpha) - Vec2::new(0.0, 8.0);
-        let ui = pp - cam + ctx.view * 0.5;
+        let ui = self.to_ui(pp, cam, ctx.view);
         weather::draw(list, ctx, &self.weather_vis, &white, w.map.weather, w.map.tint, cam, ui, w.time);
         self.draw_drink(ctx, list, ui);
         // fleche vers la porte quand elle est hors champ
         if let Some(at) = w.portal {
             let view = ctx.view;
-            let p = at - cam + view * 0.5;
+            let p = self.to_ui(at, cam, view);
             let m = 20.0;
             if p.x < 0.0 || p.y < 0.0 || p.x > view.x || p.y > view.y {
                 list.set(Space::Ui, Blend::Alpha);
@@ -3672,6 +3917,43 @@ impl Game {
         list.frame(ctx.atlas.frame(self.vis.ui_arrow, 0.0), at, &pr.scale(Vec2::splat(2.0)).color(with_alpha(color, a)));
     }
 
+    /// Point du monde -> pixels d'interface (camera au centre, zoom compris).
+    pub(crate) fn to_ui(&self, p: Vec2, cam: Vec2, view: Vec2) -> Vec2 {
+        (p - cam) * self.view_zoom + view * 0.5
+    }
+
+    /// Zoom en partie : la touche Zoom (E / RB, Options > Commandes) et la loupe tactile passent au
+    /// niveau suivant, la molette rapproche ou eloigne ; la vue glisse vers le niveau choisi (garde dans
+    /// les reglages).
+    fn update_zoom(&mut self, ctx: &mut Ctx, dt: f32) {
+        let n = ZOOMS.len() as u8;
+        let tap = std::mem::take(&mut self.touch.zoom);
+        let mut level = self.settings.zoom.min(n - 1);
+        if matches!(self.state, State::Playing) {
+            if tap || ctx.input.action_pressed(&self.bindings, "zoom") {
+                level = (level + 1) % n;
+            }
+            // le glisser tactile emule aussi la molette (menus) : seule la vraie molette zoome
+            if ctx.input.last_device == Device::Mouse {
+                self.zoom_wheel += ctx.input.wheel();
+                if self.zoom_wheel.abs() >= 1.0 {
+                    level = if self.zoom_wheel > 0.0 { (level + 1).min(n - 1) } else { level.saturating_sub(1) };
+                    self.zoom_wheel = 0.0;
+                }
+            }
+        } else {
+            self.zoom_wheel = 0.0;
+        }
+        if level != self.settings.zoom {
+            self.settings.zoom = level;
+            self.settings.save(&ctx.root);
+        }
+        let target = ZOOMS[level as usize];
+        self.zoom += (target - self.zoom) * (1.0 - (-dt * 10.0).exp());
+        let tile = 16.0 * ctx.scale as f32;
+        self.view_zoom = (self.zoom * tile).round() / tile;
+    }
+
     /// Point du bord de l'ecran vers une cible hors champ (None si elle est visible), a l'ecart du HUD.
     fn edge_point(view: Vec2, ui: Vec2) -> Option<(Vec2, Vec2)> {
         if ui.x >= 0.0 && ui.y >= 0.0 && ui.x <= view.x && ui.y <= view.y {
@@ -3691,7 +3973,7 @@ impl Game {
         let font = ctx.atlas.font("main");
         let blink = (ctx.real_time * 3.0).fract() < 0.65;
         if let (Some(e), Some(cp)) = (self.world.encounter.as_ref(), self.world.champion_pos()) {
-            let ui = cp - cam + view * 0.5;
+            let ui = self.to_ui(cp, cam, view);
             match Self::edge_point(view, ui) {
                 Some((c, d)) => self.edge_arrow(ctx, list, c, d, CHAMPION, true),
                 None if !e.engaged => {
@@ -3702,7 +3984,7 @@ impl Game {
             }
         }
         if let (Some(th), Some(tp)) = (self.world.thief.as_ref(), self.world.thief_pos()) {
-            let ui = tp - cam + view * 0.5;
+            let ui = self.to_ui(tp, cam, view);
             match Self::edge_point(view, ui) {
                 Some((c, d)) => self.edge_arrow(ctx, list, c, d, THIEF, true),
                 None => {
@@ -3714,7 +3996,7 @@ impl Game {
         if let Some(bk) = self.world.bomb_kind {
             for i in 0..h.len() {
                 if h.kind[i] == bk {
-                    if let Some((c, d)) = Self::edge_point(view, h.pos[i] - cam + view * 0.5) {
+                    if let Some((c, d)) = Self::edge_point(view, self.to_ui(h.pos[i], cam, view)) {
                         self.edge_arrow(ctx, list, c, d, rgb(255, 140, 90), true);
                     }
                 }
@@ -3722,7 +4004,7 @@ impl Game {
         }
         for i in 0..pk.len() {
             if pk.kind[i].is_chest() {
-                if let Some((c, d)) = Self::edge_point(view, pk.pos[i] - cam + view * 0.5) {
+                if let Some((c, d)) = Self::edge_point(view, self.to_ui(pk.pos[i], cam, view)) {
                     self.edge_arrow(ctx, list, c, d, GOLD, false);
                 }
             }
@@ -3739,8 +4021,8 @@ impl Game {
         }
         let lang = &self.lang;
         match &self.state {
-            State::Title { .. } | State::About { .. } => {}
-            State::Paused { sel } => menus::draw_pause(list, ctx, &self.vis, lang, *sel, &self.world, &self.profile.evolutions),
+            State::Title { .. } | State::About { .. } | State::Fairy { .. } => {}
+            State::Paused { sel } => menus::draw_pause(list, ctx, &self.vis, lang, *sel, &self.world, &self.profile.evolutions, self.fallback),
             State::Options { sel, .. } => {
                 let code_idx = LANGS.iter().position(|&c| c == self.settings.lang).unwrap_or(0);
                 let v = OptValues {
@@ -3762,7 +4044,7 @@ impl Game {
             State::Unlocks { items, t, .. } => menus::draw_unlocks(list, ctx, &self.content, &self.vis, lang, items, *t),
             State::Reward { offers, sel, t } => {
                 let infos: Vec<_> = offers.iter().map(|&o| reward::info(&self.world, &self.vis, &ctx.atlas, lang, &self.meta, o)).collect();
-                menus::draw_cards(list, ctx, &self.vis, lang, (lang.get("ui.reward.title"), lang.get("ui.choose"), CHAMPION), &infos, *sel, *t);
+                menus::draw_cards_themed(list, ctx, &self.vis, lang, (lang.get("ui.reward.title"), lang.get("ui.reward.sub"), CHAMPION), &infos, *sel, *t, CHAMPION);
             }
             State::Fortune { phase, sel, t } => self.draw_fortune(ctx, list, phase, *sel, *t),
             State::Witch { sel, t } => self.draw_witch(ctx, list, *sel, *t),
@@ -3794,14 +4076,17 @@ impl Game {
                 stages::draw_victory(list, ctx, &self.world, lang, *t, *sel, &items, self.last_banked, self.last_score, &notes);
             }
             State::CharSelect { .. }
+            | State::SkinBuy { .. }
             | State::StageSelect { .. }
             | State::Shop { .. }
+            | State::Prep { .. }
             | State::Records { .. }
             | State::Players { .. }
             | State::NameEntry { .. }
             | State::Scores { .. } => {}
             State::Controls { .. } => self.draw_hub(ctx, list),
             State::Playing => {
+                self.touch.draw(list, ctx, lang, self.world.player.auto_attack);
                 let p = &self.world.player;
                 if p.alive && p.hp < p.max_hp * 0.3 {
                     let beat = 0.5 + 0.5 * (ctx.real_time as f32 * 6.0).sin();
@@ -3859,6 +4144,9 @@ impl Game {
 
     fn draw_scene(&mut self, ctx: &Ctx, alpha: f32, list: &mut DrawList) -> Frame {
         if self.state.in_title() {
+            // dernier stage (Ganon) gagne par ce joueur : logo illumine
+            let last = self.stage_ids.last().and_then(|id| self.profile.stages.get(id));
+            self.title_vis.champion = last.is_some_and(|r| r.wins > 0) || self.opts.menu.as_deref() == Some("champion");
             let white = self.vis.white;
             match &self.state {
                 State::About { sel, toast } => {
@@ -3868,7 +4156,12 @@ impl Game {
                     let items = self.title_items();
                     title::draw_title(list, ctx, &self.title_vis, &self.lang, &white, &items, *sel, self.profile.avatar, self.menu_t)
                 }
-                State::Shop { .. } | State::Records { .. } | State::Controls { .. } | State::Scores { .. } => {
+                State::Fairy { page, t, ask } => {
+                    // decor seul : le menu revient a la fin, curseur sur la Boutique
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    fairy_tip::draw(list, ctx, &self.lang, &white, *page, *t, *ask);
+                }
+                State::Shop { .. } | State::Prep { .. } | State::Records { .. } | State::Controls { .. } | State::Scores { .. } => {
                     title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
                     self.draw_hub(ctx, list);
                 }
@@ -3897,7 +4190,16 @@ impl Game {
                 }
                 State::CharSelect { page, sel } => {
                     title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
-                    chars::draw_select(list, ctx, &self.lang, &self.content, &self.meta, &self.profile, *page, *sel, self.menu_t);
+                    let ids = chars::page_roster(&self.content, *page);
+                    let browse = self.skin_browse.as_ref().filter(|b| ids.get(*sel) == Some(&b.0)).map(|b| b.1);
+                    chars::draw_select(list, ctx, &self.lang, &self.content, &self.meta, &self.profile, *page, *sel, self.menu_t, browse);
+                }
+                State::SkinBuy { page, sel, skin, ans } => {
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    chars::draw_select(list, ctx, &self.lang, &self.content, &self.meta, &self.profile, *page, *sel, self.menu_t, Some(*skin));
+                    let ids = chars::page_roster(&self.content, *page);
+                    let q = fairy_tip::question(ctx, &self.skin_question(&ids[*sel], *skin));
+                    q.draw(list, ctx, &white, [self.lang.get("ui.skin_no"), self.lang.get("ui.skin_yes")], *ans);
                 }
                 State::StageSelect { sel } => {
                     title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
@@ -3909,7 +4211,7 @@ impl Game {
                     self.draw_overlays(ctx, list);
                 }
             }
-            return Frame { camera: Vec2::ZERO, clear: [0.0, 0.0, 0.0] };
+            return Frame { camera: Vec2::ZERO, zoom: 1.0, clear: [0.0, 0.0, 0.0] };
         }
         let w = &self.world;
         let pp = w.player.prev.lerp(w.player.pos, alpha) - Vec2::new(0.0, 8.0);
@@ -3926,9 +4228,11 @@ impl Game {
         self.draw_chest_markers(ctx, list, cam_shaken);
         self.draw_npc_markers(ctx, list, cam_shaken);
         self.hud.banked = (bank_amount(self.world.player.rupees, false, self.meta.bank_mult(&self.profile)) as f32 * self.run_bank_mult).round() as u64;
+        self.hud.busy = !matches!(self.state, State::Playing | State::Dying(_));
+        self.hud.paused = matches!(self.state, State::Paused { .. });
         self.hud.draw(list, ctx, &self.world, &self.vis, &self.lang);
         self.draw_overlays(ctx, list);
-        Frame { camera: cam_shaken, clear: [0.0, 0.0, 0.0] }
+        Frame { camera: cam_shaken, zoom: self.view_zoom, clear: [0.0, 0.0, 0.0] }
     }
 }
 
@@ -3976,6 +4280,7 @@ impl GameTrait for Game {
         self.poll_updates();
         self.update_menus(ctx, &nav, dt);
         self.title_ambience(ctx);
+        self.update_zoom(ctx, dt);
 
         self.juice.hitstop = (self.juice.hitstop - dt).max(0.0);
         if matches!(self.state, State::Playing) {

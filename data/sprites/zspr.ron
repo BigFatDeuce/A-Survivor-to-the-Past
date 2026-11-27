@@ -1352,7 +1352,7 @@
                     "walk_side": (frames: [(162, 27, 17, 25), (180, 27, 16, 25), (198, 28, 17, 24), (216, 28, 17, 24), (234, 27, 17, 25), (252, 27, 16, 25), (270, 28, 16, 24), (18, 28, 17, 24)], fps: 16, pivot: (0, -1), align: Bottom),
                     "walk_up": (frames: [(288, 28, 16, 24), (306, 27, 16, 25), (324, 27, 16, 25), (342, 28, 16, 24), (360, 28, 16, 24), (378, 27, 16, 25), (396, 27, 16, 25), (36, 28, 16, 24)], fps: 16, pivot: (0, -1), align: Bottom),
                 },
-                "zspr_bowsette_red": {
+                "zspr_bowsette_red_skin": {
                     "idle_down": (frames: [(0, 54, 16, 24)], pivot: (0, -1), align: Bottom),
                     "idle_side": (frames: [(18, 54, 17, 24)], pivot: (0, -1), align: Bottom),
                     "idle_up": (frames: [(36, 54, 16, 24)], pivot: (0, -1), align: Bottom),

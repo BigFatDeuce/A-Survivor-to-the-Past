@@ -148,6 +148,7 @@ impl Game {
                     ("options_titre".into(), State::Options { sel: 0, from_title: true }),
                     ("jeu".into(), State::Playing),
                     ("pause".into(), State::Paused { sel: 0 }),
+                    ("pause_bonus".into(), State::Paused { sel: 4 }),
                     ("options".into(), State::Options { sel: 3, from_title: false }),
                     ("fin".into(), State::Dead { t: 2.0, sel: 0 }),
                 ];
@@ -199,8 +200,12 @@ impl Game {
                     }
                 }
                 screens.push(("victoire".into(), State::Victory { t: 3.0, sel: 0 }));
-                for tab in 0..shop::TABS.len() {
+                for tab in shop::SHOP {
                     screens.push((format!("boutique_{tab}"), State::Shop { tab, sel: 1 }));
+                }
+                for tab in shop::PREP {
+                    screens.push((format!("preparatifs_{tab}"), State::Prep { tab, sel: 0 }));
+                    screens.push((format!("preparatifs_{tab}_ligne"), State::Prep { tab, sel: 2 }));
                 }
                 screens.push(("boutique_retour".into(), State::Shop { tab: 0, sel: 99 }));
                 for tab in 0..records::TABS.len() {
@@ -218,6 +223,14 @@ impl Game {
                     screens.push((format!("commandes_{tab}"), State::Controls { tab, sel: 1, wait, from_title: tab == 0 }));
                 }
                 screens.push(("commandes_reset".into(), State::Controls { tab: 0, sel: controls::RESET, wait: None, from_title: true }));
+                // fusion proposee et fusion ultime au choix de niveau : bandeau, recette, halo
+                for (name, into) in [("niveau_fusion", "combat_sword"), ("niveau_fusion_ultime", "master_sword")] {
+                    if let Some(k) = self.world.content.weapon_index(into) {
+                        let mut o = vec![Offer::Evolve(k)];
+                        o.extend(offers.iter().copied().take(2));
+                        screens.push((name.into(), State::LevelUp { offers: o, sel: 1, t: 1.0 }));
+                    }
+                }
                 if let Some(e) = evo {
                     screens.push(("evolution".into(), State::Chest { reward: ChestReward { evolution: Some(e), upgrades: Vec::new() }, big: true, t: menus::EVO_DONE + 0.5 }));
                     screens.push(("evolution_approche".into(), State::Chest { reward: ChestReward { evolution: Some(e), upgrades: Vec::new() }, big: true, t: 1.3 }));
@@ -230,6 +243,13 @@ impl Game {
                 let mut many: Vec<menus::Unlock> = chars::roster(&c).into_iter().skip(1).take(6).map(menus::Unlock::Char).collect();
                 many.extend(c.weapons.iter().enumerate().filter(|(_, w)| w.unlock.is_some()).map(|(k, _)| menus::Unlock::Weapon(k as u16)));
                 screens.push(("deblocages_nombreux".into(), State::Unlocks { items: many, t: 20.0, next: menus::AfterUnlock::Dead }));
+                // page suivante : tous les personnages d'un coup (bien plus qu'une page)
+                let all: Vec<menus::Unlock> = chars::roster(&c).into_iter().map(menus::Unlock::Char).collect();
+                screens.push(("deblocages_pages".into(), State::Unlocks { items: all, t: 20.0, next: menus::AfterUnlock::Victory }));
+                for page in 0..fairy_tip::PAGES {
+                    screens.push((format!("fee_{page}"), State::Fairy { page, t: 30.0, ask: None }));
+                }
+                screens.push(("fee_passer".into(), State::Fairy { page: 2, t: 30.0, ask: Some(1) }));
                 // choix entre deux armes qui partagent un objet partenaire (arc et lance-pierre : carquois)
                 let pair: Vec<(usize, u16)> = ["silver_bow", "hyper_slingshot"].iter().filter_map(|id| c.weapon_index(id)).enumerate().collect();
                 if pair.len() == 2 {

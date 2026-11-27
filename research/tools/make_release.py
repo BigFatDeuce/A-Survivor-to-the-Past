@@ -129,14 +129,14 @@ HOW = {
    puis lancez le jeu normalement (sinon macOS le refuse ou le dit endommagé).
    Fonctionne sur Mac Apple Silicon et Intel (macOS 11 ou plus récent)."""),
     "portmaster": (
-        f"""EXPERIMENTAL, not tested on a device yet: Linux ARM64 handhelds (Anbernic RG40XX H...).
+        f"""EXPERIMENTAL: Linux ARM64 handhelds (Anbernic RG40XX H...).
 1. Copy "A Survivor to the Past.sh" and the folder "{PORT_DIR}" into the ports folder
    of the SD card (ROMS/ports, /roms/ports, /mnt/mmc/ports... depending on the firmware).
 2. Needs PortMaster and its Westonpack runtime (PortMaster downloads it when online).
 3. Launch it from the Ports menu. Select + Start quits.
    Automatic updates are off: copy the new version over the old one (your saves stay).
    If it does not work, share {PORT_DIR}/log.txt on Discord.""",
-        f"""EXPÉRIMENTAL, pas encore testé sur une console : consoles Linux ARM64 (Anbernic RG40XX H...).
+        f"""EXPÉRIMENTAL : consoles Linux ARM64 (Anbernic RG40XX H...).
 1. Copiez « A Survivor to the Past.sh » et le dossier « {PORT_DIR} » dans le dossier ports
    de la carte SD (ROMS/ports, /roms/ports, /mnt/mmc/ports... selon le firmware).
 2. PortMaster et son module Westonpack sont nécessaires (PortMaster le télécharge en ligne).
@@ -208,7 +208,7 @@ $ESUDO mount "$controlfolder/libs/${weston_runtime}.squashfs" "${weston_dir}"
 $GPTOKEYB "@EXE@" -c "./@PORT_DIR@.gptk" &
 pm_platform_helper "$GAMEDIR/@EXE@"
 $ESUDO env $weston_dir/westonwrap.sh headless noop kiosk crusty_x11egl \
-  WGPU_BACKEND=gl ASTP_NO_UPDATE=1 WAYLAND_DISPLAY= ./@EXE@
+  WGPU_BACKEND=gl ASTP_NO_UPDATE=1 WAYLAND_DISPLAY= SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig" ./@EXE@
 
 if [[ "$PM_CAN_MOUNT" != "N" ]]; then
   $ESUDO umount "${weston_dir}"

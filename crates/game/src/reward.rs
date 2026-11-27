@@ -136,6 +136,7 @@ pub fn info(world: &World, vis: &Vis, atlas: &Atlas, lang: &Lang, meta: &Meta, r
         evo: Vec::new(),
         evo_label: String::new(),
         keep: false,
+        fusion: 0,
     };
     match r {
         Reward::Blessing(s, v) => blank(blessing_icon(world, vis, s), stat_text(lang, s, v), lang.get("ui.reward.blessing"), lang.get("ui.reward.blessing_desc").to_string()),

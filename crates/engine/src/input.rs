@@ -11,6 +11,32 @@ pub enum Device {
     Keyboard,
     Mouse,
     Gamepad,
+    /// Ecran tactile (telephone, tablette).
+    Touch,
+}
+
+/// Doigt pose sur l'ecran (pixels de l'image de jeu).
+#[derive(Clone, Copy, Debug)]
+pub struct TouchPt {
+    pub id: u64,
+    pub start: Vec2,
+    pub pos: Vec2,
+}
+
+/// Etape d'un doigt.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TouchPhase {
+    Start,
+    Move,
+    End,
+    Cancel,
+}
+
+/// Doigt qui pilote la souris des menus : appui court = clic au relacher, glisser = molette.
+struct Tap {
+    id: u64,
+    last: Vec2,
+    drag: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -45,6 +71,10 @@ pub struct Input {
     pub typed: Vec<char>,
     /// Molette depuis la derniere lecture (en crans ; positif = vers le haut), par phase.
     wheel: [f32; 2],
+    /// Doigts poses, et ceux poses depuis la derniere lecture (par phase).
+    pub touches: Vec<TouchPt>,
+    touch_started: [Vec<u64>; 2],
+    tap: Option<Tap>,
 }
 
 impl Default for Input {
@@ -63,6 +93,9 @@ impl Input {
             }
         };
         let pad = gilrs.as_ref().and_then(|g| g.gamepads().next().map(|(id, _)| id));
+        for (_, p) in gilrs.iter().flat_map(|g| g.gamepads()) {
+            log::info!("manette : {}", p.name());
+        }
         Input {
             keys: HashSet::new(),
             keys_pressed: Default::default(),
@@ -80,6 +113,9 @@ impl Input {
             key_labels: HashMap::new(),
             typed: Vec::new(),
             wheel: [0.0; 2],
+            touches: Vec::new(),
+            touch_started: Default::default(),
+            tap: None,
         }
     }
 
@@ -126,9 +162,61 @@ impl Input {
         self.mouse_px = p;
     }
 
+    /// Doigt pose, deplace ou leve (`p` : pixels de l'image de jeu ; `row` : hauteur d'une ligne de liste en
+    /// pixels, pour le defilement au glisser). Le premier doigt sert aussi de souris aux menus.
+    pub(crate) fn touch_event(&mut self, id: u64, phase: TouchPhase, p: Vec2, row: f32) {
+        self.last_device = Device::Touch;
+        match phase {
+            TouchPhase::Start => {
+                self.touches.retain(|t| t.id != id);
+                self.touches.push(TouchPt { id, start: p, pos: p });
+                self.touch_started.iter_mut().for_each(|s| s.push(id));
+                if self.tap.is_none() {
+                    self.tap = Some(Tap { id, last: p, drag: false });
+                    self.mouse_px = p;
+                    self.mouse_inside = true;
+                }
+            }
+            TouchPhase::Move => {
+                if let Some(t) = self.touches.iter_mut().find(|t| t.id == id) {
+                    t.pos = p;
+                    let start = t.start;
+                    if let Some(tap) = self.tap.as_mut().filter(|tap| tap.id == id) {
+                        // au-dela de 6 pixels d'interface : c'est un glisser (defilement), plus un appui
+                        if !tap.drag && (p - start).length() > row * 0.3 {
+                            tap.drag = true;
+                        }
+                        if tap.drag {
+                            let notches = (p.y - tap.last.y) / row.max(1.0);
+                            self.wheel.iter_mut().for_each(|w| *w += notches);
+                            tap.last = p;
+                        }
+                    }
+                }
+            }
+            TouchPhase::End | TouchPhase::Cancel => {
+                self.touches.retain(|t| t.id != id);
+                if let Some(tap) = self.tap.take_if(|tap| tap.id == id) {
+                    if phase == TouchPhase::End && !tap.drag {
+                        self.mouse_event(MouseButton::Left, true);
+                        self.mouse_event(MouseButton::Left, false);
+                        self.last_device = Device::Touch;
+                    }
+                }
+            }
+        }
+    }
+
+    /// Doigts poses depuis la derniere lecture.
+    pub fn touch_started(&self) -> &[u64] {
+        &self.touch_started[self.phase]
+    }
+
     pub(crate) fn focus_lost(&mut self) {
         self.keys.clear();
         self.mouse.clear();
+        self.touches.clear();
+        self.tap = None;
         self.focused = false;
     }
 
@@ -138,6 +226,7 @@ impl Input {
         while let Some(ev) = g.next_event() {
             match ev.event {
                 EventType::Connected => {
+                    log::info!("manette : {}", g.gamepad(ev.id).name());
                     if self.pad.is_none() {
                         self.pad = Some(ev.id);
                     }
@@ -193,6 +282,7 @@ impl Input {
         self.wheel[1] = 0.0;
         self.mouse_pressed[1].clear();
         self.pad_pressed[1].clear();
+        self.touch_started[1].clear();
     }
 
     /// Oublie les appuis vus par l'image qui vient d'etre affichee.
@@ -201,6 +291,7 @@ impl Input {
         self.wheel[0] = 0.0;
         self.mouse_pressed[0].clear();
         self.pad_pressed[0].clear();
+        self.touch_started[0].clear();
         self.typed.clear();
     }
 

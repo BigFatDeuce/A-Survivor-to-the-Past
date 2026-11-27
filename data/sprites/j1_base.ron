@@ -114,8 +114,9 @@
             name: "main",
             top: 2,
             line_h: 14,
-            // les lettres commencent bas dans la case (place des accents) : remonte de 2 px
-            nudge: -2,
+            // 0.7.1 : l'encre des majuscules est centree dans la ligne de 14 px (avant : -2, textes trop
+            // hauts dans tous les cadres, mesure au pixel sur capture)
+            nudge: 1,
             space: 5,
             spacing: -1,
             accent_rows: 4,

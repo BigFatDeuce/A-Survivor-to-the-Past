@@ -186,6 +186,7 @@ impl World {
     /// Recalcule les statistiques du joueur et des armes.
     pub fn recompute_stats(&mut self) {
         let mut st = Stats::default();
+        st.might += self.content.rules.damage_bonus;
         for &(s, v) in &self.char_stats {
             st.add(s, v);
         }

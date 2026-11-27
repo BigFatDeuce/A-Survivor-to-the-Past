@@ -232,6 +232,7 @@ impl Game {
             evo: Vec::new(),
             evo_label: String::new(),
             keep: false,
+            fusion: 0,
         });
         let sub = lang.get("ui.witch.sub").replace("{n}", &rupees.to_string());
         menus::draw_cards(list, ctx, &self.vis, lang, (lang.get("ui.witch.title"), &sub, WITCH), &infos, sel, t);
@@ -280,7 +281,7 @@ impl Game {
         let font = ctx.atlas.font("main");
         let blink = (ctx.real_time * 3.0).fract() < 0.65;
         for n in &self.world.npcs {
-            let ui = n.pos - cam + view * 0.5;
+            let ui = self.to_ui(n.pos, cam, view);
             let col = if n.kind == NpcKind::Witch { WITCH } else { fortune::PURPLE };
             match Self::edge_point(view, ui) {
                 Some((c, d)) => self.edge_arrow(ctx, list, c, d, col, true),

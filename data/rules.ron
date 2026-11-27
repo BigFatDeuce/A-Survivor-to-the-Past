@@ -1,9 +1,13 @@
 // Regles globales de progression et d'equilibrage. 1 coeur = 10 points de vie.
 (
     // experience (rubis) pour passer du niveau 1 au 2, puis increment par niveau
+    // 0.8 : deux fois moins de montees de niveau (premier niveau aussi rapide), compensees par des
+    // ameliorations plus fortes (4 par objet au lieu de 5) et damage_bonus
     xp_first: 5.0,
-    xp_step: 8.0,
-    xp_step_late: 4.0,
+    xp_step: 16.0,
+    xp_step_late: 8.0,
+    // degats de toutes les armes en plus (0.25 = +25 %)
+    damage_bonus: 0.25,
     // onde de choc de montee de niveau : repousse sans blesser (J2)
     levelup_wave_radius: 110.0,
     levelup_wave_force: 420.0,

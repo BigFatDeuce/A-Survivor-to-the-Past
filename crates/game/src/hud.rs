@@ -30,6 +30,18 @@ pub const HL_FUSION: char = '\u{3}';
 /// Deblocage, nouveaute : vert.
 pub const HL_NEW: char = '\u{4}';
 
+/// 0.7.1 : avantage (vert) et defaut (rouge) d'un personnage, sans reflet ni etincelles.
+pub const HL_GOOD: char = '\u{5}';
+pub const HL_BAD: char = '\u{6}';
+
+pub fn hl_good(s: &str) -> String {
+    format!("{HL_GOOD}{s}{HL_END}")
+}
+
+pub fn hl_bad(s: &str) -> String {
+    format!("{HL_BAD}{s}{HL_END}")
+}
+
 pub fn hl(s: &str) -> String {
     format!("{HL}{s}{HL_END}")
 }
@@ -56,6 +68,27 @@ fn mix(a: Color, b: Color, k: f32) -> Color {
 }
 
 /// Texte avec ombre a une echelle entiere ; les balises de mise en valeur sont prises en compte.
+/// Largeur des colonnes du HUD (coeurs, rubis, objets a gauche ; niveau, ennemis vaincus a droite), qui restent
+/// dessinees sous les menus poses sur la partie.
+pub const HUD_SIDE: f32 = 150.0;
+
+/// Echelle du titre d'un menu pose sur la partie : `big`, ou plus petit s'il deborderait sur les colonnes du HUD
+/// (ecrans etroits, titres longs).
+pub fn title_scale(font: &Font, s: &str, view_x: f32, big: f32) -> f32 {
+    let w = font.measure(s) as f32;
+    let mut k = big;
+    while k > 1.0 && w * k > view_x - 2.0 * HUD_SIDE {
+        k -= 1.0;
+    }
+    k
+}
+
+/// Haut d'une ligne de texte centree verticalement dans un cadre (`top`, hauteur `h`) : avec `nudge`, le milieu de
+/// la ligne est le milieu de l'encre des lettres (ombre comprise) ; un demi-pixel restant va vers le haut.
+pub fn mid_y(font: &Font, top: f32, h: f32, scale: f32) -> f32 {
+    (top + (h - font.line_height as f32 * scale) * 0.5).floor()
+}
+
 pub fn text(list: &mut DrawList, font: &Font, s: &str, pos: Vec2, scale: f32, color: Color, align: Align) -> f32 {
     if !s.chars().any(|c| c.is_control() && c != '\n') {
         return list.text_ex(font, s, pos, scale, color, align, Some([0.0, 0.0, 0.0, color[3] * 0.75]));
@@ -98,14 +131,14 @@ fn rich_text(list: &mut DrawList, font: &Font, s: &str, pos: Vec2, scale: f32, c
     };
     for ch in s.chars() {
         match ch {
-            HL | HL_FUSION | HL_NEW => {
+            HL | HL_FUSION | HL_NEW | HL_GOOD | HL_BAD => {
                 flush(list, &mut buf, &mut x, &mut first);
                 style = Some(ch);
                 word_start = x + if first { 0.0 } else { sp };
                 idx = 0;
             }
             HL_END => {
-                if let Some(st) = style.take() {
+                if let Some(st) = style.take().filter(|st| !matches!(*st, HL_GOOD | HL_BAD)) {
                     words.push((word_start, x, st));
                 }
             }
@@ -120,13 +153,16 @@ fn rich_text(list: &mut DrawList, font: &Font, s: &str, pos: Vec2, scale: f32, c
                     let i = idx as f32;
                     idx += 1;
                     // reflet blanc qui balaie le mot
-                    let glint = ((t * 3.2 - i * 0.45).sin().max(0.0)).powi(6);
+                    let calm = matches!(st, HL_GOOD | HL_BAD);
+                    let glint = if calm { 0.0 } else { ((t * 3.2 - i * 0.45).sin().max(0.0)).powi(6) };
                     let (base, bob) = match st {
                         HL_FUSION => {
                             let k = 0.5 + 0.5 * (t * 2.5 - i * 0.6).sin();
                             (mix(rgb(255, 120, 240), rgb(255, 210, 120), k), ((t * 5.0 - i * 0.7).sin() * 1.0).round())
                         }
                         HL_NEW => (rgb(120, 255, 150), 0.0),
+                        HL_GOOD => (rgb(90, 220, 90), 0.0),
+                        HL_BAD => (rgb(250, 100, 90), 0.0),
                         _ => (GOLD, 0.0),
                     };
                     let mut col = mix(base, WHITE, glint * 0.85);
@@ -139,7 +175,7 @@ fn rich_text(list: &mut DrawList, font: &Font, s: &str, pos: Vec2, scale: f32, c
         }
     }
     flush(list, &mut buf, &mut x, &mut first);
-    if let Some(st) = style {
+    if let Some(st) = style.filter(|st| !matches!(*st, HL_GOOD | HL_BAD)) {
         words.push((word_start, x, st));
     }
     // etincelles autour des mots mis en valeur
@@ -173,11 +209,13 @@ fn rich_text(list: &mut DrawList, font: &Font, s: &str, pos: Vec2, scale: f32, c
         let clean: String = s.chars().filter(|c| !c.is_control()).collect();
         let missing: Vec<char> = clean.chars().filter(|&c| c != ' ' && font.glyph(c).is_none()).collect();
         let size = Vec2::new(w, font.line_height as f32 * scale);
-        let at = Vec2::new(x_start, pos.y + font.nudge as f32 * scale);
+        // boite de mise en page, sans `nudge` (meme regle que `text_ex`)
+        let at = Vec2::new(x_start, pos.y);
         for ch in missing {
             pr.push(engine::gfx::Probe::MissingGlyph { ch, text: clean.clone() });
         }
-        pr.push(engine::gfx::Probe::Text { pos: at, size, text: clean });
+        let ink = engine::draw::ink_band(font, scale, true);
+        pr.push(engine::gfx::Probe::Text { pos: at, size, text: clean, ink });
     }
     w
 }
@@ -199,7 +237,7 @@ pub fn wrap(font: &Font, s: &str, width: f32, scale: f32) -> Vec<String> {
             }
             for c in l.chars() {
                 match c {
-                    HL | HL_FUSION | HL_NEW => open = Some(c),
+                    HL | HL_FUSION | HL_NEW | HL_GOOD | HL_BAD => open = Some(c),
                     HL_END => open = None,
                     _ => {}
                 }
@@ -274,6 +312,10 @@ pub struct Hud {
     pub toasts: Vec<Toast>,
     /// Arme qui vient d'evoluer : sa case brille en rose (identifiant, temps restant).
     pub evo_flash: Option<(u16, f32)>,
+    /// Menu pose sur la partie (niveau, coffre...) : le HUD reste, mais le chrono (fige), le nom et la barre du boss
+    /// et les annonces (au milieu de l'ecran) sont caches : ils passeraient sous le titre du menu. En pause, le chrono reste.
+    pub busy: bool,
+    pub paused: bool,
 }
 
 impl Hud {
@@ -286,6 +328,8 @@ impl Hud {
             mode_banner: 0.0,
             toasts: Vec::new(),
             evo_flash: None,
+            busy: false,
+            paused: false,
             banner: None,
             hp_trail: 0.0,
             boss_trail: 1.0,
@@ -516,7 +560,9 @@ impl Hud {
         // chronometre
         let secs = world.time as u32;
         let tt = format!("{:02}:{:02}", secs / 60, secs % 60);
-        text(list, main, &tt, Vec2::new(view.x * 0.5, 9.0), 2.0, WHITE, Align::Center);
+        if !self.busy || self.paused {
+            text(list, main, &tt, Vec2::new(view.x * 0.5, 9.0), 2.0, WHITE, Align::Center);
+        }
 
         // niveau et ennemis vaincus
         let lv = format!("{} {}", lang.get("ui.level"), p.level);
@@ -531,7 +577,7 @@ impl Hud {
         list.rect(white, Vec2::new(sx + 4.0, 43.0), Vec2::new(2.0, 2.0), [0.0, 0.0, 0.0, 0.9]);
 
         // boss : nom et barre de vie
-        if let Some(i) = world.boss_index() {
+        if let (Some(i), false) = (world.boss_index(), self.busy) {
             let kind = world.horde.kind[i] as usize;
             let key = format!("enemy.{}", world.content.enemy_ids[kind]);
             let f = (world.horde.hp[i] / world.horde.max_hp[i]).clamp(0.0, 1.0);
@@ -569,6 +615,9 @@ impl Hud {
         }
 
         // annonce
+        if self.busy {
+            return;
+        }
         if let Some(tt) = self.toasts.first() {
             self.draw_toast(list, ctx, vis, tt);
         }
@@ -637,9 +686,9 @@ impl Hud {
         }
         list.set(Space::Ui, Blend::Alpha);
         let tx = ip.x + ib.x + 8.0;
-        text(list, main, &tt.title, Vec2::new(tx, pos.y + 4.0), 1.0, GOLD, Align::Left);
-        text(list, main, &hl_new(&tt.name), Vec2::new(tx, pos.y + 18.0), 1.0, WHITE, Align::Left);
-        text(list, main, &tt.sub, Vec2::new(tx, pos.y + 32.0), 1.0, rgb(200, 200, 220), Align::Left);
+        text(list, main, &tt.title, Vec2::new(tx, pos.y + 3.0), 1.0, GOLD, Align::Left);
+        text(list, main, &hl_new(&tt.name), Vec2::new(tx, pos.y + 17.0), 1.0, WHITE, Align::Left);
+        text(list, main, &tt.sub, Vec2::new(tx, pos.y + 31.0), 1.0, rgb(200, 200, 220), Align::Left);
     }
 }
 

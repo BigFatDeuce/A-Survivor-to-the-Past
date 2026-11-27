@@ -111,6 +111,7 @@ pub fn info(vis: &Vis, lang: &Lang, p: &Potion, rupees: u32) -> OfferInfo {
         evo: Vec::new(),
         evo_label: String::new(),
         keep: false,
+        fusion: 0,
     }
 }
 

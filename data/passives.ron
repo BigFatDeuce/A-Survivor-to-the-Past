@@ -11,8 +11,7 @@
             [(MoveSpeed, 0.07), (DashCooldown, -0.08)],
             [(MoveSpeed, 0.07), (DashCooldown, -0.08)],
             [(MoveSpeed, 0.07), (DashCooldown, -0.08)],
-            [(MoveSpeed, 0.07), (DashCooldown, -0.08)],
-            [(MoveSpeed, 0.07), (DashCooldown, -0.08)],
+            [(MoveSpeed, 0.14), (DashCooldown, -0.16)],
         ],
     ),
     "heart_container": (
@@ -21,17 +20,16 @@
             [(MaxHp, 10.0)],
             [(MaxHp, 10.0)],
             [(MaxHp, 10.0), (Regen, 0.15)],
-            [(MaxHp, 10.0)],
-            [(MaxHp, 10.0), (Regen, 0.15)],
+            [(MaxHp, 20.0), (Regen, 0.15)],
         ],
     ),
     "power_glove": (
         icon: "icon_glove",
-        levels: [[(Might, 0.1)], [(Might, 0.1)], [(Might, 0.1)], [(Might, 0.1)], [(Might, 0.1)]],
+        levels: [[(Might, 0.1)], [(Might, 0.1)], [(Might, 0.1)], [(Might, 0.2)]],
     ),
     "mirror_shield": (
         icon: "icon_mirror_shield",
-        levels: [[(Armor, 1.0)], [(Armor, 1.0)], [(Armor, 1.0)], [(Armor, 1.0)], [(Armor, 1.0)]],
+        levels: [[(Armor, 1.0)], [(Armor, 1.0)], [(Armor, 1.0)], [(Armor, 2.0)]],
     ),
     "quiver": (
         icon: "icon_quiver",
@@ -40,11 +38,11 @@
     ),
     "half_magic": (
         icon: "icon_half_magic",
-        levels: [[(Cooldown, -0.08)], [(Cooldown, -0.08)], [(Cooldown, -0.08)], [(Cooldown, -0.08)], [(Cooldown, -0.08)]],
+        levels: [[(Cooldown, -0.08)], [(Cooldown, -0.08)], [(Cooldown, -0.08)], [(Cooldown, -0.16)]],
     ),
     "lamp": (
         icon: "icon_lamp",
-        levels: [[(Area, 0.1)], [(Area, 0.1)], [(Area, 0.1)], [(Area, 0.1)], [(Area, 0.1)]],
+        levels: [[(Area, 0.1)], [(Area, 0.1)], [(Area, 0.1)], [(Area, 0.2)]],
     ),
     "bug_net": (
         icon: "icon_bug_net",
@@ -52,22 +50,21 @@
             [(Magnet, 0.35), (Duration, 0.05)],
             [(Magnet, 0.35), (Duration, 0.05)],
             [(Magnet, 0.35), (Duration, 0.05)],
-            [(Magnet, 0.35), (Duration, 0.05)],
-            [(Magnet, 0.35), (Duration, 0.05)],
+            [(Magnet, 0.7), (Duration, 0.1)],
         ],
     ),
     // 0.4
     "book_of_mudora": (
         icon: "icon_book",
-        levels: [[(Growth, 0.08)], [(Growth, 0.08)], [(Growth, 0.08)], [(Growth, 0.08)], [(Growth, 0.08)]],
+        levels: [[(Growth, 0.08)], [(Growth, 0.08)], [(Growth, 0.08)], [(Growth, 0.16)]],
     ),
     "mushroom": (
         icon: "icon_mushroom",
-        levels: [[(Luck, 0.1)], [(Luck, 0.1)], [(Luck, 0.1)], [(Luck, 0.1)], [(Luck, 0.1)]],
+        levels: [[(Luck, 0.1)], [(Luck, 0.1)], [(Luck, 0.1)], [(Luck, 0.2)]],
     ),
     "magic_cape": (
         icon: "icon_cape",
-        levels: [[(Duration, 0.1)], [(Duration, 0.1)], [(Duration, 0.1)], [(Duration, 0.1)], [(Duration, 0.1)]],
+        levels: [[(Duration, 0.1)], [(Duration, 0.1)], [(Duration, 0.1)], [(Duration, 0.2)]],
     ),
     "flippers": (
         icon: "icon_flippers",
@@ -75,8 +72,7 @@
             [(Speed, 0.1), (MoveSpeed, 0.03)],
             [(Speed, 0.1), (MoveSpeed, 0.03)],
             [(Speed, 0.1), (MoveSpeed, 0.03)],
-            [(Speed, 0.1), (MoveSpeed, 0.03)],
-            [(Speed, 0.1), (MoveSpeed, 0.03)],
+            [(Speed, 0.2), (MoveSpeed, 0.06)],
         ],
     ),
 }

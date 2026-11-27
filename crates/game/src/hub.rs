@@ -1,7 +1,7 @@
 //! Ecran a onglets commun a la boutique (Kakariko, Grande Fee, reliques, defis) et au profil
 //! (bestiaire, armurerie, statistiques, sauvegarde) : une liste qui defile, un panneau de detail
 //! et un bouton Retour. Clavier, manette et souris.
-use crate::hud::{frame_rect, text, wrap, BACK, GOLD};
+use crate::hud::{frame_rect, mid_y, text, wrap, BACK, GOLD};
 use crate::menus::NavIn;
 use engine::app::Ctx;
 use engine::assets::AnimId;
@@ -239,7 +239,7 @@ pub fn draw(
         list.probe_panel(p, s, "onglet");
         let lines = wrap(main, name, s.x - 8.0, 1.0);
         let shown = if lines.len() > 1 { format!("{}…", lines[0]) } else { name.clone() };
-        text(list, main, &shown, Vec2::new(p.x + s.x * 0.5, p.y + 4.0), 1.0, if on { GOLD } else { SOFT }, Align::Center);
+        text(list, main, &shown, Vec2::new(p.x + s.x * 0.5, mid_y(main, p.y, s.y, 1.0)), 1.0, if on { GOLD } else { SOFT }, Align::Center);
     }
     for &(k, p, s) in &l.rows {
         let r = &rows[k];
@@ -281,10 +281,11 @@ pub fn draw(
         } else {
             SOFT
         };
-        text(list, main, &shown, Vec2::new(x, p.y + 4.0), 1.0, c, Align::Left);
+        let ty = mid_y(main, p.y, s.y, 1.0);
+        text(list, main, &shown, Vec2::new(x, ty), 1.0, c, Align::Left);
         if !r.value.is_empty() {
             let vc = r.value_color.unwrap_or(if r.dim { DIMMED } else { WHITE });
-            text(list, main, &r.value, Vec2::new(p.x + s.x - 6.0, p.y + 4.0), 1.0, vc, Align::Right);
+            text(list, main, &r.value, Vec2::new(p.x + s.x - 6.0, ty), 1.0, vc, Align::Right);
         }
     }
     // panneau de detail
@@ -304,7 +305,7 @@ pub fn draw(
         focus_frame(list, ctx, bp, bs);
     }
     list.probe_panel(bp, bs, "retour");
-    text(list, main, back, Vec2::new(bp.x + bs.x * 0.5, bp.y + 4.0), 1.0, if on { GOLD } else { SOFT }, Align::Center);
+    text(list, main, back, Vec2::new(bp.x + bs.x * 0.5, mid_y(main, bp.y, bs.y, 1.0)), 1.0, if on { GOLD } else { SOFT }, Align::Center);
 }
 
 /// Cadre de selection bien visible : double bordure doree qui pulse, halo et coins marques.

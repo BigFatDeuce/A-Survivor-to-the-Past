@@ -1,7 +1,7 @@
 <p align="center"><img src="media/icon.png" width="128" height="128" alt="A Survivor to the Past"></p>
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i>Un survivors-like dans l'univers de <b>A Link to the Past</b> : tenez face aux hordes de monstres d'Hyrule.</i></p>
-<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.7.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.8.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
 <p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Télécharger</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ Jouer dans le navigateur</b></a></p>
 <p align="center"><a href="README.md">English</a> · <b>Français</b> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a> · <a href="README.it.md">Italiano</a> · <a href="README.pt.md">Português</a> · <a href="README.ja.md">日本語</a></p>
 
@@ -85,7 +85,7 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
 
 ## Jouer
 
-Le jeu est en **alpha** (version 0.7.0). **Windows** : téléchargez la dernière version sur la [page des versions](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), extrayez tout le zip et lancez `A Survivor to the Past.exe`. Windows peut prévenir que le jeu n'est pas signé : cliquez sur *Informations complémentaires* → *Exécuter quand même*. **Linux, macOS et consoles portables** (PortMaster, expérimental) : même page, prenez le zip de votre système et suivez son `README.txt`. Ensuite, le jeu **se met à jour tout seul** : au lancement, il vérifie sur GitHub s'il existe une nouvelle version, la télécharge en arrière-plan et l'installe au lancement suivant (Options → Mises à jour : Automatiques / Me demander / Non). Vos réglages sont conservés et aucune donnée personnelle n'est envoyée : les mises à jour ne contactent que GitHub, et le classement mondial ne contacte le site du jeu que lorsque vous l'ouvrez ou publiez un score (pseudo et score).
+Le jeu est en **alpha** (version 0.8.0). **Windows** : téléchargez la dernière version sur la [page des versions](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), extrayez tout le zip et lancez `A Survivor to the Past.exe`. Windows peut prévenir que le jeu n'est pas signé : cliquez sur *Informations complémentaires* → *Exécuter quand même*. **Linux, macOS et consoles portables** (PortMaster, expérimental) : même page, prenez le zip de votre système et suivez son `README.txt`. **Android** (téléphones et tablettes, commandes tactiles) : même page, téléchargez le fichier `.apk` et ouvrez-le (autorisez l'installation depuis votre navigateur) ; il ne se met pas à jour tout seul. Ensuite, le jeu **se met à jour tout seul** : au lancement, il vérifie sur GitHub s'il existe une nouvelle version, la télécharge en arrière-plan et l'installe au lancement suivant (Options → Mises à jour : Automatiques / Me demander / Non). Vos réglages sont conservés et aucune donnée personnelle n'est envoyée : les mises à jour ne contactent que GitHub, et le classement mondial ne contacte le site du jeu que lorsque vous l'ouvrez ou publiez un score (pseudo et score).
 
 **Navigateur** : [jouez directement sur le site](https://a-survivor-to-the-past.holy-c.men/play/), sans rien installer. Idéal sur ordinateur, dans Chrome, Edge ou Firefox ; votre progression est enregistrée dans le navigateur. Les versions Linux, macOS et Android viendront plus tard. En attendant, vous pouvez compiler le jeu depuis les sources avec [Rust](https://rustup.rs) (stable) :
 
@@ -112,8 +112,6 @@ Sous Linux, installez aussi les paquets de développement ALSA et udev (`libasou
 
 - De vraies cartes dessinées à la main et d'autres personnages jouables
 - D'autres boss avec leurs propres attaques et animations
-- Commandes tactiles pour téléphones et tablettes
-- Versions Linux, macOS et Android
 
 ## Communauté
 

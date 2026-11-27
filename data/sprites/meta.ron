@@ -24,6 +24,10 @@
                 "icon_fire_shield":    { "0": (frames: [(179, 12, 11, 12)], pivot: (0, 0), align: Center) },
                 "icon_shovel":         { "0": (frames: [(61, 120, 8, 16)], pivot: (0, 0), align: Center) },
                 "icon_small_key":      { "0": (frames: [(232, 169, 8, 15)], pivot: (0, 0), align: Center) },
+                // 0.7.1 : reliques a acheter (bouclier de soldat, pomme, petite fiole de magie)
+                "icon_fighter_shield": { "0": (frames: [(160, 11, 8, 10)], pivot: (0, 0), align: Center) },
+                "icon_apple":          { "0": (frames: [(218, 226, 11, 13)], pivot: (0, 0), align: Center) },
+                "icon_magic_jar":      { "0": (frames: [(120, 280, 8, 8)], pivot: (0, 0), align: Center) },
             },
         ),
     ],

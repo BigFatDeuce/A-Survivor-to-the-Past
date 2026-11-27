@@ -2,7 +2,7 @@
 // Manette (gilrs) : South = A/Croix, East = B/Rond, West = X/Carre, North = Y/Triangle,
 // LeftTrigger2/RightTrigger2 = gachettes. Souris : Left, Right, Middle.
 // Ecran Commandes (options) : les touches choisies par le joueur (settings.ron) remplacent ces listes
-// pour up, down, left, right, attack, dash, toggle_auto et pause ; les menus gardent celles-ci.
+// pour up, down, left, right, attack, dash, toggle_auto, zoom et pause ; les menus gardent celles-ci.
 (
     actions: {
         "up":          [Key(KeyW), Key(ArrowUp), Pad(DPadUp)],
@@ -22,7 +22,11 @@
         // onglets des menus : gachettes et boutons de tranche de la manette, Q / E ou Page prec. / suiv.
         "tab_prev":    [Key(KeyQ), Key(PageUp), Pad(LeftTrigger), Pad(LeftTrigger2)],
         "tab_next":    [Key(KeyE), Key(PageDown), Pad(RightTrigger), Pad(RightTrigger2)],
+        // couleur du personnage (choix du personnage) : R, Y / Triangle ; les gachettes changent d'univers
+        "skin":        [Key(KeyR), Pad(North)],
         // plein ecran : Select de la manette (F11 ou Alt+Entree au clavier)
         "fullscreen":  [Pad(Select)],
+        // zoom en partie (3 niveaux) : E, bouton de tranche droit (R1 / RB)
+        "zoom":        [Key(KeyE), Pad(RightTrigger)],
     },
 )

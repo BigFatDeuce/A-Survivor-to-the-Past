@@ -228,11 +228,15 @@ fn darkness(list: &mut DrawList, white: &Frame, view: Vec2, player: Vec2, t: f32
 
 /// Porte de sortie (monde) : colonne de lumiere, anneau au sol et etincelles qui montent.
 pub fn draw_portal(list: &mut DrawList, ctx: &Ctx, v: &WeatherVis, white: &Frame, at: Vec2, age: f32, t: f32) {
-    let open = (age / 0.8).clamp(0.0, 1.0);
+    // ouverture douce : l'anneau s'ouvre au sol, puis la colonne monte (courbe en S)
+    let u = (age / 1.6).clamp(0.0, 1.0);
+    let open = u * u * (3.0 - 2.0 * u);
+    let rise = ((age - 0.3) / 1.3).clamp(0.0, 1.0);
+    let rise = rise * rise * (3.0 - 2.0 * rise);
     list.set(Space::World, Blend::Add);
     // colonne
     let w = 18.0 * open;
-    let hgt = 96.0;
+    let hgt = 96.0 * rise.max(0.01);
     let rows = 24;
     for k in 0..rows {
         let u = k as f32 / rows as f32;

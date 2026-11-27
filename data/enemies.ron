@@ -10,7 +10,7 @@
 //   Charger(range, windup, speed, time, rest)  s'arrete (annonce) puis charge en ligne droite
 //   Shooter(range, keep, cooldown, windup, shot)  garde ses distances et tire
 //   Boss(actions: [Walk(s), Charge(..), Throw(..), Summon(..)])  patron en boucle
-// Retour J1 : degats au contact releves (foncer dans la foule doit couter cher).
+// Degats au contact eleves : foncer dans la foule doit couter cher.
 {
     "soldier_green": (
         sprite: "soldier_green", anims: Dir4(prefix: "walk", side_faces_left: false),
