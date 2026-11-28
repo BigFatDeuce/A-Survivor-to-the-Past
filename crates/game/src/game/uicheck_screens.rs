@@ -289,10 +289,13 @@ impl Game {
                 // page suivante : tous les personnages d'un coup (bien plus qu'une page)
                 let all: Vec<menus::Unlock> = chars::roster(&c).into_iter().map(menus::Unlock::Char).collect();
                 screens.push(("deblocages_pages".into(), State::Unlocks { items: all, t: 20.0, next: menus::AfterUnlock::Victory }));
-                for page in 0..fairy_tip::PAGES {
-                    screens.push((format!("fee_{page}"), State::Fairy { page, t: 30.0, ask: None }));
+                for (name, talk) in [("fee", fairy_tip::Talk::Shop), ("fee_intro", fairy_tip::Talk::Intro), ("fee_bravo", fairy_tip::Talk::Victory)] {
+                    for page in 0..talk.pages() {
+                        screens.push((format!("{name}_{page}"), State::Fairy { talk, page, t: 30.0, ask: None }));
+                    }
                 }
-                screens.push(("fee_passer".into(), State::Fairy { page: 2, t: 30.0, ask: Some(1) }));
+                screens.push(("fin_ganon".into(), State::GanonDeath { t: 5.0, pos: Vec2::ZERO }));
+                screens.push(("fee_passer".into(), State::Fairy { talk: fairy_tip::Talk::Shop, page: 2, t: 30.0, ask: Some(1) }));
                 // choix entre deux armes qui partagent un objet partenaire (arc et lance-pierre : carquois)
                 let pair: Vec<(usize, u16)> = ["silver_bow", "hyper_slingshot"].iter().filter_map(|id| c.weapon_index(id)).enumerate().collect();
                 if pair.len() == 2 {

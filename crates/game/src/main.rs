@@ -6,6 +6,7 @@
 //!   --novsync               sans synchro verticale (images non limitees)
 //!   --fps-cap 240           limite d'images sans synchro
 //!   --bench 3000            test de charge : 3000 ennemis maintenus, Link invincible
+//!   --god                   Link invincible (essais de fin de partie)
 //!   --seconds 20            quitte apres 20 s
 //!   --shot fichier.png 5    capture d'ecran apres 5 s (option repetable)
 //!   --demo                  Link se deplace et choisit seul (captures, essais)
@@ -28,6 +29,7 @@ mod gallery;
 mod content;
 mod controls;
 mod director;
+mod ending;
 mod fairy_tip;
 mod fortune;
 mod game;
@@ -68,6 +70,7 @@ use std::path::PathBuf;
 fn default_options() -> game::Options {
     game::Options {
         bench: None,
+        god: false,
         demo: false,
         seed: 0x5eed,
         map: "hyrule_field".into(),
@@ -183,6 +186,7 @@ fn main() {
                 cfg.fps_cap = Some(num(args.get(i + 1)));
                 i += 1;
             }
+            "--god" => opts.god = true,
             "--bench" => {
                 opts.bench = Some(num(args.get(i + 1)) as u32);
                 i += 1;
@@ -233,6 +237,25 @@ fn main() {
                 i += 1;
             }
             "--play" => opts.play = true,
+            // bande-annonce : video sans perte + journal des effets sonores (voir trailer/)
+            "--record" => {
+                cfg.record = args.get(i + 1).map(PathBuf::from);
+                opts.scripted = true;
+                i += 1;
+            }
+            "--record-from" => {
+                cfg.record_from = num(args.get(i + 1));
+                i += 1;
+            }
+            // touches jouees pendant l'enregistrement : fichier RON [(temps, Touche, duree), ...]
+            "--script" => {
+                let text = args.get(i + 1).and_then(|p| std::fs::read_to_string(p).ok()).unwrap_or_default();
+                match ron::from_str::<Vec<(f32, engine::input::KeyCode, f32)>>(&text) {
+                    Ok(v) => cfg.script = v,
+                    Err(e) => log::error!("--script : {e}"),
+                }
+                i += 1;
+            }
             "--uicheck" => opts.uicheck = true,
             "--video" => {
                 use engine::gfx::VideoFilter as V;

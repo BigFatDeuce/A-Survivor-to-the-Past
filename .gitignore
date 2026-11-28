@@ -51,3 +51,6 @@ desktop.ini
 
 # notes de travail internes (journal, decisions) : jamais publiees
 /notes/
+
+# outils et rushes des bandes-annonces (jamais publies) : trailertools/
+/trailertools/

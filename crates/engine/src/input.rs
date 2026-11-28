@@ -80,6 +80,30 @@ pub struct Input {
     /// (doigt, point de depart) : garde meme si le doigt est deja leve (appui tres bref entre deux images).
     touch_started: [Vec<(u64, Vec2)>; 2],
     tap: Option<Tap>,
+    /// Console portable (PortMaster, `ASTP_CONSOLE`) : gilrs lit mal ses boutons ; gptokeyb envoie
+    /// F1..F10 et les fleches, traduits ici en boutons de manette.
+    console: bool,
+}
+
+/// Touches envoyees par gptokeyb en mode console -> bouton de manette.
+fn console_button(k: KeyCode) -> Option<Button> {
+    Some(match k {
+        KeyCode::F1 => Button::South,
+        KeyCode::F2 => Button::East,
+        KeyCode::F3 => Button::West,
+        KeyCode::F4 => Button::North,
+        KeyCode::F5 => Button::LeftTrigger,
+        KeyCode::F6 => Button::RightTrigger,
+        KeyCode::F7 => Button::LeftTrigger2,
+        KeyCode::F8 => Button::RightTrigger2,
+        KeyCode::F9 => Button::Start,
+        KeyCode::F10 => Button::Select,
+        KeyCode::ArrowUp => Button::DPadUp,
+        KeyCode::ArrowDown => Button::DPadDown,
+        KeyCode::ArrowLeft => Button::DPadLeft,
+        KeyCode::ArrowRight => Button::DPadRight,
+        _ => return None,
+    })
 }
 
 impl Default for Input {
@@ -112,9 +136,11 @@ fn log_pad(p: gilrs::Gamepad<'_>) {
 
 impl Input {
     pub fn new() -> Input {
-        let gilrs = match Gilrs::new() {
-            Ok(g) => Some(g),
-            Err(e) => {
+        let console = std::env::var_os("ASTP_CONSOLE").is_some();
+        let gilrs = match (!console).then(Gilrs::new) {
+            None => None,
+            Some(Ok(g)) => Some(g),
+            Some(Err(e)) => {
                 log::warn!("manettes indisponibles : {e}");
                 None
             }
@@ -145,10 +171,23 @@ impl Input {
             touches: Vec::new(),
             touch_started: Default::default(),
             tap: None,
+            console,
         }
     }
 
     pub(crate) fn key_event(&mut self, code: KeyCode, down: bool, repeat: bool) {
+        if let Some(b) = console_button(code).filter(|_| self.console) {
+            if !down {
+                self.pad_buttons.remove(&b);
+            } else if !repeat {
+                self.pad_buttons.insert(b);
+                self.pad_pressed.iter_mut().for_each(|s| {
+                    s.insert(b);
+                });
+                self.last_device = Device::Gamepad;
+            }
+            return;
+        }
         if down {
             if !repeat {
                 self.keys_pressed.iter_mut().for_each(|s| {
@@ -392,7 +431,7 @@ impl Input {
     }
 
     pub fn has_pad(&self) -> bool {
-        self.pad.is_some()
+        self.console || self.pad.is_some()
     }
 
     fn axis(&self, a: Axis) -> f32 {
@@ -465,6 +504,19 @@ impl Input {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn console_keys_become_pad_buttons() {
+        let mut i = Input::new();
+        i.console = true;
+        i.key_event(KeyCode::F1, true, false);
+        assert!(i.pad_pressed(Button::South) && i.pad(Button::South) && i.last_device == Device::Gamepad);
+        assert!(!i.key(KeyCode::F1) && i.has_pad());
+        i.key_event(KeyCode::F1, false, false);
+        assert!(!i.pad(Button::South));
+        i.key_event(KeyCode::KeyA, true, false);
+        assert!(i.key(KeyCode::KeyA));
+    }
 
     #[test]
     fn trigger_axes_become_buttons() {

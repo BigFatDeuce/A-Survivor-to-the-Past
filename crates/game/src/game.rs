@@ -3,6 +3,7 @@ use crate::chars;
 use crate::content::{load_bindings, load_content, AudioConfig};
 use crate::director::{Director, Moment};
 use crate::fairy_tip;
+use crate::ending;
 use crate::gallery;
 use crate::hub;
 use crate::hud::{Hud, GOLD};
@@ -46,6 +47,8 @@ mod uicheck_screens;
 pub struct Options {
     /// Test de charge : nombre d'ennemis maintenus en permanence.
     pub bench: Option<u32>,
+    /// Link invincible (essais : fin du jeu, boss).
+    pub god: bool,
     /// Deplacement et choix automatiques (captures, essais).
     pub demo: bool,
     pub seed: u64,
@@ -95,8 +98,9 @@ enum State {
     Chest { reward: ChestReward, big: bool, t: f32 },
     /// Fin de partie : personnages et armes debloques, montres l'un apres l'autre, puis `next`.
     Unlocks { items: Vec<menus::Unlock>, t: f32, next: menus::AfterUnlock },
-    /// Conseils de la fee sur l'ecran titre (page, temps de la page, question « passer ? »).
-    Fairy { page: usize, t: f32, ask: Option<usize> },
+    /// Discours de la fee (page, temps de la page, question « passer ? ») : sur l'ecran titre, ou en
+    /// partie pour les bases du jeu (`Talk::Intro`).
+    Fairy { talk: fairy_tip::Talk, page: usize, t: f32, ask: Option<usize> },
     /// Plusieurs armes pretes pour le meme objet partenaire : le joueur choisit celle qui evolue.
     EvoChoice { options: Vec<(usize, u16)>, big: bool, sel: usize, t: f32 },
     /// Champion errant vaincu : recompense au choix.
@@ -107,6 +111,11 @@ enum State {
     Witch { sel: usize, t: f32 },
     Dying(f32),
     Dead { t: f32, sel: usize },
+    /// Ganon vaincu une premiere fois : mort epique (partie figee), `pos` : Ganon (monde).
+    GanonDeath { t: f32, pos: Vec2 },
+    /// Generique de fin (portail franchi apres la premiere victoire sur Ganon).
+    /// `wait` : temps passe au bout du rouleau (il faut un nouvel appui pour continuer).
+    Credits { t: f32, scroll: f32, wait: f32 },
     /// Choix du personnage, puis du stage (sur le decor du titre).
     /// `page` : univers (chars::GROUPS) ; `sel` : rang dans la page (n : Retour, n + 1 : univers).
     CharSelect { page: usize, sel: usize },
@@ -182,7 +191,7 @@ impl State {
                 | State::Scores { .. }
                 | State::Controls { from_title: true, .. }
                 | State::Options { from_title: true, .. }
-                | State::Fairy { .. }
+                | State::Fairy { talk: fairy_tip::Talk::Shop | fairy_tip::Talk::Victory, .. }
         )
     }
 }
@@ -247,6 +256,12 @@ pub struct Game {
     /// Reste de molette pour le zoom (pave tactile : fractions de cran).
     zoom_wheel: f32,
     boss_music: bool,
+    /// Ganon vaincu pour la premiere fois dans cette partie : generique au portail.
+    ending_run: bool,
+    /// Generique vu : la fee felicite le joueur au retour sur l'ecran titre.
+    congrats: bool,
+    /// Generique mis en page, et l'ordre des personnages du defile.
+    credits: Option<(ending::Credits, Vec<String>)>,
     title_vis: TitleVis,
     links: Links,
     /// Temps des animations de l'ecran titre (s).
@@ -393,6 +408,7 @@ impl Game {
         let settings = Settings::load(&ctx.root);
         let updater = Updater::new(&ctx.root, opts.update_source.clone());
         settings.apply_audio(&mut ctx.audio);
+        ctx.perf = settings.perf;
         let base_bindings = load_bindings(&ctx.root);
         let bindings = settings.bindings(&base_bindings);
         let lang = Lang::load(&ctx.root, opts.lang.as_deref().unwrap_or(&settings.lang));
@@ -440,6 +456,9 @@ impl Game {
             view_zoom: 1.0,
             zoom_wheel: 0.0,
             boss_music: false,
+            ending_run: false,
+            congrats: false,
+            credits: None,
             title_vis: TitleVis::new(ctx),
             weather_vis: WeatherVis::new(&ctx.atlas),
             prop_buf: Vec::new(),
@@ -620,8 +639,11 @@ impl Game {
                 State::LevelUp { offers, sel: 0, t: 1.0 }
             }
             // deblocages de fin de partie : 3 personnages et 2 armes (captures)
-            Some("fairy") => State::Fairy { page: 0, t: 3.0, ask: None },
-            Some("fairy_skip") => State::Fairy { page: 1, t: 3.0, ask: Some(0) },
+            Some("fairy") => State::Fairy { talk: fairy_tip::Talk::Shop, page: 0, t: 3.0, ask: None },
+            Some("fairy_skip") => State::Fairy { talk: fairy_tip::Talk::Shop, page: 1, t: 3.0, ask: Some(0) },
+            Some("fairy_win") => State::Fairy { talk: fairy_tip::Talk::Victory, page: 0, t: 3.0, ask: None },
+            Some("fairy_intro") => State::Fairy { talk: fairy_tip::Talk::Intro, page: 0, t: 3.0, ask: None },
+            Some("credits") => State::Credits { t: 0.0, scroll: 0.0, wait: 0.0 },
             // tout le roster d'un coup : plusieurs pages (captures)
             Some("unlocks_all") => State::Unlocks { items: chars::roster(&g.content).into_iter().map(menus::Unlock::Char).collect(), t: 0.0, next: menus::AfterUnlock::Title },
             Some("unlocks") => {
@@ -1076,6 +1098,7 @@ impl Game {
                 log::warn!("--give : inconnu {id}");
             }
         }
+        w.player.god = opts.god;
         if let Some(n) = opts.bench {
             w.spawning = false;
             w.player.god = true;
@@ -1147,6 +1170,13 @@ impl Game {
         self.hud.relics = self.relic_icons(&ctx.atlas);
         self.director.clear();
         self.state = State::Playing;
+        // premiere partie seul : la fee explique les bases (une fois par profil)
+        if !self.profile.fairy_intro && self.coop.is_none() && !self.opts.demo && !self.opts.scripted && !self.opts.uicheck && self.opts.bench.is_none() {
+            self.profile.fairy_intro = true;
+            self.profile.save(&ctx.root);
+            self.sfx(ctx, "fairy");
+            self.state = State::Fairy { talk: fairy_tip::Talk::Intro, page: 0, t: 0.0, ask: None };
+        }
         self.cam = None;
         self.rupee_chain = 0;
         self.suppress = true;
@@ -1582,6 +1612,13 @@ impl Game {
                 }
                 Event::BossDied { pos, last, kind } => {
                     self.run_bosses += 1;
+                    // premiere victoire sur Ganon (seul) : mort epique, puis generique au portail
+                    let ganon = self.content.enemy_ids.get(kind as usize).is_some_and(|id| id == "ganon");
+                    if last && ganon && !self.profile.ending && self.coop.is_none() {
+                        self.ending_run = true;
+                        log::info!("fin du jeu : Ganon vaincu une premiere fois ({:.1} s de jeu reel)", ctx.real_time);
+                        self.state = State::GanonDeath { t: 0.0, pos };
+                    }
                     self.unlock_weapons_from(ctx, kind);
                     if last {
                         ctx.audio.stop_music(1.5);
@@ -1618,6 +1655,16 @@ impl Game {
                     self.commit_run(&root, true);
                     self.collect_unlocks();
                     ctx.audio.stop_music(0.3);
+                    if self.ending_run {
+                        self.ending_run = false;
+                        self.profile.ending = true;
+                        self.profile.save(&root);
+                        self.credits = None;
+                        log::info!("fin du jeu : generique ({:.1} s de jeu reel)", ctx.real_time);
+                        self.play_music(ctx, "staff_roll", 0.0);
+                        self.state = State::Credits { t: 0.0, scroll: 0.0, wait: 0.0 };
+                        continue;
+                    }
                     self.play_music(ctx, "great_victory", 0.0);
                     self.state = if self.pending_unlocks.is_empty() {
                         State::Victory { t: 0.0, sel: 0 }
@@ -1911,6 +1958,25 @@ impl Game {
         false
     }
 
+    /// Touches citees par la fee : la premiere liee a chaque action, pour l'appareil utilise.
+    fn fairy_fill(&self, ctx: &Ctx) -> fairy_tip::Fill {
+        let dev = ctx.input.last_device;
+        let pad = dev == Device::Gamepad;
+        let first = |act: &str| {
+            self.bindings.actions.get(act).and_then(|v| v.iter().find(|b| matches!(b, engine::input::Binding::Pad(_)) == pad)).map(|b| crate::controls::binding_name(&ctx.input, &self.lang, b)).unwrap_or_else(|| "-".into())
+        };
+        let moves: Vec<String> = ["up", "left", "down", "right"].iter().map(|a| first(a)).collect();
+        let mv = if pad {
+            self.lang.get("fairy.move_pad").to_string()
+        } else if moves.iter().all(|m| m.chars().count() == 1) {
+            moves.concat()
+        } else {
+            moves.join("/")
+        };
+        let keys = vec![("move", mv), ("attack", first("attack")), ("dash", first("dash")), ("auto", first("toggle_auto")), ("pause", first("pause"))];
+        fairy_tip::Fill { touch: dev == Device::Touch, keys }
+    }
+
     fn resume(&mut self, ctx: &mut Ctx) {
         if !self.check_pending(ctx) {
             self.state = State::Playing;
@@ -2065,6 +2131,10 @@ impl Game {
             Opt::Fullscreen => {
                 s.fullscreen = !ctx.fullscreen;
                 ctx.set_fullscreen(s.fullscreen);
+            }
+            Opt::Perf => {
+                s.perf = (s.perf as i32 + step).rem_euclid(3) as u8;
+                ctx.perf = s.perf;
             }
             Opt::Updates => {
                 let all = UpdateMode::ALL;
@@ -3906,25 +3976,91 @@ impl Game {
                     }
                 }
             }
-            State::Fairy { page, t, ask } => match fairy_tip::update(ctx, &self.lang, nav, dt, page, t, ask) {
-                fairy_tip::Step::Stay { page, t, ask } => State::Fairy { page, t, ask },
+            State::GanonDeath { t, pos } => {
+                let t2 = t + dt;
+                for &(at, s, g, r) in &ending::DEATH_SFX {
+                    if t < at && t2 >= at {
+                        self.sfx_p(ctx, s, g, r);
+                    }
+                }
+                let (k0, k1) = ((t * ending::BLASTS) as u32, (t2 * ending::BLASTS) as u32);
+                if k1 != k0 && t2 < 3.7 {
+                    let at = pos + ending::blast_offset(k1);
+                    self.juice.anim(self.vis.explosion, at, 0.5);
+                    self.juice.debris(at, Vec2::ZERO, 10, if k1 % 2 == 0 { GOLD } else { WHITE }, 140.0, true);
+                    self.juice.add_trauma(0.35, 1.0);
+                }
+                if t < 3.7 && t2 >= 3.7 {
+                    self.juice.add_trauma(1.0, 1.0);
+                    for k in 0..4 {
+                        self.juice.ring(pos - Vec2::new(0.0, 16.0), 6.0 + k as f32 * 12.0, 120.0 + k as f32 * 70.0, 0.7 + k as f32 * 0.2, if k % 2 == 0 { GOLD } else { WHITE });
+                    }
+                }
+                if t2 >= ending::DEATH {
+                    self.resume(ctx);
+                    return;
+                }
+                State::GanonDeath { t: t2, pos }
+            }
+            State::Credits { t, scroll, wait } => {
+                if self.credits.as_ref().is_none_or(|c| c.0.stale(ctx)) {
+                    self.credits = Some((ending::Credits::new(ctx, &self.lang), chars::roster(&self.content)));
+                }
+                let stop = self.credits.as_ref().map_or(0.0, |c| c.0.stop);
+                let t2 = t + dt;
+                let fast = if ctx.input.action(&self.bindings, "confirm") { 5.0 } else { 1.0 };
+                let mut scroll = (scroll + dt * ending::SPEED * fast).min(stop);
+                if nav.back && t > 1.0 {
+                    scroll = stop;
+                }
+                let wait = if scroll >= stop { wait + dt } else { 0.0 };
+                if wait > 1.5 && (nav.confirm || nav.click || nav.back) {
+                    self.sfx(ctx, "confirm");
+                    self.congrats = true;
+                    self.credits = None;
+                    ctx.audio.stop_music(0.5);
+                    self.play_music(ctx, "great_victory", 0.0);
+                    if self.pending_unlocks.is_empty() {
+                        State::Victory { t: 0.0, sel: 0 }
+                    } else {
+                        State::Unlocks { items: std::mem::take(&mut self.pending_unlocks), t: 0.0, next: menus::AfterUnlock::Victory }
+                    }
+                } else {
+                    State::Credits { t: t2, scroll, wait }
+                }
+            }
+            State::Fairy { talk, page, t, ask } => match fairy_tip::update(ctx, &self.lang, talk, &self.fairy_fill(ctx), nav, dt, page, t, ask) {
+                fairy_tip::Step::Stay { page, t, ask } => State::Fairy { talk, page, t, ask },
                 fairy_tip::Step::Sfx(s, page, t, ask) => {
                     self.sfx(ctx, s);
-                    State::Fairy { page, t, ask }
+                    State::Fairy { talk, page, t, ask }
                 }
                 fairy_tip::Step::Done => {
                     self.sfx(ctx, "fairy");
-                    State::Title { sel: TITLE_SHOP }
+                    match talk {
+                        fairy_tip::Talk::Shop => State::Title { sel: TITLE_SHOP },
+                        fairy_tip::Talk::Victory => State::Title { sel: 0 },
+                        fairy_tip::Talk::Intro => {
+                            self.resume(ctx);
+                            return;
+                        }
+                    }
                 }
             },
         };
+        // generique vu : la fee felicite le joueur sur l'ecran titre
+        if matches!(self.state, State::Title { .. }) && self.menu_t > 0.8 && self.congrats {
+            self.congrats = false;
+            self.sfx(ctx, "fairy");
+            self.state = State::Fairy { talk: fairy_tip::Talk::Victory, page: 0, t: 0.0, ask: None };
+        }
         // apres deux defaites, une fee vient parler de la Boutique (une fois, l'ecran titre installe)
         if matches!(self.state, State::Title { .. }) && self.menu_t > 0.8 && fairy_tip::due(&self.profile) && !self.opts.uicheck && !self.opts.demo && !self.opts.scripted {
             self.sfx(ctx, "fairy");
             // une seule fois par profil, meme si le jeu est quitte pendant qu'elle parle
             self.profile.fairy_tip = true;
             self.profile.save(&ctx.root);
-            self.state = State::Fairy { page: 0, t: 0.0, ask: None };
+            self.state = State::Fairy { talk: fairy_tip::Talk::Shop, page: 0, t: 0.0, ask: None };
         }
     }
 
@@ -4813,7 +4949,17 @@ impl Game {
         }
         let lang = &self.lang;
         match &self.state {
-            State::Title { .. } | State::About { .. } | State::Fairy { .. } => {}
+            State::Title { .. } | State::About { .. } => {}
+            State::GanonDeath { t, pos } => {
+                let cam = self.cam.unwrap_or(self.world.player.pos);
+                let at = self.to_ui(*pos - Vec2::new(0.0, 16.0), cam, ctx.view);
+                ending::draw_death(list, ctx, lang, &self.vis.white, at, *t);
+            }
+            State::Credits { .. } => {}
+            State::Fairy { talk, page, t, ask } => {
+                let white = self.vis.white;
+                fairy_tip::draw(list, ctx, lang, *talk, &self.fairy_fill(ctx), &white, *page, *t, *ask);
+            }
             State::Paused { sel } => menus::draw_pause(list, ctx, &self.vis, lang, *sel, &self.world, &self.profile.evolutions, self.fallback),
             State::Options { sel, .. } => {
                 let code_idx = LANGS.iter().position(|&c| c == self.settings.lang).unwrap_or(0);
@@ -4826,6 +4972,7 @@ impl Game {
                     music: self.settings.music,
                     sfx: self.settings.sfx,
                     fullscreen: ctx.fullscreen,
+                    perf: self.settings.perf,
                     updates: self.settings.updates,
                 };
                 menus::draw_options(list, ctx, &self.vis, lang, *sel, &v);
@@ -4949,6 +5096,11 @@ impl Game {
     }
 
     fn draw_scene(&mut self, ctx: &Ctx, alpha: f32, list: &mut DrawList) -> Frame {
+        if let (State::Credits { t, scroll, wait }, Some((c, roster))) = (&self.state, &self.credits) {
+            let done = *wait > 1.5;
+            ending::draw_credits(list, ctx, &self.lang, &self.content, roster, &self.vis.white, c, *t, *scroll, done);
+            return Frame { camera: Vec2::ZERO, zoom: 1.0, clear: [0.0, 0.0, 0.0] };
+        }
         if self.state.in_title() {
             // dernier stage (Ganon) gagne par ce joueur : logo illumine
             let last = self.stage_ids.last().and_then(|id| self.profile.stages.get(id));
@@ -4962,10 +5114,10 @@ impl Game {
                     let items = self.title_items();
                     title::draw_title(list, ctx, &self.title_vis, &self.lang, &white, &items, *sel, self.profile.avatar, self.menu_t)
                 }
-                State::Fairy { page, t, ask } => {
-                    // decor seul : le menu revient a la fin, curseur sur la Boutique
+                State::Fairy { talk, page, t, ask } => {
+                    // decor seul : le menu revient a la fin
                     title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
-                    fairy_tip::draw(list, ctx, &self.lang, &white, *page, *t, *ask);
+                    fairy_tip::draw(list, ctx, &self.lang, *talk, &self.fairy_fill(ctx), &white, *page, *t, *ask);
                 }
                 State::Shop { .. } | State::Prep { .. } | State::Records { .. } | State::Controls { .. } | State::Scores { .. } => {
                     title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
@@ -5018,10 +5170,14 @@ impl Game {
                         NamePurpose::Pseudo { .. } => ("ui.name_pseudo", self.profile.avatar),
                         NamePurpose::Room => ("ui.coop.code", self.profile.avatar),
                     };
-                    let hint = match purpose {
-                        NamePurpose::Setup => "ui.name_hint_setup",
-                        NamePurpose::Room => "ui.coop.code_hint",
-                        _ => "ui.name_hint",
+                    let pad = ctx.input.last_device == Device::Gamepad;
+                    let hint = match (purpose, pad) {
+                        (NamePurpose::Setup, false) => "ui.name_hint_setup",
+                        (NamePurpose::Setup, true) => "ui.name_hint_setup_pad",
+                        (NamePurpose::Room, false) => "ui.coop.code_hint",
+                        (NamePurpose::Room, true) => "ui.coop.code_hint_pad",
+                        (_, false) => "ui.name_hint",
+                        (_, true) => "ui.name_hint_pad",
                     };
                     players::draw_name(list, ctx, &self.lang, (self.lang.get(key), hint), text, *sel, Some(avatar), self.menu_t);
                 }
@@ -5052,9 +5208,15 @@ impl Game {
         }
         let w = &self.world;
         let pp = w.player.prev.lerp(w.player.pos, alpha) - Vec2::new(0.0, 8.0);
+        // mort de Ganon : la camera glisse sur lui, puis revient au joueur
+        let (target, k) = match self.state {
+            State::GanonDeath { t, pos } if t < ending::DEATH - 1.4 => (pos - Vec2::new(0.0, 16.0), 5.0),
+            State::GanonDeath { .. } => (pp, 4.0),
+            _ => (pp, 12.0),
+        };
         let cam = match self.cam {
-            None => pp,
-            Some(c) => c + (pp - c) * (1.0 - (-self.frame_dt * 12.0).exp()),
+            None => target,
+            Some(c) => c + (target - c) * (1.0 - (-self.frame_dt * k).exp()),
         };
         self.cam = Some(cam);
         let cam_shaken = cam + self.juice.shake;
@@ -5081,7 +5243,7 @@ impl Game {
         self.hud.banked = (bank_amount(self.world.player.rupees, false, mult) as f32 * self.run_bank_mult).round() as u64;
         self.hud.busy = !matches!(self.state, State::Playing | State::Dying(_));
         self.hud.paused = matches!(self.state, State::Paused { .. });
-        self.hud.draw(list, ctx, &self.world, &self.vis, &self.lang);
+        self.hud.draw(list, ctx, &self.world, &self.vis, &self.lang, &self.bindings);
         self.draw_coop_overlay(ctx, list);
         self.draw_overlays(ctx, list);
         self.draw_choice_timer(ctx, list);
@@ -5148,6 +5310,8 @@ impl GameTrait for Game {
             self.mass_fx_cd = (self.mass_fx_cd - dt).max(0.0);
         }
         ctx.time_scale = match self.state {
+            // mort de Ganon : partie figee (pas de pas de simulation), effets animes
+            State::GanonDeath { .. } => 1.0,
             _ if self.state.frozen() => 0.0,
             _ if self.juice.hitstop > 0.0 => 0.0,
             State::Dying(_) => 0.3,

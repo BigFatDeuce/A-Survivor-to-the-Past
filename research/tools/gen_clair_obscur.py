@@ -7,6 +7,8 @@ Ecrit :
   data/sprites/clair_obscur.ron         animations idle_* / walk_* (comme les autres personnages)
 Puis : cargo run -p forge -- sprites
 
+Noirs remontes au niveau du contour d'ALttP (40,40,40) : `soften_darks`.
+
 Reduction : le pixel art d'origine n'a pas une grille reguliere ; chaque pixel du jeu prend la couleur
 la plus frequente de son bloc (pas de melange de couleurs), opaque si la moitie du bloc l'est. Les trois
 images d'une direction sont decoupees dans le meme cadre (pas de tremblement pendant la marche).
@@ -123,6 +125,23 @@ def frames_of(sheet, target_h):
     return out
 
 
+# Contour des sprites d'A Link to the Past (et des sprites Randomizer) : gris tres sombre 40,40,40.
+OUTLINE = 40
+DARK = 80
+
+
+def soften_darks(a):
+    """Noirs des planches (contour presque noir) remontes au niveau du contour d'ALttP : les couleurs
+    sombres (canaux < DARK) sont ramenees dans [OUTLINE, DARK], ordre et teinte gardes ; le reste ne
+    change pas. Sinon ces personnages ressortent bien plus que les autres."""
+    rgb = a[..., :3].astype(np.float32)
+    dark = (rgb.max(axis=2) < DARK) & (a[..., 3] > 0)
+    rgb[dark] = OUTLINE + rgb[dark] * (DARK - OUTLINE) / DARK
+    out = a.copy()
+    out[..., :3] = np.round(rgb).astype(np.uint8)
+    return out
+
+
 def main(src):
     OUT_PNG.mkdir(parents=True, exist_ok=True)
     lines = ["// Personnages de Clair Obscur : genere par research/tools/gen_clair_obscur.py (ne pas modifier a la main).", "(", "    sheets: ["]
@@ -140,7 +159,7 @@ def main(src):
             canvas[height - ih:height, x:x + iw] = img
             rects[(d, k)] = (x, height - ih, iw, ih)
             x += iw + 1
-        Image.fromarray(canvas).save(OUT_PNG / f"{cid}.png")
+        Image.fromarray(soften_darks(canvas)).save(OUT_PNG / f"{cid}.png")
         r = lambda d, k: "({}, {}, {}, {})".format(*rects[(d, k)])
         lines += [f"        // {sheet}", "        (", f'            source: "clair_obscur/{cid}.png",', "            sprites: {", f'                "{cid}": {{']
         for d in ROWS:

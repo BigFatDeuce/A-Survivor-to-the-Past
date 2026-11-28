@@ -1,6 +1,6 @@
 // Filtres video : l'image du jeu (texture intermediaire) vers l'ecran.
 // Les effets suivent la grille des pixels du jeu (`post.scale` pixels ecran par pixel du jeu).
-struct Post { region: vec4<f32>, scale: f32, mode: u32, _p: vec2<f32> };
+struct Post { region: vec4<f32>, scale: f32, mode: u32, src: f32, _p: f32 };
 @group(0) @binding(0) var scene: texture_2d<f32>;
 @group(0) @binding(1) var<uniform> post: Post;
 
@@ -11,8 +11,8 @@ fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4<f32> {
 }
 
 fn texel(p: vec2<f32>) -> vec3<f32> {
-    let size = vec2<i32>(post.region.zw);
-    let t = clamp(vec2<i32>(floor(p)), vec2<i32>(0), size - vec2<i32>(1));
+    let size = vec2<i32>(ceil(post.region.zw / post.src));
+    let t = clamp(vec2<i32>(floor(p / post.src)), vec2<i32>(0), size - vec2<i32>(1));
     return textureLoad(scene, t, 0).rgb;
 }
 

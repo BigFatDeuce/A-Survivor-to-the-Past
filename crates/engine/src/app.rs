@@ -41,6 +41,14 @@ pub struct Config {
     pub aspect: Aspect,
     /// Icone de la fenetre (PNG).
     pub icon: Option<&'static [u8]>,
+    /// Enregistrement video (bande-annonce) : pas fixe de 1/60 s quel que soit le temps reel, chaque
+    /// image envoyee a ffmpeg dans ce fichier, effets sonores notes dans `<fichier>.sfx.tsv`, son coupe,
+    /// clavier / souris / manette du joueur ignores (seul `script` agit).
+    pub record: Option<PathBuf>,
+    /// Touches jouees pendant l'enregistrement : (temps, touche, duree d'appui ; 0 = appui bref).
+    pub script: Vec<(f32, KeyCode, f32)>,
+    /// Enregistrement : les images d'avant ce temps (secondes) sont jouees mais pas gardees.
+    pub record_from: f32,
 }
 
 impl Default for Config {
@@ -56,6 +64,9 @@ impl Default for Config {
             video: VideoFilter::default(),
             aspect: Aspect::default(),
             icon: None,
+            record: None,
+            script: Vec::new(),
+            record_from: 0.0,
         }
     }
 }
@@ -93,6 +104,8 @@ pub struct Ctx {
     pub gpu: String,
     pub video: VideoFilter,
     pub aspect: Aspect,
+    /// Mode performances (reglage du jeu) : 0 = non, 1 = rendu a la resolution du jeu, 2 = idem a 30 images/s.
+    pub perf: u8,
     req_quit: bool,
     req_video: Option<(VideoFilter, Aspect)>,
     req_fullscreen: Option<bool>,
@@ -177,6 +190,92 @@ struct Running<G> {
     acc: f32,
     mods: ModifiersState,
     captured: usize,
+    rec: Option<Recorder>,
+}
+
+/// Enregistrement en cours : ffmpeg (images brutes sur son entree), images ecrites, touches du script.
+struct Recorder {
+    child: std::process::Child,
+    path: PathBuf,
+    frames: u64,
+    /// Debut de la video (secondes de jeu) : avant, rien n'est encode.
+    from: f32,
+    /// (temps, touche, appui) tries par temps, et le prochain a jouer.
+    keys: Vec<(f32, KeyCode, bool)>,
+    next_key: usize,
+}
+
+#[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
+impl Recorder {
+    fn start(path: &std::path::Path, script: &[(f32, KeyCode, f32)], from: f32, w: u32, h: u32, bgra: bool) -> Recorder {
+        use std::process::{Command, Stdio};
+        let size = format!("{w}x{h}");
+        // sans perte (RGB, x264 qp 0) : le montage recompresse une seule fois a la fin
+        let child = Command::new("ffmpeg")
+            .args(["-loglevel", "error", "-y", "-f", "rawvideo", "-pix_fmt", if bgra { "bgra" } else { "rgba" }, "-s", &size, "-r", "60", "-i", "-"])
+            .args(["-c:v", "libx264rgb", "-qp", "0", "-preset", "veryfast"])
+            .arg(path)
+            .stdin(Stdio::piped())
+            .spawn()
+            .expect("enregistrement : ffmpeg introuvable");
+        let mut keys: Vec<(f32, KeyCode, bool)> = Vec::new();
+        for &(t, k, hold) in script {
+            keys.push((t, k, true));
+            keys.push((t + if hold > 0.0 { hold } else { 0.07 }, k, false));
+        }
+        keys.sort_by(|a, b| a.0.total_cmp(&b.0));
+        log::info!("enregistrement : {} ({size}, 60 i/s), {} touches", path.display(), script.len());
+        Recorder { child, path: path.to_path_buf(), frames: 0, from, keys, next_key: 0 }
+    }
+
+    /// L'image en cours fait partie de la video.
+    fn keeps(&self) -> bool {
+        self.frames as f32 * TICK_DT >= self.from - 1e-4
+    }
+
+    fn write(&mut self, rgba: &[u8]) {
+        use std::io::Write;
+        if !self.keeps() {
+            self.frames += 1;
+            return;
+        }
+        if let Some(stdin) = self.child.stdin.as_mut() {
+            if stdin.write_all(rgba).is_err() {
+                log::error!("enregistrement : ffmpeg a refuse une image");
+            }
+        }
+        self.frames += 1;
+    }
+
+    fn finish(mut self, audio: &mut Audio) {
+        drop(self.child.stdin.take());
+        let _ = self.child.wait();
+        let mut tsv = String::from("time\tname\tgain\trate\n");
+        for (t, n, g, r) in audio.log.take().unwrap_or_default() {
+            let t = t - self.from as f64;
+            if t < 0.0 {
+                continue;
+            }
+            tsv.push_str(&format!("{t:.4}\t{n}\t{g:.4}\t{r:.4}\n"));
+        }
+        let p = self.path.with_extension("sfx.tsv");
+        if let Err(e) = std::fs::write(&p, tsv) {
+            log::error!("enregistrement : {} : {e}", p.display());
+        }
+        log::info!("enregistrement termine : {} images -> {}", self.frames, self.path.display());
+    }
+}
+
+#[cfg(any(target_arch = "wasm32", target_os = "android"))]
+impl Recorder {
+    fn start(_: &std::path::Path, _: &[(f32, KeyCode, f32)], _: f32, _: u32, _: u32, _: bool) -> Recorder {
+        unimplemented!("enregistrement : bureau seulement")
+    }
+    fn keeps(&self) -> bool {
+        false
+    }
+    fn write(&mut self, _: &[u8]) {}
+    fn finish(self, _: &mut Audio) {}
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -237,6 +336,7 @@ impl<G: Game> Runner<G> {
             gpu: gfx.adapter_name.clone(),
             video: self.cfg.video,
             aspect: self.cfg.aspect,
+            perf: 0,
             req_quit: false,
             req_video: None,
             req_fullscreen: None,
@@ -257,6 +357,7 @@ impl<G: Game> Runner<G> {
             acc: 0.0,
             mods: ModifiersState::empty(),
             captured: 0,
+            rec: None,
         });
         window.request_redraw();
     }
@@ -328,6 +429,21 @@ impl<G: Game> ApplicationHandler for Runner<G> {
             }
         }
         let Some(s) = self.state.as_mut() else { return };
+        if self.cfg.record.is_some()
+            && matches!(
+                event,
+                WindowEvent::KeyboardInput { .. }
+                    | WindowEvent::MouseInput { .. }
+                    | WindowEvent::MouseWheel { .. }
+                    | WindowEvent::CursorMoved { .. }
+                    | WindowEvent::CursorEntered { .. }
+                    | WindowEvent::CursorLeft { .. }
+                    | WindowEvent::Touch(_)
+                    | WindowEvent::Focused(_)
+            )
+        {
+            return;
+        }
         match event {
             WindowEvent::CloseRequested => {
                 s.game.exit(&mut s.ctx);
@@ -411,6 +527,7 @@ impl<G: Game> ApplicationHandler for Runner<G> {
             WindowEvent::RedrawRequested if s.suspended => {}
             // une image entiere est calculee ici : pas dans une garde de `match` (lisibilite)
             #[allow(clippy::collapsible_match)]
+            WindowEvent::RedrawRequested if self.cfg.record.is_some() => {}
             WindowEvent::RedrawRequested => {
                 if s.frame(&self.cfg) {
                     s.game.exit(&mut s.ctx);
@@ -445,6 +562,15 @@ impl<G: Game> ApplicationHandler for Runner<G> {
                 s.gfx.window.request_redraw();
             }
         }
+        // tournage : les images ne dependent pas des messages de la fenetre (ecran eteint, verrouille)
+        if self.cfg.record.is_some() && !el.exiting() {
+            if let Some(s) = self.state.as_mut() {
+                if s.frame(&self.cfg) {
+                    s.game.exit(&mut s.ctx);
+                    el.exit();
+                }
+            }
+        }
     }
 }
 
@@ -463,11 +589,43 @@ impl<G: Game> Running<G> {
         let now = Instant::now();
         let dt_real = (now - self.last).as_secs_f32();
         self.last = now;
-        let dt = dt_real.min(0.1);
+        let mut dt = dt_real.min(0.1);
+        if self.rec.is_none() {
+            if let Some(path) = &cfg.record {
+                let bgra = self.gfx.target_is_bgra();
+                let (w, h) = self.gfx.size();
+                self.rec = Some(Recorder::start(path, &cfg.script, cfg.record_from, w, h, bgra));
+                self.ctx.audio.log = Some(Vec::new());
+                self.ctx.audio.volumes.master = 0.0;
+                self.ctx.audio.apply_volumes();
+                self.ctx.input.focused = true;
+                self.gfx.offscreen = true;
+            }
+        }
         let ctx = &mut self.ctx;
-        ctx.real_time = (now - self.start).as_secs_f64();
+        if let Some(rec) = self.rec.as_mut() {
+            // temps virtuel : une image = 1/60 s, meme si l'encodage est plus lent
+            dt = TICK_DT;
+            ctx.real_time = rec.frames as f64 * TICK_DT as f64;
+            while let Some(&(t, k, down)) = rec.keys.get(rec.next_key) {
+                if t > ctx.real_time as f32 {
+                    break;
+                }
+                ctx.input.key_event(k, down, false);
+                rec.next_key += 1;
+            }
+            // le jeu peut remettre le volume (reglages) : on le recoupe
+            if ctx.audio.volumes.master > 0.0 {
+                ctx.audio.volumes.master = 0.0;
+                ctx.audio.apply_volumes();
+            }
+        } else {
+            ctx.real_time = (now - self.start).as_secs_f64();
+        }
         ctx.audio.update(dt);
-        ctx.input.poll_gamepad();
+        if self.rec.is_none() {
+            ctx.input.poll_gamepad();
+        }
 
         // 1) mise a jour par image (menus, effets)
         ctx.input.set_phase_tick(false);
@@ -510,7 +668,15 @@ impl<G: Game> Running<G> {
                 self.captured += 1;
             }
         }
+        if self.rec.as_ref().is_some_and(Recorder::keeps) {
+            self.gfx.request_raw();
+        }
+        self.gfx.lowres = ctx.perf > 0;
         self.gfx.render(&self.list, fr.camera, fr.zoom, fr.clear);
+        if let Some(rec) = self.rec.as_mut() {
+            let img = self.gfx.raw_frame.take().unwrap_or_default();
+            rec.write(&img);
+        }
         let t3 = Instant::now();
         ctx.input.end_frame();
 
@@ -540,8 +706,15 @@ impl<G: Game> Running<G> {
         }
 
         // 5) limiteur d'images (sans synchro verticale)
+        // mode performances : 30 images/s (synchro verticale : on se reveille avant la 2e trame).
+        // shortcut: navigateur sans limiteur (requestAnimationFrame), le mode n'y reduit que la resolution
         #[cfg(not(target_arch = "wasm32"))]
-        if let (false, Some(cap)) = (ctx.vsync, cfg.fps_cap) {
+        if let Some(cap) = match (ctx.perf == 2 && self.rec.is_none(), ctx.vsync) {
+            (true, true) => Some(1.0 / 0.0293),
+            (true, false) => Some(30.0),
+            (false, false) => cfg.fps_cap,
+            (false, true) => None,
+        } {
             let target = Duration::from_secs_f32(1.0 / cap.max(10.0));
             let spent = now.elapsed();
             if spent < target {
@@ -556,6 +729,12 @@ impl<G: Game> Running<G> {
         }
 
         let timeout = cfg.exit_after.is_some_and(|t| ctx.real_time as f32 >= t);
-        ctx.req_quit || timeout
+        let quit = ctx.req_quit || timeout;
+        if quit {
+            if let Some(rec) = self.rec.take() {
+                rec.finish(&mut self.ctx.audio);
+            }
+        }
+        quit
     }
 }

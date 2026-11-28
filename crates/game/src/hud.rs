@@ -6,6 +6,7 @@ use assetkit::meta::Font;
 use engine::app::Ctx;
 use engine::draw::{rgb, with_alpha, Align, Color, Params, WHITE};
 use engine::gfx::{Blend, DrawList, Space};
+use engine::input::{Binding, Bindings, Device};
 use engine::Vec2;
 use sim::World;
 
@@ -436,7 +437,7 @@ impl Hud {
         }
     }
 
-    pub fn draw(&self, list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang: &Lang) {
+    pub fn draw(&self, list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang: &Lang, bindings: &Bindings) {
         let view = ctx.view;
         let atlas = &ctx.atlas;
         let main = atlas.font("main");
@@ -604,6 +605,7 @@ impl Hud {
         // le mode ne concerne que l'epee : son icone a cote (grisee si le personnage n'en a pas)
         let sword = world.weapons.iter().find(|w| world.content.weapons[w.id as usize].kind == sim::defs::WeaponKind::Swing).map(|w| (w.id, true));
         let sword = sword.or_else(|| world.content.weapon_index("sword").map(|i| (i, false)));
+        let mut hx = 8.0 + mw;
         if let Some((id, owned)) = sword {
             let c = if owned { [1.0, 1.0, 1.0, a] } else { [0.6, 0.6, 0.6, 0.45 * a] };
             // centre de l'icone sur le centre visuel des lettres (hauteur des capitales ~9 px), 4 px d'ecart
@@ -612,6 +614,33 @@ impl Hud {
             let at = Vec2::new((8.0 + mw + (4.0 + half_w) * sc).round(), (my + 4.0 * sc).round());
             list.frame(f, at, &Params::default().scale(Vec2::splat(sc)).color(c));
             list.probe_block(at - Vec2::splat(8.0 * sc), Vec2::splat(16.0 * sc), "icone du mode d'attaque");
+            hx = at.x + half_w * sc;
+        }
+        // raccourcis de l'appareil utilise (premiere touche liee) : bascule du mode, puis dash (bottes)
+        let dev = ctx.input.last_device;
+        if dev != Device::Touch && !self.busy {
+            let pad = dev == Device::Gamepad;
+            let first = |act: &str| {
+                let b = bindings.actions.get(act)?.iter().find(|b| matches!(b, Binding::Pad(_)) == pad)?;
+                Some(crate::controls::binding_name(&ctx.input, lang, b))
+            };
+            let cy = (my + 4.0 * sc).round();
+            let cap = |list: &mut DrawList, x: f32, s: &str| -> f32 {
+                let w = main.measure(s) as f32;
+                list.rect(white, Vec2::new(x, cy - 7.0), Vec2::new(w + 6.0, 14.0), [0.0, 0.0, 0.0, 0.7 * a]);
+                text(list, main, s, Vec2::new(x + 3.0, cy - 5.0), 1.0, with_alpha(WHITE, 0.8 * a), Align::Left);
+                w + 6.0
+            };
+            let mut x = hx + 6.0;
+            if let Some(s) = first("toggle_auto") {
+                x += cap(list, x, &s) + 12.0;
+            }
+            if let (Some(boots), Some(s)) = (atlas.find("icon_boots", "0"), first("dash")) {
+                let f = atlas.frame(boots, 0.0);
+                let hw = (f.w as f32 * 0.5).ceil();
+                list.frame(f, Vec2::new(x + hw, cy), &Params::default().color([1.0, 1.0, 1.0, a]));
+                cap(list, x + hw * 2.0 + 4.0, &s);
+            }
         }
 
         // annonce

@@ -51,6 +51,10 @@ impl Lang {
         }
     }
 
+    pub fn has(&self, key: &str) -> bool {
+        self.texts.contains_key(key) || self.fallback.contains_key(key)
+    }
+
     /// Nom affiche d'une langue (dans cette langue).
     pub fn name_of(root: &Path, code: &str) -> String {
         load_file(root, code).remove("lang.name").unwrap_or_else(|| code.to_string())

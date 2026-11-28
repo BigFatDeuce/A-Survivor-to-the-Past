@@ -1604,6 +1604,8 @@ pub enum Opt {
     Music,
     Sfx,
     Fullscreen,
+    /// Mode performances.
+    Perf,
     #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     Updates,
     /// Ecran de reattribution des touches.
@@ -1614,6 +1616,24 @@ pub enum Opt {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+pub const OPTIONS: [Opt; 13] = [
+    Opt::Language,
+    Opt::Video,
+    Opt::Aspect,
+    Opt::Filter,
+    Opt::Master,
+    Opt::Music,
+    Opt::Sfx,
+    Opt::Fullscreen,
+    Opt::Perf,
+    Opt::Updates,
+    Opt::Controls,
+    Opt::Save,
+    Opt::Back,
+];
+
+/// Navigateur : pas de mises a jour (le site sert la derniere version).
+#[cfg(target_arch = "wasm32")]
 pub const OPTIONS: [Opt; 12] = [
     Opt::Language,
     Opt::Video,
@@ -1623,30 +1643,14 @@ pub const OPTIONS: [Opt; 12] = [
     Opt::Music,
     Opt::Sfx,
     Opt::Fullscreen,
-    Opt::Updates,
-    Opt::Controls,
-    Opt::Save,
-    Opt::Back,
-];
-
-/// Navigateur : pas de mises a jour (le site sert la derniere version).
-#[cfg(target_arch = "wasm32")]
-pub const OPTIONS: [Opt; 11] = [
-    Opt::Language,
-    Opt::Video,
-    Opt::Aspect,
-    Opt::Filter,
-    Opt::Master,
-    Opt::Music,
-    Opt::Sfx,
-    Opt::Fullscreen,
+    Opt::Perf,
     Opt::Controls,
     Opt::Save,
     Opt::Back,
 ];
 
 pub fn options_y(view: Vec2, k: usize) -> f32 {
-    (view.y * 0.24).round() + k as f32 * 22.0
+    (view.y * 0.22).round() + k as f32 * 21.0
 }
 
 const OPT_W: f32 = 360.0;
@@ -1660,6 +1664,7 @@ pub struct OptValues<'a> {
     pub music: f32,
     pub sfx: f32,
     pub fullscreen: bool,
+    pub perf: u8,
     pub updates: crate::update::UpdateMode,
 }
 
@@ -1690,6 +1695,7 @@ pub fn draw_options(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, sel:
             Opt::Music => "ui.music",
             Opt::Sfx => "ui.sfx",
             Opt::Fullscreen => "ui.fullscreen",
+            Opt::Perf => "ui.perf",
             Opt::Updates => "ui.updates",
             Opt::Controls => "ui.controls",
             Opt::Save => "ui.tab.save",
@@ -1745,6 +1751,10 @@ pub fn draw_options(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, sel:
                     let c = if on { if selected { GOLD } else { WHITE } } else { [1.0, 1.0, 1.0, 0.15] };
                     list.rect(white, bp + Vec2::new(s as f32 * (bs.x / 10.0), 0.0), Vec2::new(bs.x / 10.0 - 2.0, bs.y), c);
                 }
+            }
+            Opt::Perf => {
+                let s = lang.get(["ui.off", "ui.perf.60", "ui.perf.30"][v.perf.min(2) as usize]);
+                text(list, main, s, Vec2::new(right, y), 1.0, WHITE, Align::Right);
             }
             Opt::Fullscreen => {
                 let s = if v.fullscreen { lang.get("ui.on") } else { lang.get("ui.off") };

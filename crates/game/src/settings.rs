@@ -56,6 +56,9 @@ pub struct Settings {
     /// Zoom en partie : 0 = vue la plus large, 1 et 2 = plus pres (`game::ZOOMS`).
     #[serde(default)]
     pub zoom: u8,
+    /// Mode performances : 0 = non, 1 = rendu a la resolution du jeu (60 images/s), 2 = idem a 30 images/s.
+    #[serde(default)]
+    pub perf: u8,
 }
 
 impl Default for Settings {
@@ -73,6 +76,7 @@ impl Default for Settings {
             bindings: BTreeMap::new(),
             updates: UpdateMode::default(),
             zoom: 0,
+            perf: 0,
         }
     }
 }

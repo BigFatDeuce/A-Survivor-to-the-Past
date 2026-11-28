@@ -10,8 +10,38 @@ use engine::draw::{rgb, with_alpha, Align, Params, WHITE};
 use engine::gfx::{Blend, DrawList, Space};
 use engine::Vec2;
 
-/// Pages du discours : textes « fairy.tip.1 » a « fairy.tip.N » (`*mot*` : mis en valeur).
-pub const PAGES: usize = 5;
+/// Discours de la fee : Boutique (apres deux defaites), bases du jeu (premiere partie, en partie),
+/// felicitations (Ganon vaincu une premiere fois).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Talk {
+    Shop,
+    Intro,
+    Victory,
+}
+
+impl Talk {
+    /// Pages : textes « fairy.<prefixe>.1 » a « .N » (`*mot*` : mis en valeur ; `{x}` : `Fill`).
+    pub fn pages(self) -> usize {
+        match self {
+            Talk::Shop | Talk::Intro => 5,
+            Talk::Victory => 4,
+        }
+    }
+    fn prefix(self) -> &'static str {
+        match self {
+            Talk::Shop => "tip",
+            Talk::Intro => "intro",
+            Talk::Victory => "win",
+        }
+    }
+}
+
+/// Remplacements `{nom}` des textes (touches de l'appareil utilise) ; `touch` : variante tactile des pages.
+#[derive(Default)]
+pub struct Fill {
+    pub touch: bool,
+    pub keys: Vec<(&'static str, String)>,
+}
 /// Arrivee de la fee, puis ouverture de la boite : le texte commence ensuite.
 const ARRIVE: f32 = 0.9;
 /// Lettres par seconde.
@@ -25,13 +55,15 @@ pub fn due(p: &crate::profile::Profile) -> bool {
     !p.fairy_tip && p.totals.deaths >= 2
 }
 
-fn key(page: usize) -> String {
-    format!("fairy.tip.{}", page + 1)
-}
-
 /// Texte d'une page, `*mot*` remplace par la mise en valeur du jeu.
-fn page_text(lang: &Lang, page: usize) -> String {
-    lang.get(&key(page)).split('*').enumerate().map(|(k, s)| if k % 2 == 1 { format!("{HL}{s}{HL_END}") } else { s.to_string() }).collect()
+fn page_text(lang: &Lang, talk: Talk, fill: &Fill, page: usize) -> String {
+    let key = format!("fairy.{}.{}", talk.prefix(), page + 1);
+    let touch = format!("{key}_touch");
+    let mut s = lang.get(if fill.touch && lang.has(&touch) { &touch } else { &key }).to_string();
+    for (k, v) in &fill.keys {
+        s = s.replace(&format!("{{{k}}}"), v);
+    }
+    s.split('*').enumerate().map(|(k, s)| if k % 2 == 1 { format!("{HL}{s}{HL_END}") } else { s.to_string() }).collect()
 }
 
 fn start(page: usize) -> f32 {
@@ -78,10 +110,10 @@ struct Layout {
     lines: Vec<String>,
 }
 
-fn layout(ctx: &Ctx, lang: &Lang, page: usize) -> Layout {
+fn layout(ctx: &Ctx, lang: &Lang, talk: Talk, fill: &Fill, page: usize) -> Layout {
     let view = ctx.view;
     let w = (view.x - 32.0).min(440.0).round();
-    let lines = wrap(ctx.atlas.font("main"), &page_text(lang, page), w - 28.0, 1.0);
+    let lines = wrap(ctx.atlas.font("main"), &page_text(lang, talk, fill, page), w - 28.0, 1.0);
     let h = 18.0 + LINE_H * lines.len().max(MIN_LINES) as f32;
     Layout { pos: Vec2::new(((view.x - w) * 0.5).round(), (view.y - h - 30.0).round()), size: Vec2::new(w, h), lines }
 }
@@ -101,8 +133,9 @@ pub enum Step {
     Sfx(&'static str, usize, f32, Option<usize>),
 }
 
-pub fn update(ctx: &Ctx, lang: &Lang, nav: &NavIn, dt: f32, page: usize, t: f32, ask: Option<usize>) -> Step {
-    let l = layout(ctx, lang, page);
+#[allow(clippy::too_many_arguments)]
+pub fn update(ctx: &Ctx, lang: &Lang, talk: Talk, fill: &Fill, nav: &NavIn, dt: f32, page: usize, t: f32, ask: Option<usize>) -> Step {
+    let l = layout(ctx, lang, talk, fill, page);
     let full_at = start(page) + letters(&l.lines.concat()) as f32 / CPS;
     match ask {
         Some(mut k) => {
@@ -143,7 +176,7 @@ pub fn update(ctx: &Ctx, lang: &Lang, nav: &NavIn, dt: f32, page: usize, t: f32,
                     return Step::Stay { page, t: full_at, ask: None };
                 }
                 if t2 >= full_at + SETTLE {
-                    return if page + 1 < PAGES { Step::Sfx("confirm", page + 1, 0.0, None) } else { Step::Done };
+                    return if page + 1 < talk.pages() { Step::Sfx("confirm", page + 1, 0.0, None) } else { Step::Done };
                 }
             }
             // une lettre sur deux fait le petit bruit du texte d'origine
@@ -158,12 +191,12 @@ pub fn update(ctx: &Ctx, lang: &Lang, nav: &NavIn, dt: f32, page: usize, t: f32,
 
 /// Fee posee au-dessus de la boite (arrivee en vol depuis le coin), boite, texte, fleche.
 #[allow(clippy::too_many_arguments)]
-pub fn draw(list: &mut DrawList, ctx: &Ctx, lang: &Lang, white: &assetkit::meta::Frame, page: usize, t: f32, ask: Option<usize>) {
+pub fn draw(list: &mut DrawList, ctx: &Ctx, lang: &Lang, talk: Talk, fill: &Fill, white: &assetkit::meta::Frame, page: usize, t: f32, ask: Option<usize>) {
     let view = ctx.view;
     let atlas = &ctx.atlas;
     let main = atlas.font("main");
     let rt = ctx.real_time as f32;
-    let l = layout(ctx, lang, page);
+    let l = layout(ctx, lang, talk, fill, page);
     list.set(Space::Ui, Blend::Alpha);
     let fade = if page == 0 { (t / 0.3).min(1.0) } else { 1.0 };
     list.rect(white, Vec2::ZERO, view, [0.0, 0.0, 0.05, 0.5 * fade]);
@@ -231,7 +264,7 @@ pub fn draw(list: &mut DrawList, ctx: &Ctx, lang: &Lang, white: &assetkit::meta:
     if ask.is_some() {
         return;
     }
-    let hint = format!("{}  {}/{}", lang.get("fairy.hint"), page + 1, PAGES);
+    let hint = format!("{}  {}/{}", lang.get("fairy.hint"), page + 1, talk.pages());
     text(list, main, &hint, Vec2::new((view.x * 0.5).round(), l.pos.y + l.size.y + 8.0), 1.0, [0.6, 0.6, 0.72, 1.0], Align::Center);
 }
 

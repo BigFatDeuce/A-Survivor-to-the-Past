@@ -145,18 +145,20 @@ HOW = {
    Si ça ne marche pas, partagez {PORT_DIR}/log.txt sur le Discord."""),
 }
 
-# Boutons de la console -> touches du clavier du jeu (data/input.ron), gptokeyb de PortMaster.
-# Positions : b = bas (valider / esquive), a = droite (retour), y = gauche (attaque), x = haut.
-GPTK = """back = f11
-start = esc
-a = backspace
-b = space
-x = tab
-y = j
-l1 = q
-r1 = e
-l2 = k
-r2 = j
+# Boutons de la console -> touches dediees (F1..F10, fleches), traduites en boutons de manette par le jeu
+# (ASTP_CONSOLE=1) : gilrs lit mal les boutons de ces consoles, et des touches ordinaires (espace, J...)
+# seraient tapees comme lettres dans la saisie du nom.
+# Positions : b = bas (A), a = droite (B), y = gauche (X), x = haut (Y).
+GPTK = """back = f10
+start = f9
+a = f2
+b = f1
+x = f4
+y = f3
+l1 = f5
+r1 = f6
+l2 = f7
+r2 = f8
 up = up
 down = down
 left = left
@@ -211,7 +213,7 @@ export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 $GPTOKEYB "@EXE@" -c "./@PORT_DIR@.gptk" &
 pm_platform_helper "$GAMEDIR/@EXE@"
 $ESUDO env $weston_dir/westonwrap.sh headless noop kiosk crusty_x11egl \
-  WGPU_BACKEND=gl ASTP_NO_UPDATE=1 WAYLAND_DISPLAY= ./@EXE@
+  WGPU_BACKEND=gl ASTP_NO_UPDATE=1 ASTP_CONSOLE=1 WAYLAND_DISPLAY= ./@EXE@
 
 if [[ "$PM_CAN_MOUNT" != "N" ]]; then
   $ESUDO umount "${weston_dir}"

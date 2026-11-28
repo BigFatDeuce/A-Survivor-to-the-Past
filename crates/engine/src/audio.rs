@@ -155,6 +155,8 @@ pub struct Audio {
     clock: f64,
     rng: u32,
     pub volumes: Volumes,
+    /// Enregistrement : effets joues (temps, fichier, volume, vitesse), pour remixer le son a part.
+    pub log: Option<Vec<(f64, String, f32, f32)>>,
 }
 
 /// (delai, fondu d'entree) d'une nouvelle piste. Musique qui en remplace une autre : facon SNES,
@@ -272,6 +274,7 @@ impl Audio {
             clock: 0.0,
             rng: 0x9e37_79b9,
             volumes: Volumes::default(),
+            log: None,
         };
         match open_manager() {
             Ok(mut m) => {
@@ -520,6 +523,9 @@ impl Audio {
         }
         s.last = clock;
         let rate = (pitch * (1.0 + r * s.rule.pitch_jitter)).max(0.05) as f64;
+        if let Some(log) = self.log.as_mut() {
+            log.push((clock, name.to_string(), gain * s.rule.volume, rate as f32));
+        }
         let data = s.data.volume(amp_to_db(gain * s.rule.volume)).playback_rate(rate);
         if let Ok(h) = track.play(data) {
             s.voices.push(h);

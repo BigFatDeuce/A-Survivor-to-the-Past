@@ -298,7 +298,9 @@ struct PostUniform {
     region: [f32; 4],
     scale: f32,
     mode: u32,
-    _p: [f32; 2],
+    /// Pixels ecran par pixel de la texture intermediaire (1, ou `scale` en mode performances).
+    src: f32,
+    _p: f32,
 }
 
 const POST_SHADER: &str = include_str!("post.wgsl");
@@ -333,6 +335,14 @@ pub struct Gfx {
     pub view: Vec2,
     pub vsync: bool,
     capture: Option<PathBuf>,
+    /// Enregistrement : image brute demandee pour le prochain rendu, puis rendue ici (lignes sans
+    /// remplissage, format de la cible : voir `target_is_bgra`).
+    capture_raw: bool,
+    pub raw_frame: Option<Vec<u8>>,
+    /// Tournage (--record) : rendu hors ecran, sans attendre la fenetre (ecran eteint, session verrouillee).
+    pub offscreen: bool,
+    /// Mode performances : texture intermediaire a la resolution du jeu.
+    pub lowres: bool,
     pub adapter_name: String,
     post_pipe: wgpu::RenderPipeline,
     post_layout: wgpu::BindGroupLayout,
@@ -583,6 +593,10 @@ impl Gfx {
             view: Vec2::new(LOGICAL_W, LOGICAL_H),
             vsync,
             capture: None,
+            capture_raw: false,
+            raw_frame: None,
+            offscreen: false,
+            lowres: false,
             adapter_name,
             post_pipe,
             post_layout,
@@ -607,8 +621,7 @@ impl Gfx {
     }
 
     /// (Re)cree la texture intermediaire a la taille de l'image de jeu.
-    fn ensure_scene(&mut self) {
-        let size = self.region;
+    fn ensure_scene(&mut self, size: (u32, u32)) {
         if self.scene.as_ref().is_some_and(|s| s.size == size) {
             return;
         }
@@ -725,21 +738,37 @@ impl Gfx {
     }
 
     /// Capture la prochaine image dans un fichier PNG.
+    pub fn request_raw(&mut self) {
+        self.capture_raw = true;
+    }
+
+    pub fn target_is_bgra(&self) -> bool {
+        matches!(self.target, wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Bgra8UnormSrgb)
+    }
+
+    pub fn size(&self) -> (u32, u32) {
+        (self.config.width, self.config.height)
+    }
+
     pub fn request_capture(&mut self, path: PathBuf) {
         self.capture = Some(path);
     }
 
     pub fn render(&mut self, list: &DrawList, camera: Vec2, zoom: f32, clear: [f32; 3]) {
-        self.ensure_scene();
-        let (w, h) = (self.region.0 as f32, self.region.1 as f32);
+        // mode performances : jeu dessine a sa propre resolution (1 pixel par pixel du jeu), agrandi par le filtre
+        let d = if self.lowres { self.scale } else { 1 };
+        let size = (self.region.0.div_ceil(d), self.region.1.div_ceil(d));
+        self.ensure_scene(size);
         let post = PostUniform {
-            region: [self.origin.x, self.origin.y, w, h],
+            region: [self.origin.x, self.origin.y, self.region.0 as f32, self.region.1 as f32],
             scale: self.scale as f32,
             mode: self.video.code(),
-            _p: [0.0; 2],
+            src: d as f32,
+            _p: 0.0,
         };
         self.queue.write_buffer(&self.post_buf, 0, bytemuck::bytes_of(&post));
-        let s = self.scale as f32;
+        let (w, h) = (size.0 as f32, size.1 as f32);
+        let s = self.scale as f32 / d as f32;
         let world = ViewUniform {
             origin: camera.to_array(),
             offset: [(w * 0.5).round(), (h * 0.5).round()],
@@ -759,23 +788,30 @@ impl Gfx {
         if !list.instances.is_empty() {
             self.queue.write_buffer(&self.inst_buf, 0, bytemuck::cast_slice(&list.instances));
         }
-        let frame = match self.surface.get_current_texture() {
-            wgpu::CurrentSurfaceTexture::Success(f) | wgpu::CurrentSurfaceTexture::Suboptimal(f) => f,
-            wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
-                self.surface.configure(&self.device, &self.config);
-                return;
+        let frame = if self.offscreen {
+            None
+        } else {
+            match self.surface.get_current_texture() {
+                wgpu::CurrentSurfaceTexture::Success(f) | wgpu::CurrentSurfaceTexture::Suboptimal(f) => Some(f),
+                wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
+                    self.surface.configure(&self.device, &self.config);
+                    return;
+                }
+                _ => return,
             }
-            _ => return,
         };
-        let target = frame.texture.create_view(&wgpu::TextureViewDescriptor { format: Some(self.target), ..Default::default() });
         let mut enc = self.device.create_command_encoder(&Default::default());
         let scene = self.scene.as_ref().expect("scene");
         self.encode(&mut enc, &scene.view, list, clear);
-        self.post(&mut enc, &target);
+        if let Some(frame) = &frame {
+            let target = frame.texture.create_view(&wgpu::TextureViewDescriptor { format: Some(self.target), ..Default::default() });
+            self.post(&mut enc, &target);
+        }
 
         // capture eventuelle (meme rendu dans une texture lisible)
         let mut readback = None;
-        if let Some(path) = self.capture.take() {
+        let raw = std::mem::take(&mut self.capture_raw);
+        if let Some(path) = self.capture.take().map(Some).or(raw.then_some(None)) {
             let tex = self.device.create_texture(&wgpu::TextureDescriptor {
                 label: Some("capture"),
                 size: wgpu::Extent3d { width: self.config.width, height: self.config.height, depth_or_array_layers: 1 },
@@ -806,9 +842,14 @@ impl Gfx {
             readback = Some((buf, bpr, path));
         }
         self.queue.submit([enc.finish()]);
-        self.queue.present(frame);
+        if let Some(frame) = frame {
+            self.queue.present(frame);
+        }
         if let Some((buf, bpr, path)) = readback {
-            self.save_capture(buf, bpr, path);
+            match path {
+                Some(p) => self.save_capture(buf, bpr, p),
+                None => self.raw_frame = self.read_raw(buf, bpr),
+            }
         }
     }
 
@@ -867,6 +908,23 @@ impl Gfx {
         rp.set_pipeline(&self.post_pipe);
         rp.set_bind_group(0, &scene.group, &[]);
         rp.draw(0..3, 0..1);
+    }
+
+    /// Image brute (lignes de `largeur x 4` octets) lue dans le tampon de capture.
+    fn read_raw(&self, buf: wgpu::Buffer, bpr: u32) -> Option<Vec<u8>> {
+        let slice = buf.slice(..);
+        slice.map_async(wgpu::MapMode::Read, |_| {});
+        let _ = self.device.poll(wgpu::PollType::wait_indefinitely());
+        let data = slice.get_mapped_range().ok()?;
+        let (w, h) = (self.config.width as usize, self.config.height as usize);
+        let mut out = Vec::with_capacity(w * h * 4);
+        for y in 0..h {
+            let i = y * bpr as usize;
+            out.extend_from_slice(&data[i..i + w * 4]);
+        }
+        drop(data);
+        buf.unmap();
+        Some(out)
     }
 
     fn save_capture(&self, buf: wgpu::Buffer, bpr: u32, path: PathBuf) {

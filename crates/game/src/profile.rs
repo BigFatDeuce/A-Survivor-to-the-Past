@@ -199,6 +199,12 @@ pub struct Profile {
     /// Conseils de la fee (apres deux defaites) deja donnes.
     #[serde(default)]
     pub fairy_tip: bool,
+    /// Bases du jeu expliquees par la fee (premiere partie seul).
+    #[serde(default)]
+    pub fairy_intro: bool,
+    /// Fin du jeu vue (Ganon vaincu une premiere fois : mort epique, generique, felicitations).
+    #[serde(default)]
+    pub ending: bool,
     /// Emplacement du profil (non enregistre : c'est le nom du fichier).
     #[serde(skip)]
     pub slot: usize,
