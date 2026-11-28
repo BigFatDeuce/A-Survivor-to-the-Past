@@ -16,7 +16,9 @@ const DIMMED: Color = rgb(120, 116, 140);
 const RED: Color = rgb(255, 120, 110);
 
 /// Avatars : personnages et monstres d'A Link to the Past deja presents dans l'atlas (sprite, animation).
-pub const AVATARS: [(&str, &str); 20] = [
+/// Jamais de boss. L'indice est enregistre dans le profil : on ajoute a la fin, on ne retire rien
+/// (0.9 : les deux boss d'origine, Hinox et Agahnim, remplaces sur place).
+pub const AVATARS: [(&str, &str); 30] = [
     ("link", "idle_down"),
     ("fairy", "0"),
     ("soldier_green", "walk_down"),
@@ -35,21 +37,43 @@ pub const AVATARS: [(&str, &str); 20] = [
     ("stalfos", "walk_down"),
     ("lynel", "walk_down"),
     ("pikit", "idle"),
-    ("hinox", "walk_down"),
-    ("agahnim", "walk_down"),
+    ("soldier_red", "walk_down"),
+    ("zora", "walk"),
+    ("eyegore", "walk_down"),
+    ("gibdo", "walk_down"),
+    ("zazak", "walk_down"),
+    ("pengator", "walk_down"),
+    ("kodongo", "walk_down"),
+    ("bari", "fly"),
+    ("ropa", "walk"),
+    ("zol", "walk"),
+    ("snapdragon", "walk"),
+    ("vulture", "fly"),
 ];
+
+/// Taille d'un humain (Link) en pixels du jeu : reference des echelles d'avatars.
+const HUMAN_HEIGHT: f32 = 24.0;
 
 pub fn avatar_anim(atlas: &Atlas, k: usize) -> Option<AnimId> {
     let (s, a) = AVATARS[k % AVATARS.len()];
     atlas.find(s, a)
 }
 
-/// Dessine un avatar centre dans une case carree (x2 pour les petits sprites).
+/// Echelle d'un avatar dans une case carree : la meme pour tous (un rat reste plus petit qu'un
+/// chevalier), entiere des que la case tient un humain (pixels nets), et seuls les plus grands sont
+/// reduits pour ne pas deborder. `size` : plus grande image de son animation.
+pub fn avatar_scale(size: (u16, u16), side: f32) -> f32 {
+    let common = if side >= HUMAN_HEIGHT { (side / HUMAN_HEIGHT).floor() } else { side / HUMAN_HEIGHT };
+    common.min(side / size.0.max(size.1).max(1) as f32)
+}
+
+/// Dessine un avatar centre dans une case carree, a l'echelle commune (`avatar_scale`).
 pub fn draw_avatar(list: &mut DrawList, atlas: &Atlas, k: usize, center: Vec2, side: f32, t: f32, color: Color) {
     let Some(a) = avatar_anim(atlas, k) else { return };
     let f = atlas.frame(a, t);
-    let big = f.w.max(f.h) as f32;
-    let sc = if big * 2.0 <= side { 2.0 } else { 1.0 };
+    // case fixe pendant l'animation : la plus grande image
+    let size = (0..8).map(|i| atlas.frame(a, i as f32 * 0.1)).fold((0, 0), |m, g| (m.0.max(g.w), m.1.max(g.h)));
+    let sc = avatar_scale(size, side);
     // les sprites sont cales sur leur pivot : on recentre la boite visible
     let off = Vec2::new(f.px as f32 - f.w as f32 * 0.5, f.py as f32 - f.h as f32 * 0.5) * sc;
     list.frame(f, (center + off).round(), &Params::default().scale(Vec2::splat(sc)).color(color));
@@ -463,7 +487,7 @@ pub fn name_input(ctx: &Ctx, nav: &NavIn, text: &mut String, sel: &mut usize) ->
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn draw_name(list: &mut DrawList, ctx: &Ctx, lang: &Lang, title: &str, name: &str, sel: usize, avatar: Option<usize>, t: f32) {
+pub fn draw_name(list: &mut DrawList, ctx: &Ctx, lang: &Lang, (title, hint): (&str, &str), name: &str, sel: usize, avatar: Option<usize>, t: f32) {
     let view = ctx.view;
     let atlas = &ctx.atlas;
     let white = &atlas.white;
@@ -518,5 +542,160 @@ pub fn draw_name(list: &mut DrawList, ctx: &Ctx, lang: &Lang, title: &str, name:
         }
         text(list, main, lang.get(key), Vec2::new(r.0.x + r.1.x * 0.5, crate::hud::mid_y(main, r.0.y, r.1.y, 1.0)), 1.0, if selected { GOLD } else { SOFT }, Align::Center);
     }
-    text(list, main, lang.get("ui.name_hint"), Vec2::new(view.x * 0.5, l.hint_y), 1.0, SOFT, Align::Center);
+    text(list, main, lang.get(hint), Vec2::new(view.x * 0.5, l.hint_y), 1.0, SOFT, Align::Center);
+}
+
+/// Grille des portraits : colonnes, cote d'une case (un humain y tient a x1 : tailles reelles) et
+/// cote de l'apercu (x2 pour presque tous).
+const GRID_COLS: usize = 10;
+const CELL: f32 = 40.0;
+const PREVIEW: f32 = 52.0;
+
+/// Cases de la grille des portraits, apercu, bouton Valider.
+pub struct AvatarLayout {
+    pub title_y: f32,
+    pub preview: (Vec2, Vec2),
+    pub cells: Vec<(Vec2, Vec2)>,
+    pub hint_y: f32,
+}
+
+pub fn avatar_layout(view: Vec2) -> AvatarLayout {
+    let rows = AVATARS.len().div_ceil(GRID_COLS);
+    let gw = CELL * GRID_COLS as f32;
+    let x0 = ((view.x - gw) * 0.5).round();
+    let h = 32.0 + PREVIEW + 22.0 + rows as f32 * CELL + 24.0;
+    let top = ((view.y - h) * 0.5).max(4.0).round();
+    let preview = (Vec2::new(((view.x - PREVIEW) * 0.5).round(), top + 34.0), Vec2::splat(PREVIEW));
+    let gy = top + 34.0 + PREVIEW + 20.0;
+    let cells = (0..AVATARS.len())
+        .map(|k| (Vec2::new(x0 + (k % GRID_COLS) as f32 * CELL, gy + (k / GRID_COLS) as f32 * CELL), Vec2::splat(CELL - 2.0)))
+        .collect();
+    AvatarLayout { title_y: top + 4.0, preview, cells, hint_y: gy + rows as f32 * CELL + 8.0 }
+}
+
+pub enum AvatarAction {
+    None,
+    Moved,
+    Pick,
+    Back,
+}
+
+/// Grille des portraits : fleches (ou stick), A / clic pour choisir, Echap pour revenir.
+pub fn avatar_input(nav: &NavIn, view: Vec2, sel: &mut usize) -> AvatarAction {
+    let l = avatar_layout(view);
+    let n = AVATARS.len();
+    if nav.back {
+        return AvatarAction::Back;
+    }
+    if let Some(m) = nav.hover {
+        if let Some(k) = l.cells.iter().position(|&r| inside(m, r)) {
+            if k != *sel {
+                *sel = k;
+                return AvatarAction::Moved;
+            }
+        }
+    }
+    if nav.click {
+        if let Some(k) = l.cells.iter().position(|&r| inside(nav.mouse, r)) {
+            *sel = k;
+            return AvatarAction::Pick;
+        }
+        return AvatarAction::None;
+    }
+    if nav.confirm {
+        return AvatarAction::Pick;
+    }
+    let before = *sel;
+    if nav.left {
+        *sel = (*sel + n - 1) % n;
+    } else if nav.right {
+        *sel = (*sel + 1) % n;
+    } else if nav.up {
+        *sel = if *sel >= GRID_COLS {
+            *sel - GRID_COLS
+        } else {
+            // derniere rangee, meme colonne (une rangee plus haut si elle est incomplete)
+            let last = *sel + (n - 1) / GRID_COLS * GRID_COLS;
+            if last < n { last } else { last - GRID_COLS }
+        };
+    } else if nav.down {
+        *sel = if *sel + GRID_COLS < n { *sel + GRID_COLS } else { *sel % GRID_COLS };
+    }
+    if *sel != before {
+        AvatarAction::Moved
+    } else {
+        AvatarAction::None
+    }
+}
+
+/// Ecran du choix du portrait (creation du profil, puis depuis l'ecran Joueurs).
+#[allow(clippy::too_many_arguments)]
+pub fn draw_avatars(list: &mut DrawList, ctx: &Ctx, lang: &Lang, name: &str, sel: usize, t: f32) {
+    let view = ctx.view;
+    let atlas = &ctx.atlas;
+    let white = &atlas.white;
+    let main = atlas.font("main");
+    list.set(Space::Ui, Blend::Alpha);
+    list.probe_layer();
+    list.rect(white, Vec2::ZERO, view, [0.01, 0.01, 0.05, 0.82]);
+    let l = avatar_layout(view);
+    text(list, main, lang.get("ui.avatars"), Vec2::new(view.x * 0.5, l.title_y), 2.0, WHITE, Align::Center);
+    // apercu : le portrait choisi en grand (meme echelle pour tous), et le nom du joueur
+    let (pp, ps) = l.preview;
+    list.rect(white, pp, ps, with_alpha(BACK, 0.95));
+    frame_rect(list, white, pp, ps, with_alpha(GOLD, 0.8));
+    draw_avatar(list, atlas, sel, pp + ps * 0.5, ps.x, t, WHITE);
+    text(list, main, name, Vec2::new(view.x * 0.5, pp.y + ps.y + 4.0), 1.0, GOLD, Align::Center);
+    for (k, &(p, s)) in l.cells.iter().enumerate() {
+        list.rect(white, p, s, [0.0, 0.0, 0.0, if k == sel { 0.55 } else { 0.35 }]);
+        frame_rect(list, white, p, s, [1.0, 1.0, 1.0, 0.15]);
+        // les autres restent immobiles : seul le portrait choisi s'anime
+        draw_avatar(list, atlas, k, p + s * 0.5, s.x, if k == sel { t } else { 0.0 }, WHITE);
+        if k == sel {
+            crate::hub::focus_frame(list, ctx, p, s);
+        }
+    }
+    text(list, main, lang.get("ui.avatars_hint"), Vec2::new(view.x * 0.5, l.hint_y), 1.0, SOFT, Align::Center);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Meme echelle pour tous, entiere dans une grande case ; les plus grands seulement reduits.
+    #[test]
+    fn avatar_sizes_keep_proportions() {
+        let rat = (12, 16);
+        let link = (16, 24);
+        let soldier = (22, 38);
+        // case de la carte de joueur (34) : tous a x1, le soldat reduit pour tenir
+        assert_eq!(avatar_scale(rat, 34.0), 1.0);
+        assert_eq!(avatar_scale(link, 34.0), 1.0);
+        assert!(avatar_scale(soldier, 34.0) * 38.0 <= 34.0);
+        // grande case (creation du profil) : x2 pour tous
+        assert_eq!(avatar_scale(rat, 72.0), 3.0);
+        assert_eq!(avatar_scale(link, 72.0), 3.0);
+        assert!(avatar_scale(rat, 72.0) * 16.0 < avatar_scale(link, 72.0) * 24.0);
+        // petite icone : reduction commune
+        assert!(avatar_scale(rat, 16.0) * 16.0 < avatar_scale(link, 16.0) * 24.0 + 0.01);
+        assert_eq!(AVATARS.iter().filter(|a| a.0 == "agahnim" || a.0 == "hinox").count(), 0);
+    }
+
+    /// Grille : haut / bas bouclent dans la meme colonne, chaque case dans l'ecran.
+    #[test]
+    fn avatar_grid_wraps() {
+        let view = Vec2::new(426.0, 240.0);
+        let step = |sel: usize, up: bool| {
+            let mut s = sel;
+            let nav = NavIn { up, down: !up, ..Default::default() };
+            avatar_input(&nav, view, &mut s);
+            s
+        };
+        let n = AVATARS.len();
+        assert_eq!(step(3, true), 3 + (n - 1) / GRID_COLS * GRID_COLS);
+        assert_eq!(step(step(3, true), false), 3);
+        for &(p, s) in &avatar_layout(view).cells {
+            assert!(p.x >= 0.0 && p.y >= 0.0 && p.x + s.x <= view.x && p.y + s.y <= view.y);
+        }
+    }
 }

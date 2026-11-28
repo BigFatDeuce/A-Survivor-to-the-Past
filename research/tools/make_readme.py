@@ -41,22 +41,23 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
         feat_h="Features",
         feats=[
             "**10 stages** in the order of the original game — Hyrule Field, Desert of Mystery, Death Mountain, Hyrule Castle, Palace of Darkness, Swamp, Lost Woods, Thieves' Town, Frozen Lake and the Pyramid of Power — each with its own weather, music, mid-boss and final boss, up to Agahnim and Ganon",
-            "**350 playable characters** in six universes — the hand-made cast (Link, Minish Link, Sonic, Zelda, Mario, Vivi, Ganondorf, the very last one...) and more than 300 sprites from the *A Link to the Past Randomizer* community, each with its authors credited and up to four colors (blue mail, red mail, bunny). Some are unlocked by feats (enemies, bosses, levels, stages), others are bought with red rupees — each with strengths, weaknesses and a starting weapon",
+            "**357 playable characters** in six universes — the hand-made cast (Link, Minish Link, Sonic, Zelda, Mario, Vivi, the *Clair Obscur: Expedition 33* party, Ganondorf, the very last one...) and more than 300 sprites from the *A Link to the Past Randomizer* community, each with its authors credited and up to four colors (blue mail, red mail, bunny). Some are unlocked by feats (enemies, bosses, levels, stages), others are bought with red rupees — each with strengths, weaknesses and a starting weapon",
             'A rare **Bob-omb** that blows away every enemy on screen, and **breakable scenery** hiding rupees, hearts, fairies or the Ether medallion',
             'Random **encounters**: a wandering champion waits somewhere, an arrow shows the way — beat it for a blessing, a special weapon upgrade or a relic you keep if you win',
-            "A **thief Boo** that gobbles the rupees left on the ground — catch it to get them all back",
+            "A **thief Boo** that steals your rupees bit by bit — catch it to get them back",
             "The **Fortune Teller** after the final boss (chest game, double or nothing) and a **Witch** who sells potions for the whole run",
             "**18 weapons** (six of them won from mid-bosses) and the **Master Sword** for beating Ganon, each with its **fusion**, and **12 passive items** — 6 weapon slots and 6 item slots, so every choice matters",
             "**More than 30 enemy types** from Hyrule, **12 bosses** (a different one on every stage) and **elites** that drop chests",
             "**Progression between runs**: the Kakariko shop (permanent upgrades), the Great Fairy's blessings, a **relic** won on each stage, 4 **difficulties** and Ganon's **seals** to earn more rupees",
-            "**Collection** (bestiary with animated cards, weapons, items, fusions) and **Achievements** (59 bronze, silver and gold trophies, statistics); save export / import as a text code; red rupees also buy outfits, jukebox tracks and leaderboard titles",
-            "**5 players** on the same computer, each with a name, an avatar and their own progress; a **score** for every run and **leaderboards**: best scores per stage, between the players at home and a **world top 100** per game version",
+            "**Collection** (bestiary with animated cards, detailed cards for weapons, items and fusions) and a **Gallery** where Link walks among his trophies, weapons, figurines and the statues of unlocked characters; **Achievements** (59 bronze, silver and gold trophies, statistics); save export / import as a text code; red rupees also buy outfits, jukebox tracks and leaderboard titles",
+            "**5 players** on the same computer, each with a name, an avatar and their own progress; a **score** for every run and **leaderboards**: best scores per stage, between the players at home and a **world top 100** per game version, solo and co-op",
+            "**Online co-op for 2 to 4 players** (computer, Android and browser): create a room and share its 4-letter code; everyone plays their own character and color, picks upgrades without pausing the others (protected for 10 seconds) and can revive fallen allies; enemies get tougher and more numerous with each player",
             "An **instruction booklet** in the style of the original one (PDF, English and French)",
             'Automatic attacks, or **manual aiming** at any time — keyboard, mouse or gamepad, and **every key can be remapped**',
             'Original SNES **graphics, music and sounds** of A Link to the Past',
             '**Retro video filters**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, plus a **4:3** mode — and matching **audio filters**',
             '**7 languages**: English, Français, Deutsch, Español, Italiano, Português, 日本語',
-            'Home-made **Rust engine** (wgpu): thousands of enemies on screen, on Windows, Linux, macOS and **in the browser**',
+            'Home-made **Rust engine** (wgpu): thousands of enemies on screen, on Windows, Linux, macOS, **Android** and **in the browser**',
         ],
         evo_h="Weapons and evolutions",
         evo_cols=("Weapon", "+ Item", "Evolution (both at max level)"),
@@ -69,7 +70,7 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
         play_h="Play",
         play=f"""The game is in **early alpha** (version {VERSION}). **Windows**: download the latest version from the [Releases page]({REPO}/releases/latest), extract the whole zip and launch `A Survivor to the Past.exe`. Windows may warn that the game is not signed: click *More info* → *Run anyway*. **Linux, macOS and handhelds** (PortMaster, experimental): same page, take the zip for your system and follow its `README.txt`. **Android** (phones and tablets, touch controls): same page, download the `.apk` and open it (allow installs from your browser); it does not update itself. The game then **updates itself**: at launch it checks GitHub for a new version, downloads it in the background and installs it at the next launch (Options → Updates: Automatic / Ask me / Off). Your settings are kept and no personal data is sent: updates only contact GitHub, and the world leaderboard only contacts the game's website when you open it or publish a score (nickname and score).
 
-**Browser**: [play directly on the website]({SITE}play/), nothing to install. It works best on a computer, in Chrome, Edge or Firefox, and your progress is saved in the browser. Linux, macOS and Android versions will come later. Meanwhile you can build the game from source with [Rust](https://rustup.rs) (stable):""",
+**Browser**: [play directly on the website]({SITE}play/), nothing to install. It works best on a computer, in Chrome, Edge or Firefox, and your progress is saved in the browser. You can also build the game from source with [Rust](https://rustup.rs) (stable):""",
         linux="On Linux, also install the ALSA and udev development packages (`libasound2-dev`, `libudev-dev`).",
         ctrl_h="Controls",
         ctrl_cols=("Action", "Keyboard / mouse", "Gamepad"),
@@ -95,7 +96,7 @@ Website: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
 
 The [GPL-3.0 license](LICENSE) only covers the source code written for this project; it grants no rights over Nintendo's assets. Sprite sheets come from the rips shared by the community of *The Spriters Resource* — thanks to their authors.
 
-The name of every sprite ripper and artist (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny and many more) is listed in **[CREDITS.md](CREDITS.md)**. Mario and Shy Guy also belong to Nintendo; *Sonic the Hedgehog* is a trademark of **SEGA**, *Among Us* of **Innersloth**, Simon Belmont (*Castlevania*) of **Konami**, and Vivi (*Final Fantasy IX*) of **Square Enix**.
+The name of every sprite ripper and artist (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny and many more) is listed in **[CREDITS.md](CREDITS.md)**. Mario and Shy Guy also belong to Nintendo; *Sonic the Hedgehog* is a trademark of **SEGA**, *Among Us* of **Innersloth**, Simon Belmont (*Castlevania*) of **Konami**, Vivi (*Final Fantasy IX*) of **Square Enix**, and the *Clair Obscur: Expedition 33* characters of **Sandfall Interactive**.
 
 Rights holders: to have content removed, open an issue or contact us on [Discord]({DISCORD}).""",
     ),
@@ -109,22 +110,23 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
         feat_h="Contenu",
         feats=[
             "**10 stages** dans l'ordre du jeu d'origine — Plaine d'Hyrule, Désert du Mystère, Montagne de la Mort, Château d'Hyrule, Palais des Ténèbres, Grand Marais, Bois Perdus, Village des Voleurs, Lac gelé et Pyramide de la Puissance — chacun avec sa météo, sa musique, son boss intermédiaire et son boss final, jusqu'à Agahnim et Ganon",
-            "**350 personnages jouables** dans six univers — la troupe faite main (Link, Link Minish, Sonic, Zelda, Mario, Vivi, Ganondorf, le tout dernier...) et plus de 300 sprites de la communauté du *A Link to the Past Randomizer*, chacun crédité à ses auteurs, avec jusqu'à quatre couleurs (cotte bleue, cotte rouge, lapin). Certains se débloquent par des exploits (ennemis, boss, niveaux, stages), d'autres s'achètent en rubis rouges — chacun avec ses forces, ses faiblesses et son arme de départ",
+            "**357 personnages jouables** dans six univers — la troupe faite main (Link, Link Minish, Sonic, Zelda, Mario, Vivi, l'équipe de *Clair Obscur: Expedition 33*, Ganondorf, le tout dernier...) et plus de 300 sprites de la communauté du *A Link to the Past Randomizer*, chacun crédité à ses auteurs, avec jusqu'à quatre couleurs (cotte bleue, cotte rouge, lapin). Certains se débloquent par des exploits (ennemis, boss, niveaux, stages), d'autres s'achètent en rubis rouges — chacun avec ses forces, ses faiblesses et son arme de départ",
             "Une **Bob-omb** rare qui souffle tous les ennemis à l'écran, et un **décor cassable** qui cache rubis, cœurs, fées ou médaillon d'Éther",
             "Des **rencontres** aléatoires : un champion errant attend quelque part, une flèche indique où aller — battez-le pour une bénédiction, une amélioration spéciale d'arme ou une relique gardée si vous gagnez",
-            "Un **Boo voleur** qui dévore les rubis restés au sol — rattrapez-le pour tout récupérer",
+            "Un **Boo voleur** qui vous vole peu à peu vos rubis — rattrapez-le pour les récupérer",
             "La **diseuse de bonne aventure** après le boss final (jeu des coffres, quitte ou double) et une **sorcière** qui vend des potions pour toute la partie",
             "**18 armes** (dont six gagnées sur les boss intermédiaires) et la **Master Sword** en battant Ganon, chacune avec sa **fusion**, et **12 objets passifs** — 6 emplacements d'armes et 6 d'objets : chaque choix compte",
             "**Plus de 30 types d'ennemis** d'Hyrule, **12 boss** (un différent à chaque stage) et des **élites** qui lâchent des coffres",
             '**Progression entre les parties** : la boutique de Cocorico (améliorations permanentes), les bénédictions de la Grande Fée, une **relique** gagnée sur chaque stage, 4 **difficultés** et les **sceaux** de Ganon pour gagner plus de rubis',
-            "**Recueil** (bestiaire aux fiches animées, armes, objets, fusions) et **Exploits** (59 trophées de bronze, d'argent et d'or, statistiques) ; export / import de la sauvegarde sous forme de code texte ; les rubis rouges achètent aussi des tenues, des musiques et des titres pour le classement",
-            "**5 joueurs** sur le même ordinateur, chacun avec son nom, son avatar et sa progression ; un **score** à chaque partie et des **classements** : meilleurs scores par stage, entre les joueurs de la maison et **top 100 mondial** par version du jeu",
+            "**Recueil** (bestiaire aux fiches animées, fiches détaillées des armes, objets et fusions) et **Galerie** où Link se promène parmi ses trophées, armes, figurines et les statues des personnages débloqués ; **Exploits** (59 trophées de bronze, d'argent et d'or, statistiques) ; export / import de la sauvegarde sous forme de code texte ; les rubis rouges achètent aussi des tenues, des musiques et des titres pour le classement",
+            "**5 joueurs** sur le même ordinateur, chacun avec son nom, son avatar et sa progression ; un **score** à chaque partie et des **classements** : meilleurs scores par stage, entre les joueurs de la maison et **top 100 mondial** par version du jeu, en solo et en coop",
+            "**Coop en ligne de 2 à 4 joueurs** (ordinateur, Android et navigateur) : créez une salle et partagez son code de 4 lettres ; chacun joue son personnage et sa couleur, choisit ses améliorations sans mettre les autres en pause (protégé 10 secondes) et peut relever un allié à terre ; les ennemis sont plus coriaces et plus nombreux à chaque joueur",
             "Un **livret d'instructions** à la manière de celui d'origine (PDF, français et anglais)",
             'Attaques automatiques, ou **visée manuelle** à tout moment — clavier, souris ou manette, et **toutes les touches sont reconfigurables**',
             '**Graphismes, musiques et sons** originaux de A Link to the Past sur SNES',
             '**Filtres vidéo rétro** : SNES, CRT, Scanlines, Game Boy Advance, Game Boy, plus un mode **4:3** — et des **filtres audio** assortis',
             '**7 langues** : English, Français, Deutsch, Español, Italiano, Português, 日本語',
-            "**Moteur maison en Rust** (wgpu) : des milliers d'ennemis à l'écran, sur Windows, Linux, macOS et **dans le navigateur**",
+            "**Moteur maison en Rust** (wgpu) : des milliers d'ennemis à l'écran, sur Windows, Linux, macOS, **Android** et **dans le navigateur**",
         ],
         evo_h="Armes et évolutions",
         evo_cols=("Arme", "+ Objet", "Évolution (les deux au niveau max)"),
@@ -137,7 +139,7 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
         play_h="Jouer",
         play=f"""Le jeu est en **alpha** (version {VERSION}). **Windows** : téléchargez la dernière version sur la [page des versions]({REPO}/releases/latest), extrayez tout le zip et lancez `A Survivor to the Past.exe`. Windows peut prévenir que le jeu n'est pas signé : cliquez sur *Informations complémentaires* → *Exécuter quand même*. **Linux, macOS et consoles portables** (PortMaster, expérimental) : même page, prenez le zip de votre système et suivez son `README.txt`. **Android** (téléphones et tablettes, commandes tactiles) : même page, téléchargez le fichier `.apk` et ouvrez-le (autorisez l'installation depuis votre navigateur) ; il ne se met pas à jour tout seul. Ensuite, le jeu **se met à jour tout seul** : au lancement, il vérifie sur GitHub s'il existe une nouvelle version, la télécharge en arrière-plan et l'installe au lancement suivant (Options → Mises à jour : Automatiques / Me demander / Non). Vos réglages sont conservés et aucune donnée personnelle n'est envoyée : les mises à jour ne contactent que GitHub, et le classement mondial ne contacte le site du jeu que lorsque vous l'ouvrez ou publiez un score (pseudo et score).
 
-**Navigateur** : [jouez directement sur le site]({SITE}play/), sans rien installer. Idéal sur ordinateur, dans Chrome, Edge ou Firefox ; votre progression est enregistrée dans le navigateur. Les versions Linux, macOS et Android viendront plus tard. En attendant, vous pouvez compiler le jeu depuis les sources avec [Rust](https://rustup.rs) (stable) :""",
+**Navigateur** : [jouez directement sur le site]({SITE}play/), sans rien installer. Idéal sur ordinateur, dans Chrome, Edge ou Firefox ; votre progression est enregistrée dans le navigateur. Vous pouvez aussi compiler le jeu depuis les sources avec [Rust](https://rustup.rs) (stable) :""",
         linux="Sous Linux, installez aussi les paquets de développement ALSA et udev (`libasound2-dev`, `libudev-dev`).",
         ctrl_h="Commandes",
         ctrl_cols=("Action", "Clavier / souris", "Manette"),
@@ -163,7 +165,7 @@ Site : [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
 
 La [licence GPL-3.0](LICENSE) ne couvre que le code source écrit pour ce projet ; elle ne donne aucun droit sur les assets de Nintendo. Les planches de sprites proviennent des extractions partagées par la communauté de *The Spriters Resource* — merci à leurs auteurs.
 
-Le nom de chaque auteur d'extraction ou de sprite (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny et bien d'autres) figure dans **[CREDITS.md](CREDITS.md)**. Mario et Maskass appartiennent eux aussi à Nintendo ; *Sonic the Hedgehog* est une marque de **SEGA**, *Among Us* d'**Innersloth**, Simon Belmont (*Castlevania*) de **Konami**, et Vivi (*Final Fantasy IX*) de **Square Enix**.
+Le nom de chaque auteur d'extraction ou de sprite (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny et bien d'autres) figure dans **[CREDITS.md](CREDITS.md)**. Mario et Maskass appartiennent eux aussi à Nintendo ; *Sonic the Hedgehog* est une marque de **SEGA**, *Among Us* d'**Innersloth**, Simon Belmont (*Castlevania*) de **Konami**, Vivi (*Final Fantasy IX*) de **Square Enix**, et les personnages de *Clair Obscur: Expedition 33* de **Sandfall Interactive**.
 
 Ayants droit : pour faire retirer un contenu, ouvrez une issue ou contactez-nous sur le [Discord]({DISCORD}).""",
     ),
@@ -177,22 +179,23 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
         feat_h="Inhalt",
         feats=[
             "**10 Stages** in der Reihenfolge des Originals — Hyrule-Ebene, Wüste der Mysterien, Todesberg, Schloss Hyrule, Palast der Finsternis, Sumpf, Verlorene Wälder, Diebesdorf, Gefrorener See und Pyramide der Macht — jede mit eigenem Wetter, eigener Musik, Zwischen- und Endboss, bis zu Agahnim und Ganon",
-            "**350 spielbare Figuren** in sechs Welten — die handgemachte Truppe (Link, Minish-Link, Sonic, Zelda, Mario, Vivi, Ganondorf als Allerletzter...) und über 300 Sprites der *A Link to the Past Randomizer*-Community, jeweils mit Nennung der Autoren und bis zu vier Farben (blaues Kettenhemd, rotes Kettenhemd, Hase). Manche werden durch Erfolge freigeschaltet (Gegner, Bosse, Level, Stages), andere mit roten Rubinen gekauft — jede mit Stärken, Schwächen und Startwaffe",
+            "**357 spielbare Figuren** in sechs Welten — die handgemachte Truppe (Link, Minish-Link, Sonic, Zelda, Mario, Vivi, die Truppe aus *Clair Obscur: Expedition 33*, Ganondorf als Allerletzter...) und über 300 Sprites der *A Link to the Past Randomizer*-Community, jeweils mit Nennung der Autoren und bis zu vier Farben (blaues Kettenhemd, rotes Kettenhemd, Hase). Manche werden durch Erfolge freigeschaltet (Gegner, Bosse, Level, Stages), andere mit roten Rubinen gekauft — jede mit Stärken, Schwächen und Startwaffe",
             'Ein seltener **Bob-omb**, der alle Gegner auf dem Bildschirm wegsprengt, und **zerstörbare Umgebung** mit Rubinen, Herzen, Feen oder dem Äther-Medaillon',
             'Zufällige **Begegnungen**: Ein wandernder Champion wartet irgendwo, ein Pfeil zeigt den Weg — besiege ihn für einen Segen, eine Spezialverbesserung oder ein Relikt, das bleibt, wenn du gewinnst',
-            "Ein **diebischer Boo**, der die Rubine am Boden frisst — fang ihn, um alle zurückzubekommen",
+            "Ein **diebischer Boo**, der dir nach und nach Rubine stiehlt — fang ihn, um sie zurückzubekommen",
             "Die **Wahrsagerin** nach dem Endboss (Truhenspiel, doppelt oder nichts) und eine **Hexe**, die Tränke für den ganzen Lauf verkauft",
             "**18 Waffen** (sechs davon von Zwischenbossen erbeutet) und das **Master-Schwert** für den Sieg über Ganon, jede mit ihrer **Fusion**, und **12 passive Gegenstände** — 6 Waffen- und 6 Gegenstandsplätze, jede Wahl zählt",
             "**Über 30 Gegnertypen** aus Hyrule, **12 Bosse** (in jeder Stage ein anderer) und **Elite-Gegner**, die Truhen fallen lassen",
             '**Fortschritt zwischen den Runden**: der Laden von Kakariko (dauerhafte Verbesserungen), die Segen der Großen Fee, eine **Reliquie** pro Stage, 4 **Schwierigkeitsgrade** und Ganons **Siegel** für mehr Rubine',
-            "**Sammlung** (Bestiarium mit animierten Karten, Waffen, Gegenstände, Fusionen) und **Erfolge** (59 Trophäen in Bronze, Silber und Gold, Statistiken); Export / Import des Spielstands als Textcode; rote Rubine kaufen auch Outfits, Musikstücke und Titel für die Rangliste",
-            "**5 Spieler** auf demselben Computer, jeder mit Namen, Avatar und eigenem Fortschritt; eine **Punktzahl** für jede Runde und **Ranglisten**: Bestwerte pro Stage, unter den Spielern zu Hause und eine **Welt-Top-100** pro Spielversion",
+            "**Sammlung** (Bestiarium mit animierten Karten, ausführliche Karten zu Waffen, Gegenständen und Fusionen) und eine **Galerie**, in der Link zwischen seinen Trophäen, Waffen, Figuren und den Statuen der freigeschalteten Figuren umhergeht; **Erfolge** (59 Trophäen in Bronze, Silber und Gold, Statistiken); Export / Import des Spielstands als Textcode; rote Rubine kaufen auch Outfits, Musikstücke und Titel für die Rangliste",
+            "**5 Spieler** auf demselben Computer, jeder mit Namen, Avatar und eigenem Fortschritt; eine **Punktzahl** für jede Runde und **Ranglisten**: Bestwerte pro Stage, unter den Spielern zu Hause und eine **Welt-Top-100** pro Spielversion, solo und im Koop",
+            "**Online-Koop für 2 bis 4 Spieler** (Computer, Android und Browser): einen Raum erstellen und seinen Code aus 4 Buchstaben teilen; jeder spielt seine eigene Figur und Farbe, wählt Verbesserungen, ohne die anderen anzuhalten (10 Sekunden geschützt), und kann gefallene Mitspieler wiederbeleben; mit jedem Spieler werden die Gegner zäher und zahlreicher",
             "Eine **Spielanleitung** im Stil des Originalhefts (PDF, Englisch und Französisch)",
             'Automatische Angriffe oder jederzeit **manuelles Zielen** — Tastatur, Maus oder Controller, und **alle Tasten sind frei belegbar**',
             'Originale SNES-**Grafiken, Musik und Sounds** aus A Link to the Past',
             '**Retro-Videofilter**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, dazu ein **4:3**-Modus — und passende **Audiofilter**',
             '**7 Sprachen**: English, Français, Deutsch, Español, Italiano, Português, 日本語',
-            'Eigene **Rust-Engine** (wgpu): Tausende Gegner auf dem Bildschirm, unter Windows, Linux, macOS und **im Browser**',
+            'Eigene **Rust-Engine** (wgpu): Tausende Gegner auf dem Bildschirm, unter Windows, Linux, macOS, **Android** und **im Browser**',
         ],
         evo_h="Waffen und Entwicklungen",
         evo_cols=("Waffe", "+ Gegenstand", "Entwicklung (beide auf Höchststufe)"),
@@ -205,7 +208,7 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
         play_h="Spielen",
         play=f"""Das Spiel ist in der **Alpha-Phase** (Version {VERSION}). **Windows**: Lade die neueste Version von der [Release-Seite]({REPO}/releases/latest) herunter, entpacke das ganze Zip und starte `A Survivor to the Past.exe`. Windows warnt eventuell, dass das Spiel nicht signiert ist: Klicke auf *Weitere Informationen* → *Trotzdem ausführen*. **Linux, macOS und Handhelds** (PortMaster, experimentell): gleiche Seite, nimm das Zip für dein System und folge seiner `README.txt`. **Android** (Smartphones und Tablets, Touch-Steuerung): gleiche Seite, lade die `.apk` herunter und öffne sie (erlaube Installationen aus deinem Browser); sie aktualisiert sich nicht selbst. Danach **aktualisiert sich das Spiel selbst**: Beim Start prüft es auf GitHub, ob es eine neue Version gibt, lädt sie im Hintergrund herunter und installiert sie beim nächsten Start (Optionen → Updates: Automatisch / Nachfragen / Aus). Deine Einstellungen bleiben erhalten und es werden keine persönlichen Daten gesendet: Updates kontaktieren nur GitHub, und die Weltrangliste kontaktiert die Website des Spiels nur, wenn du sie öffnest oder eine Punktzahl veröffentlichst (Spitzname und Punktzahl).
 
-**Browser**: [direkt auf der Website spielen]({SITE}play/), ohne Installation. Am besten am Computer, in Chrome, Edge oder Firefox; dein Fortschritt wird im Browser gespeichert. Versionen für Linux, macOS und Android folgen später. Bis dahin kannst du das Spiel mit [Rust](https://rustup.rs) (stable) aus dem Quellcode bauen:""",
+**Browser**: [direkt auf der Website spielen]({SITE}play/), ohne Installation. Am besten am Computer, in Chrome, Edge oder Firefox; dein Fortschritt wird im Browser gespeichert. Du kannst das Spiel auch mit [Rust](https://rustup.rs) (stable) aus dem Quellcode bauen:""",
         linux="Unter Linux werden außerdem die Entwicklungspakete für ALSA und udev benötigt (`libasound2-dev`, `libudev-dev`).",
         ctrl_h="Steuerung",
         ctrl_cols=("Aktion", "Tastatur / Maus", "Controller"),
@@ -231,7 +234,7 @@ Webseite: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
 
 Die [GPL-3.0-Lizenz](LICENSE) gilt nur für den für dieses Projekt geschriebenen Quellcode; sie gewährt keinerlei Rechte an Nintendos Assets. Die Sprite-Sheets stammen aus den Rips der Community von *The Spriters Resource* — danke an ihre Autoren.
 
-Die Namen aller Sprite-Ripper und Künstler (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny und viele mehr) stehen in **[CREDITS.md](CREDITS.md)**. Mario und Shy Guy gehören ebenfalls Nintendo; *Sonic the Hedgehog* ist eine Marke von **SEGA**, *Among Us* von **Innersloth**, Simon Belmont (*Castlevania*) von **Konami** und Vivi (*Final Fantasy IX*) von **Square Enix**.
+Die Namen aller Sprite-Ripper und Künstler (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny und viele mehr) stehen in **[CREDITS.md](CREDITS.md)**. Mario und Shy Guy gehören ebenfalls Nintendo; *Sonic the Hedgehog* ist eine Marke von **SEGA**, *Among Us* von **Innersloth**, Simon Belmont (*Castlevania*) von **Konami**, Vivi (*Final Fantasy IX*) von **Square Enix** und die Figuren aus *Clair Obscur: Expedition 33* von **Sandfall Interactive**.
 
 Rechteinhaber: Um Inhalte entfernen zu lassen, eröffne ein Issue oder kontaktiere uns auf [Discord]({DISCORD}).""",
     ),
@@ -245,22 +248,23 @@ Guía a Link entre hordas cada vez más grandes, recoge rupias para subir de niv
         feat_h="Contenido",
         feats=[
             "**10 fases** en el orden del juego original — Llanura de Hyrule, Desierto del Misterio, Montaña de la Muerte, Castillo de Hyrule, Palacio de la Oscuridad, Pantano, Bosque Perdido, Aldea de los Ladrones, Lago helado y Pirámide del Poder — cada una con su clima, su música, su jefe intermedio y su jefe final, hasta Agahnim y Ganon",
-            "**350 personajes jugables** en seis universos — el elenco hecho a mano (Link, Link Minish, Sonic, Zelda, Mario, Vivi, Ganondorf, el último de todos...) y más de 300 sprites de la comunidad del *A Link to the Past Randomizer*, cada uno con sus autores en los créditos y hasta cuatro colores (malla azul, malla roja, conejo). Unos se desbloquean con hazañas (enemigos, jefes, niveles, stages), otros se compran con rupias rojas — cada uno con sus fuerzas, sus debilidades y su arma inicial",
+            "**357 personajes jugables** en seis universos — el elenco hecho a mano (Link, Link Minish, Sonic, Zelda, Mario, Vivi, el grupo de *Clair Obscur: Expedition 33*, Ganondorf, el último de todos...) y más de 300 sprites de la comunidad del *A Link to the Past Randomizer*, cada uno con sus autores en los créditos y hasta cuatro colores (malla azul, malla roja, conejo). Unos se desbloquean con hazañas (enemigos, jefes, niveles, stages), otros se compran con rupias rojas — cada uno con sus fuerzas, sus debilidades y su arma inicial",
             'Una **Bob-omb** rara que barre a todos los enemigos de la pantalla, y **decorado destructible** que esconde rupias, corazones, hadas o el medallón de Éter',
             '**Encuentros** aleatorios: un campeón errante espera en algún lugar y una flecha indica el camino — derrótalo para obtener una bendición, una mejora especial de arma o una reliquia que conservas si ganas',
-            "Un **Boo ladrón** que devora las rupias del suelo — atrápalo para recuperarlas todas",
+            "Un **Boo ladrón** que te roba rupias poco a poco — atrápalo para recuperarlas",
             "La **adivina** tras el jefe final (juego de cofres, doble o nada) y una **bruja** que vende pociones para toda la partida",
             "**18 armas** (seis de ellas ganadas a los jefes intermedios) y la **Espada Maestra** al vencer a Ganon, cada una con su **fusión**, y **12 objetos pasivos** — 6 huecos de armas y 6 de objetos: cada elección cuenta",
             "**Más de 30 tipos de enemigos** de Hyrule, **12 jefes** (uno distinto en cada fase) y **élites** que sueltan cofres",
             '**Progresión entre partidas**: la tienda de Kakariko (mejoras permanentes), las bendiciones de la Gran Hada, una **reliquia** por fase, 4 **dificultades** y los **sellos** de Ganon para ganar más rupias',
-            "**Colección** (bestiario con fichas animadas, armas, objetos, fusiones) y **Logros** (59 trofeos de bronce, plata y oro, estadísticas); exportar / importar la partida como código de texto; las rupias rojas también compran trajes, músicas y títulos para la clasificación",
-            "**5 jugadores** en el mismo ordenador, cada uno con su nombre, su avatar y su progreso; una **puntuación** en cada partida y **clasificaciones**: mejores puntuaciones por fase, entre los jugadores de casa y un **top 100 mundial** por versión del juego",
+            "**Colección** (bestiario con fichas animadas, fichas detalladas de armas, objetos y fusiones) y una **Galería** donde Link pasea entre sus trofeos, armas, figuras y las estatuas de los personajes desbloqueados; **Logros** (59 trofeos de bronce, plata y oro, estadísticas); exportar / importar la partida como código de texto; las rupias rojas también compran trajes, músicas y títulos para la clasificación",
+            "**5 jugadores** en el mismo ordenador, cada uno con su nombre, su avatar y su progreso; una **puntuación** en cada partida y **clasificaciones**: mejores puntuaciones por fase, entre los jugadores de casa y un **top 100 mundial** por versión del juego, en solitario y en cooperativo",
+            "**Cooperativo en línea de 2 a 4 jugadores** (ordenador, Android y navegador): crea una sala y comparte su código de 4 letras; cada uno juega con su personaje y su color, elige mejoras sin pausar a los demás (protegido 10 segundos) y puede reanimar a un aliado caído; los enemigos son más duros y numerosos con cada jugador",
             "Un **manual de instrucciones** al estilo del original (PDF, inglés y francés)",
             'Ataques automáticos o **apuntado manual** en cualquier momento — teclado, ratón o mando, y **todas las teclas se pueden reasignar**',
             '**Gráficos, música y sonidos** originales de A Link to the Past en SNES',
             '**Filtros de vídeo retro**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, más un modo **4:3** — y **filtros de audio** a juego',
             '**7 idiomas**: English, Français, Deutsch, Español, Italiano, Português, 日本語',
-            '**Motor propio en Rust** (wgpu): miles de enemigos en pantalla, en Windows, Linux, macOS y **en el navegador**',
+            '**Motor propio en Rust** (wgpu): miles de enemigos en pantalla, en Windows, Linux, macOS, **Android** y **en el navegador**',
         ],
         evo_h="Armas y evoluciones",
         evo_cols=("Arma", "+ Objeto", "Evolución (ambos al nivel máximo)"),
@@ -273,7 +277,7 @@ Guía a Link entre hordas cada vez más grandes, recoge rupias para subir de niv
         play_h="Jugar",
         play=f"""El juego está en **alfa** (versión {VERSION}). **Windows**: descarga la última versión en la [página de versiones]({REPO}/releases/latest), extrae todo el zip y ejecuta `A Survivor to the Past.exe`. Windows puede avisar de que el juego no está firmado: haz clic en *Más información* → *Ejecutar de todas formas*. **Linux, macOS y portátiles** (PortMaster, experimental): misma página, elige el zip de tu sistema y sigue su `README.txt`. **Android** (móviles y tabletas, controles táctiles): misma página, descarga el `.apk` y ábrelo (permite instalar desde tu navegador); no se actualiza solo. Después, el juego **se actualiza solo**: al iniciarse comprueba en GitHub si hay una versión nueva, la descarga en segundo plano y la instala en el siguiente inicio (Opciones → Actualizaciones: Automáticas / Preguntar / No). Tus ajustes se conservan y no se envía ningún dato personal: las actualizaciones solo contactan con GitHub, y la clasificación mundial solo contacta con la web del juego cuando la abres o publicas una puntuación (apodo y puntuación).
 
-**Navegador**: [juega directamente en la web]({SITE}play/), sin instalar nada. Funciona mejor en ordenador, en Chrome, Edge o Firefox, y tu progreso se guarda en el navegador. Las versiones para Linux, macOS y Android llegarán más adelante. Mientras tanto, puedes compilar el juego desde el código fuente con [Rust](https://rustup.rs) (stable):""",
+**Navegador**: [juega directamente en la web]({SITE}play/), sin instalar nada. Funciona mejor en ordenador, en Chrome, Edge o Firefox, y tu progreso se guarda en el navegador. También puedes compilar el juego desde el código fuente con [Rust](https://rustup.rs) (stable):""",
         linux="En Linux, instala también los paquetes de desarrollo de ALSA y udev (`libasound2-dev`, `libudev-dev`).",
         ctrl_h="Controles",
         ctrl_cols=("Acción", "Teclado / ratón", "Mando"),
@@ -299,7 +303,7 @@ Web: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
 
 La [licencia GPL-3.0](LICENSE) solo cubre el código fuente escrito para este proyecto; no otorga ningún derecho sobre los recursos de Nintendo. Las hojas de sprites proceden de las extracciones compartidas por la comunidad de *The Spriters Resource* — gracias a sus autores.
 
-El nombre de cada autor de extracciones o sprites (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny y muchos más) aparece en **[CREDITS.md](CREDITS.md)**. Mario y Shy Guy también pertenecen a Nintendo; *Sonic the Hedgehog* es una marca de **SEGA**, *Among Us* de **Innersloth**, Simon Belmont (*Castlevania*) de **Konami**, y Vivi (*Final Fantasy IX*) de **Square Enix**.
+El nombre de cada autor de extracciones o sprites (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny y muchos más) aparece en **[CREDITS.md](CREDITS.md)**. Mario y Shy Guy también pertenecen a Nintendo; *Sonic the Hedgehog* es una marca de **SEGA**, *Among Us* de **Innersloth**, Simon Belmont (*Castlevania*) de **Konami**, Vivi (*Final Fantasy IX*) de **Square Enix**, y los personajes de *Clair Obscur: Expedition 33* de **Sandfall Interactive**.
 
 Titulares de derechos: para retirar un contenido, abrid una issue o contactad con nosotros en [Discord]({DISCORD}).""",
     ),
@@ -313,22 +317,23 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
         feat_h="Contenuti",
         feats=[
             "**10 stage** nell'ordine del gioco originale — Piana di Hyrule, Deserto del Mistero, Montagna della Morte, Castello di Hyrule, Palazzo delle Tenebre, Palude, Boschi Perduti, Villaggio dei Ladri, Lago ghiacciato e Piramide del Potere — ognuno con il suo meteo, la sua musica, il suo boss intermedio e il suo boss finale, fino ad Agahnim e Ganon",
-            "**350 personaggi giocabili** in sei universi — il cast fatto a mano (Link, Link Minish, Sonic, Zelda, Mario, Vivi, Ganondorf, l'ultimo di tutti...) e più di 300 sprite della comunità del *A Link to the Past Randomizer*, ognuno con i suoi autori nei crediti e fino a quattro colori (maglia blu, maglia rossa, coniglio). Alcuni si sbloccano con le imprese (nemici, boss, livelli, stage), altri si comprano con le rupie rosse — ognuno con punti di forza, debolezze e arma iniziale",
+            "**357 personaggi giocabili** in sei universi — il cast fatto a mano (Link, Link Minish, Sonic, Zelda, Mario, Vivi, la squadra di *Clair Obscur: Expedition 33*, Ganondorf, l'ultimo di tutti...) e più di 300 sprite della comunità del *A Link to the Past Randomizer*, ognuno con i suoi autori nei crediti e fino a quattro colori (maglia blu, maglia rossa, coniglio). Alcuni si sbloccano con le imprese (nemici, boss, livelli, stage), altri si comprano con le rupie rosse — ognuno con punti di forza, debolezze e arma iniziale",
             "Una **Bob-omb** rara che spazza via tutti i nemici sullo schermo, e **scenari distruttibili** che nascondono rupie, cuori, fate o il medaglione dell'Etere",
             '**Incontri** casuali: un campione errante aspetta da qualche parte, una freccia indica la strada — sconfiggilo per una benedizione, un potenziamento speciale o una reliquia che resta se vinci',
-            "Un **Boo ladro** che divora le rupie rimaste a terra — prendilo per recuperarle tutte",
+            "Un **Boo ladro** che ti ruba le rupie un po' alla volta — prendilo per riaverle",
             "La **chiromante** dopo il boss finale (gioco dei forzieri, lascia o raddoppia) e una **strega** che vende pozioni per tutta la partita",
             "**18 armi** (sei vinte contro i boss intermedi) e la **Master Sword** sconfiggendo Ganon, ognuna con la sua **fusione**, e **12 oggetti passivi** — 6 slot per le armi e 6 per gli oggetti: ogni scelta conta",
             "**Più di 30 tipi di nemici** di Hyrule, **12 boss** (uno diverso in ogni stage) ed **élite** che lasciano forzieri",
             '**Progressi tra le partite**: il negozio di Kakariko (potenziamenti permanenti), le benedizioni della Grande Fata, una **reliquia** per ogni stage, 4 **difficoltà** e i **sigilli** di Ganon per guadagnare più rupie',
-            "**Raccolta** (bestiario con schede animate, armi, oggetti, fusioni) e **Imprese** (59 trofei di bronzo, argento e oro, statistiche); esportazione / importazione del salvataggio come codice di testo; le rupie rosse comprano anche costumi, musiche e titoli per la classifica",
-            "**5 giocatori** sullo stesso computer, ognuno con nome, avatar e progressi propri; un **punteggio** per ogni partita e **classifiche**: migliori punteggi per livello, tra i giocatori di casa e una **top 100 mondiale** per versione del gioco",
+            "**Raccolta** (bestiario con schede animate, schede dettagliate di armi, oggetti e fusioni) e una **Galleria** dove Link passeggia tra i suoi trofei, armi, statuette e le statue dei personaggi sbloccati; **Imprese** (59 trofei di bronzo, argento e oro, statistiche); esportazione / importazione del salvataggio come codice di testo; le rupie rosse comprano anche costumi, musiche e titoli per la classifica",
+            "**5 giocatori** sullo stesso computer, ognuno con nome, avatar e progressi propri; un **punteggio** per ogni partita e **classifiche**: migliori punteggi per livello, tra i giocatori di casa e una **top 100 mondiale** per versione del gioco, in singolo e in cooperativa",
+            "**Cooperativa online da 2 a 4 giocatori** (computer, Android e browser): crea una stanza e condividi il suo codice di 4 lettere; ognuno gioca con il suo personaggio e il suo colore, sceglie i potenziamenti senza mettere in pausa gli altri (protetto per 10 secondi) e può rianimare un alleato a terra; i nemici sono più resistenti e numerosi a ogni giocatore",
             "Un **libretto di istruzioni** nello stile dell'originale (PDF, inglese e francese)",
             'Attacchi automatici o **mira manuale** in qualsiasi momento — tastiera, mouse o controller, e **tutti i tasti sono riassegnabili**',
             '**Grafica, musica e suoni** originali di A Link to the Past per SNES',
             '**Filtri video retrò**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, più una modalità **4:3** — e **filtri audio** abbinati',
             '**7 lingue**: English, Français, Deutsch, Español, Italiano, Português, 日本語',
-            '**Motore fatto in casa in Rust** (wgpu): migliaia di nemici sullo schermo, su Windows, Linux, macOS e **nel browser**',
+            '**Motore fatto in casa in Rust** (wgpu): migliaia di nemici sullo schermo, su Windows, Linux, macOS, **Android** e **nel browser**',
         ],
         evo_h="Armi ed evoluzioni",
         evo_cols=("Arma", "+ Oggetto", "Evoluzione (entrambi al livello massimo)"),
@@ -341,7 +346,7 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
         play_h="Giocare",
         play=f"""Il gioco è in **alfa** (versione {VERSION}). **Windows**: scarica l'ultima versione dalla [pagina delle release]({REPO}/releases/latest), estrai tutto lo zip e avvia `A Survivor to the Past.exe`. Windows potrebbe avvisare che il gioco non è firmato: fai clic su *Ulteriori informazioni* → *Esegui comunque*. **Linux, macOS e console portatili** (PortMaster, sperimentale): stessa pagina, prendi lo zip del tuo sistema e segui il suo `README.txt`. **Android** (telefoni e tablet, comandi touch): stessa pagina, scarica l'`.apk` e aprilo (consenti l'installazione dal browser); non si aggiorna da solo. Poi il gioco **si aggiorna da solo**: all'avvio controlla su GitHub se c'è una nuova versione, la scarica in background e la installa all'avvio successivo (Opzioni → Aggiornamenti: Automatici / Chiedi / No). Le tue impostazioni restano e non viene inviato alcun dato personale: gli aggiornamenti contattano solo GitHub, e la classifica mondiale contatta il sito del gioco solo quando la apri o pubblichi un punteggio (soprannome e punteggio).
 
-**Browser**: [gioca direttamente sul sito]({SITE}play/), senza installare nulla. Meglio su computer, con Chrome, Edge o Firefox; i progressi sono salvati nel browser. Le versioni per Linux, macOS e Android arriveranno più avanti. Nel frattempo puoi compilare il gioco dai sorgenti con [Rust](https://rustup.rs) (stable):""",
+**Browser**: [gioca direttamente sul sito]({SITE}play/), senza installare nulla. Meglio su computer, con Chrome, Edge o Firefox; i progressi sono salvati nel browser. Puoi anche compilare il gioco dai sorgenti con [Rust](https://rustup.rs) (stable):""",
         linux="Su Linux installa anche i pacchetti di sviluppo di ALSA e udev (`libasound2-dev`, `libudev-dev`).",
         ctrl_h="Comandi",
         ctrl_cols=("Azione", "Tastiera / mouse", "Controller"),
@@ -367,7 +372,7 @@ Sito: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
 
 La [licenza GPL-3.0](LICENSE) copre solo il codice sorgente scritto per questo progetto; non concede alcun diritto sulle risorse di Nintendo. Gli sprite sheet provengono dai rip condivisi dalla comunità di *The Spriters Resource* — grazie ai loro autori.
 
-Il nome di ogni autore di rip o di sprite (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny e molti altri) è elencato in **[CREDITS.md](CREDITS.md)**. Anche Mario e Tipo Timido appartengono a Nintendo; *Sonic the Hedgehog* è un marchio di **SEGA**, *Among Us* di **Innersloth**, Simon Belmont (*Castlevania*) di **Konami**, e Vivi (*Final Fantasy IX*) di **Square Enix**.
+Il nome di ogni autore di rip o di sprite (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny e molti altri) è elencato in **[CREDITS.md](CREDITS.md)**. Anche Mario e Tipo Timido appartengono a Nintendo; *Sonic the Hedgehog* è un marchio di **SEGA**, *Among Us* di **Innersloth**, Simon Belmont (*Castlevania*) di **Konami**, Vivi (*Final Fantasy IX*) di **Square Enix**, e i personaggi di *Clair Obscur: Expedition 33* di **Sandfall Interactive**.
 
 Titolari dei diritti: per far rimuovere un contenuto, aprite una issue o contattateci su [Discord]({DISCORD}).""",
     ),
@@ -381,22 +386,23 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
         feat_h="Conteúdo",
         feats=[
             "**10 fases** na ordem do jogo original — Campo de Hyrule, Deserto do Mistério, Montanha da Morte, Castelo de Hyrule, Palácio das Trevas, Pântano, Bosque Perdido, Vila dos Ladrões, Lago congelado e Pirâmide do Poder — cada uma com seu clima, sua música, seu chefe intermediário e seu chefe final, até Agahnim e Ganon",
-            "**350 personagens jogáveis** em seis universos — o elenco feito à mão (Link, Link Minish, Sonic, Zelda, Mario, Vivi, Ganondorf, o último de todos...) e mais de 300 sprites da comunidade do *A Link to the Past Randomizer*, cada um com seus autores nos créditos e até quatro cores (malha azul, malha vermelha, coelho). Alguns são desbloqueados por façanhas (inimigos, chefes, níveis, stages), outros comprados com rupias vermelhas — cada um com forças, fraquezas e arma inicial",
+            "**357 personagens jogáveis** em seis universos — o elenco feito à mão (Link, Link Minish, Sonic, Zelda, Mario, Vivi, o grupo de *Clair Obscur: Expedition 33*, Ganondorf, o último de todos...) e mais de 300 sprites da comunidade do *A Link to the Past Randomizer*, cada um com seus autores nos créditos e até quatro cores (malha azul, malha vermelha, coelho). Alguns são desbloqueados por façanhas (inimigos, chefes, níveis, stages), outros comprados com rupias vermelhas — cada um com forças, fraquezas e arma inicial",
             'Uma **Bob-omb** rara que varre todos os inimigos da tela, e **cenário destrutível** que esconde rupias, corações, fadas ou o medalhão do Éter',
             '**Encontros** aleatórios: um campeão errante espera em algum lugar e uma seta mostra o caminho — derrote-o para ganhar uma bênção, uma melhoria especial de arma ou uma relíquia mantida se você vencer',
-            "Um **Boo ladrão** que devora as rupias deixadas no chão — pegue-o para recuperar todas",
+            "Um **Boo ladrão** que rouba suas rupias aos poucos — pegue-o para recuperá-las",
             "A **cartomante** depois do chefe final (jogo dos baús, dobro ou nada) e uma **bruxa** que vende poções para a partida inteira",
             "**18 armas** (seis delas ganhas dos chefes intermediários) e a **Master Sword** ao derrotar Ganon, cada uma com sua **fusão**, e **12 itens passivos** — 6 espaços de armas e 6 de itens: cada escolha conta",
             "**Mais de 30 tipos de inimigos** de Hyrule, **12 chefes** (um diferente em cada fase) e **elites** que deixam baús",
             '**Progressão entre partidas**: a loja de Kakariko (melhorias permanentes), as bênçãos da Grande Fada, uma **relíquia** por fase, 4 **dificuldades** e os **selos** de Ganon para ganhar mais rupias',
-            "**Coleção** (bestiário com fichas animadas, armas, itens, fusões) e **Conquistas** (59 troféus de bronze, prata e ouro, estatísticas); exportar / importar o progresso como código de texto; as rupias vermelhas também compram trajes, músicas e títulos para o ranking",
-            "**5 jogadores** no mesmo computador, cada um com nome, avatar e progresso próprios; uma **pontuação** em cada partida e **rankings**: melhores pontuações por fase, entre os jogadores da casa e um **top 100 mundial** por versão do jogo",
+            "**Coleção** (bestiário com fichas animadas, fichas detalhadas de armas, itens e fusões) e uma **Galeria** onde Link passeia entre seus troféus, armas, estatuetas e as estátuas dos personagens desbloqueados; **Conquistas** (59 troféus de bronze, prata e ouro, estatísticas); exportar / importar o progresso como código de texto; as rupias vermelhas também compram trajes, músicas e títulos para o ranking",
+            "**5 jogadores** no mesmo computador, cada um com nome, avatar e progresso próprios; uma **pontuação** em cada partida e **rankings**: melhores pontuações por fase, entre os jogadores da casa e um **top 100 mundial** por versão do jogo, solo e em cooperativo",
+            "**Cooperativo online de 2 a 4 jogadores** (computador, Android e navegador): crie uma sala e compartilhe seu código de 4 letras; cada um joga com seu personagem e sua cor, escolhe melhorias sem pausar os outros (protegido por 10 segundos) e pode reanimar um aliado caído; os inimigos ficam mais resistentes e numerosos a cada jogador",
             "Um **manual de instruções** no estilo do original (PDF, inglês e francês)",
             'Ataques automáticos ou **mira manual** a qualquer momento — teclado, mouse ou controle, e **todas as teclas podem ser reconfiguradas**',
             '**Gráficos, músicas e sons** originais de A Link to the Past no SNES',
             '**Filtros de vídeo retrô**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, mais um modo **4:3** — e **filtros de áudio** combinando',
             '**7 idiomas**: English, Français, Deutsch, Español, Italiano, Português, 日本語',
-            '**Motor próprio em Rust** (wgpu): milhares de inimigos na tela, no Windows, Linux, macOS e **no navegador**',
+            '**Motor próprio em Rust** (wgpu): milhares de inimigos na tela, no Windows, Linux, macOS, **Android** e **no navegador**',
         ],
         evo_h="Armas e evoluções",
         evo_cols=("Arma", "+ Item", "Evolução (ambos no nível máximo)"),
@@ -409,7 +415,7 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
         play_h="Jogar",
         play=f"""O jogo está em **alfa** (versão {VERSION}). **Windows**: baixe a versão mais recente na [página de versões]({REPO}/releases/latest), extraia o zip inteiro e abra `A Survivor to the Past.exe`. O Windows pode avisar que o jogo não é assinado: clique em *Mais informações* → *Executar assim mesmo*. **Linux, macOS e portáteis** (PortMaster, experimental): mesma página, pegue o zip do seu sistema e siga o `README.txt` dele. **Android** (celulares e tablets, controles por toque): mesma página, baixe o `.apk` e abra-o (permita instalar pelo navegador); ele não se atualiza sozinho. Depois, o jogo **se atualiza sozinho**: ao iniciar, ele verifica no GitHub se há uma nova versão, baixa em segundo plano e instala no próximo início (Opções → Atualizações: Automáticas / Perguntar / Não). Suas configurações são mantidas e nenhum dado pessoal é enviado: as atualizações só contatam o GitHub, e o ranking mundial só contata o site do jogo quando você o abre ou publica uma pontuação (apelido e pontuação).
 
-**Navegador**: [jogue direto no site]({SITE}play/), sem instalar nada. Funciona melhor no computador, no Chrome, Edge ou Firefox, e seu progresso fica salvo no navegador. As versões para Linux, macOS e Android virão depois. Enquanto isso, você pode compilar o jogo a partir do código-fonte com [Rust](https://rustup.rs) (stable):""",
+**Navegador**: [jogue direto no site]({SITE}play/), sem instalar nada. Funciona melhor no computador, no Chrome, Edge ou Firefox, e seu progresso fica salvo no navegador. Você também pode compilar o jogo a partir do código-fonte com [Rust](https://rustup.rs) (stable):""",
         linux="No Linux, instale também os pacotes de desenvolvimento do ALSA e do udev (`libasound2-dev`, `libudev-dev`).",
         ctrl_h="Controles",
         ctrl_cols=("Ação", "Teclado / mouse", "Controle"),
@@ -435,7 +441,7 @@ Site: [{SITE.rstrip('/').split('//')[1]}]({SITE})""",
 
 A [licença GPL-3.0](LICENSE) cobre apenas o código-fonte escrito para este projeto; ela não concede nenhum direito sobre os recursos da Nintendo. As folhas de sprites vêm das extrações compartilhadas pela comunidade do *The Spriters Resource* — obrigado aos seus autores.
 
-O nome de cada autor de extrações ou sprites (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny e muitos outros) está em **[CREDITS.md](CREDITS.md)**. Mario e Shy Guy também pertencem à Nintendo; *Sonic the Hedgehog* é uma marca da **SEGA**, *Among Us* da **Innersloth**, Simon Belmont (*Castlevania*) da **Konami**, e Vivi (*Final Fantasy IX*) da **Square Enix**.
+O nome de cada autor de extrações ou sprites (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny e muitos outros) está em **[CREDITS.md](CREDITS.md)**. Mario e Shy Guy também pertencem à Nintendo; *Sonic the Hedgehog* é uma marca da **SEGA**, *Among Us* da **Innersloth**, Simon Belmont (*Castlevania*) da **Konami**, Vivi (*Final Fantasy IX*) da **Square Enix**, e os personagens de *Clair Obscur: Expedition 33* da **Sandfall Interactive**.
 
 Detentores de direitos: para remover um conteúdo, abram uma issue ou falem conosco no [Discord]({DISCORD}).""",
     ),
@@ -449,22 +455,23 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
         feat_h="特徴",
         feats=[
             "原作と同じ順番の**10のステージ** — ハイラル平原、幻の砂漠、デスマウンテン、ハイラル城、闇の神殿、沼地、迷いの森、盗賊の村、凍った湖、力のピラミッド。それぞれ天候・音楽・中ボス・最終ボスが異なり、アグニムとガノンまで",
-            "**350人のキャラクター**（6つのせかい）— てづくりのメンバー（リンク、ミニッシュリンク、ソニック、ゼルダ、マリオ、ビビ、さいごのガノンドロフ…）と、*A Link to the Past Randomizer* コミュニティの300いじょうのスプライト。さくしゃをクレジットし、いろは4つまで（あおいふく、あかいふく、うさぎ）。じっせきでかいほうするキャラと、あかいルピーでかうキャラ — それぞれにつよみ、よわみ、さいしょのぶき",
+            "**357人のキャラクター**（6つのせかい）— てづくりのメンバー（リンク、ミニッシュリンク、ソニック、ゼルダ、マリオ、ビビ、『Clair Obscur: Expedition 33』のなかま、さいごのガノンドロフ…）と、*A Link to the Past Randomizer* コミュニティの300いじょうのスプライト。さくしゃをクレジットし、いろは4つまで（あおいふく、あかいふく、うさぎ）。じっせきでかいほうするキャラと、あかいルピーでかうキャラ — それぞれにつよみ、よわみ、さいしょのぶき",
             '画面の敵をすべて吹き飛ばすレアな**ボム兵**と、ルピー・ハート・妖精・エーテルのメダルが隠れた**壊せる背景**',
             'ランダムな**遭遇戦**：どこかで待つ放浪のチャンピオンを矢印が示します。倒すと祝福、武器の特別強化、勝利すれば持ち帰れるレリックが手に入ります',
-            "地面に残ったルピーを食べてしまう**泥棒テレサ** — 捕まえればすべて取り戻せます",
+            "ルピーを少しずつ盗んでいく**泥棒テレサ** — 捕まえれば取り戻せます",
             "最終ボスのあとの**占い師**（宝箱ゲーム、ダブルアップ）と、プレイ中ずっと効く薬を売る**魔女**",
             "**18種類の武器**（うち6つは中ボスを倒して入手）とガノンを倒すと手に入る**マスターソード**、それぞれに**合体**あり、さらに**12種類のパッシブアイテム** — 武器6枠・アイテム6枠で、どの選択も重要",
             "ハイラルの**30種類以上の敵**、**12体のボス**（ステージごとに異なる）、宝箱を落とす**エリート**",
             '**プレイをまたぐ成長**：カカリコのショップ（永続強化）、大妖精の祝福、ステージごとの**レリック**、4段階の**難易度**、ルピーが増えるガノンの**封印**',
-            "**図鑑**（動くカードのモンスター図鑑、武器、アイテム、合体）と**実績**（銅・銀・金のトロフィー59個、統計）、テキストコードによるセーブのエクスポート／インポート。赤いルピーで衣装・音楽・ランキング用の称号も買えます",
-            "同じパソコンで**5人のプレイヤー**（名前・アバター・進行状況）。毎回の**スコア**と**ランキング**：ステージごとの自己ベスト、家族のプレイヤー同士、バージョンごとの**世界トップ100**",
+            "**図鑑**（動くカードのモンスター図鑑、武器・アイテム・合体の詳しいカード）と、トロフィー・武器・フィギュア・解放したキャラクターの像の間をリンクが歩く**ギャラリー**、**実績**（銅・銀・金のトロフィー59個、統計）、テキストコードによるセーブのエクスポート／インポート。赤いルピーで衣装・音楽・ランキング用の称号も買えます",
+            "同じパソコンで**5人のプレイヤー**（名前・アバター・進行状況）。毎回の**スコア**と**ランキング**：ステージごとの自己ベスト、家族のプレイヤー同士、バージョンごとの**世界トップ100**（ソロと協力プレイ）",
+            "**2〜4人のオンライン協力プレイ**（パソコン・Android・ブラウザ）：部屋を作って4文字のコードを共有。それぞれが自分のキャラクターと色で遊び、ほかの人を止めずに強化を選べ（10秒間は守られます）、倒れた仲間を助け起こせます。人数が増えるほど敵は強く、多くなります",
             "オリジナルの説明書を模した**取扱説明書**（PDF、英語とフランス語）",
             '自動攻撃、またはいつでも**手動照準** — キーボード、マウス、コントローラーに対応し、**すべてのキーを変更可能**',
             'SNES 版『神々のトライフォース』のオリジナル**グラフィック・音楽・効果音**',
             '**レトロ映像フィルター**：SNES、CRT、スキャンライン、ゲームボーイアドバンス、ゲームボーイ、**4:3** モード — 対応する**音声フィルター**付き',
             '**7言語**：English、Français、Deutsch、Español、Italiano、Português、日本語',
-            '自作の **Rust エンジン**（wgpu）：画面上に数千体の敵、Windows・Linux・macOS でも**ブラウザ**でも',
+            '自作の **Rust エンジン**（wgpu）：画面上に数千体の敵、Windows・Linux・macOS・**Android** でも**ブラウザ**でも',
         ],
         evo_h="武器と進化",
         evo_cols=("武器", "＋ アイテム", "進化（両方が最大レベル）"),
@@ -477,7 +484,7 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
         play_h="遊ぶ",
         play=f"""このゲームは**アルファ版**（バージョン {VERSION}）です。**Windows**：[リリースページ]({REPO}/releases/latest)から最新版をダウンロードし、zip をすべて展開して `A Survivor to the Past.exe` を起動してください。署名がないため Windows に警告された場合は、*詳細情報* → *実行* をクリックします。**Linux・macOS・携帯機**（PortMaster、試験版）：同じページで自分のシステム用の zip を選び、中の `README.txt` に従ってください。**Android**（スマートフォン・タブレット、タッチ操作）：同じページで `.apk` をダウンロードして開いてください（ブラウザからのインストールを許可）。自動アップデートはありません。その後は**自動でアップデート**されます。起動時に GitHub で新しいバージョンを確認し、バックグラウンドでダウンロードして次回起動時にインストールします（オプション → アップデート：じどう / かくにん する / オフ）。設定はそのまま残り、個人情報は送信されません。アップデートの通信先は GitHub だけで、世界ランキングは開いたときやスコアを公開したときだけゲームのサイトに接続します（ニックネームとスコア）。
 
-**ブラウザ**：[サイト上で直接プレイ]({SITE}play/)でき、インストールは不要です。パソコンの Chrome、Edge、Firefox がおすすめで、進行状況はブラウザに保存されます。Linux・macOS・Android 版は今後予定しています。それまでは [Rust](https://rustup.rs)（stable）でソースからビルドできます：""",
+**ブラウザ**：[サイト上で直接プレイ]({SITE}play/)でき、インストールは不要です。パソコンの Chrome、Edge、Firefox がおすすめで、進行状況はブラウザに保存されます。[Rust](https://rustup.rs)（stable）でソースからビルドすることもできます：""",
         linux="Linux では ALSA と udev の開発パッケージ（`libasound2-dev`、`libudev-dev`）も必要です。",
         ctrl_h="操作方法",
         ctrl_cols=("アクション", "キーボード / マウス", "ゲームパッド"),
@@ -503,7 +510,7 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
 
 [GPL-3.0 ライセンス](LICENSE)は本プロジェクトのために書かれたソースコードのみに適用され、任天堂の素材に関する権利を与えるものではありません。スプライトシートは *The Spriters Resource* のコミュニティが共有したものです。作者の皆さんに感謝します。
 
-スプライトを抽出・制作した方々（Barack Obama、Mister Man、Nemau、Aztec Warrior、Deathbringer、Barubary、Vaati、Mister Mike、Ragnarockerbunny ほか）の名前は **[CREDITS.md](CREDITS.md)** に掲載しています。マリオとヘイホーも任天堂のキャラクターです。*Sonic the Hedgehog* は **SEGA**、*Among Us* は **Innersloth**、シモン・ベルモンド（『悪魔城ドラキュラ』）は **Konami**、ビビ（『ファイナルファンタジーIX』）は **Square Enix** の商標です。
+スプライトを抽出・制作した方々（Barack Obama、Mister Man、Nemau、Aztec Warrior、Deathbringer、Barubary、Vaati、Mister Mike、Ragnarockerbunny ほか）の名前は **[CREDITS.md](CREDITS.md)** に掲載しています。マリオとヘイホーも任天堂のキャラクターです。*Sonic the Hedgehog* は **SEGA**、*Among Us* は **Innersloth**、シモン・ベルモンド（『悪魔城ドラキュラ』）は **Konami**、ビビ（『ファイナルファンタジーIX』）は **Square Enix**、『Clair Obscur: Expedition 33』のキャラクターは **Sandfall Interactive** の商標です。
 
 権利者の方へ：コンテンツの削除をご希望の場合は、Issue を作成するか [Discord]({DISCORD}) でご連絡ください。""",
     ),

@@ -21,7 +21,10 @@
 // pas de console derriere la fenetre en version publiee
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod card;
+mod coop;
 mod chars;
+mod gallery;
 mod content;
 mod controls;
 mod director;

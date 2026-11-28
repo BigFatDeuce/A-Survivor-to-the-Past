@@ -1,0 +1,18 @@
+// Esquie (Clair Obscur) : geant au grand coeur : nuage autour de lui, tres resistant, lent.
+// Sprite : research/tools/gen_clair_obscur.py. A acheter a la boutique.
+(
+    name: "Esquie",
+    sprite: "co_esquie",
+    max_hp: 80.0,
+    speed: 74.0,
+    radius: 7.0,
+    magnet: 48.0,
+    dash: (speed: 330.0, duration: 0.15, cooldown: 1.6),
+    weapon: "magic_powder",
+    weapon_sprite: "sword1",
+    side_faces_left: true,
+    stats: [(Area, 0.2), (Armor, 2.0), (MoveSpeed, -0.1)],
+    order: 1000,
+    group: "rpg",
+    unlock: Some(Shop(5000)),
+)

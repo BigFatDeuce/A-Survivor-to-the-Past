@@ -9,6 +9,10 @@ pub const FACE_LEFT: u8 = 3;
 
 /// Sources de degats suivies separement (une par emplacement d'arme + zones + divers).
 pub const HIT_SLOTS: usize = 8;
+/// Joueurs d'une partie en coop, au plus.
+pub const MAX_HEROES: usize = 4;
+/// Delais de touche d'un ennemi : un jeu d'emplacements d'armes par joueur.
+pub const HIT_CD: usize = HIT_SLOTS * MAX_HEROES;
 /// Emplacement des zones au sol et brulures.
 pub const SLOT_ZONE: usize = 6;
 /// Emplacement des degats divers (faisceaux, onde).
@@ -36,7 +40,7 @@ pub struct Horde {
     /// Identifiant unique (stable malgre les retraits).
     pub uid: Vec<u32>,
     /// Pas restants avant qu'une source puisse toucher de nouveau.
-    pub hit_cd: Vec<[u8; HIT_SLOTS]>,
+    pub hit_cd: Vec<[u8; HIT_CD]>,
     /// Temps depuis le dernier degat recu (s).
     pub hurt: Vec<f32>,
     pub face: Vec<u8>,
@@ -89,7 +93,7 @@ impl Horde {
         self.radius.push(radius);
         self.uid.push(self.next_uid);
         self.next_uid = self.next_uid.wrapping_add(1);
-        self.hit_cd.push([0; HIT_SLOTS]);
+        self.hit_cd.push([0; HIT_CD]);
         self.hurt.push(99.0);
         self.face.push(FACE_DOWN);
         self.seed.push(seed);

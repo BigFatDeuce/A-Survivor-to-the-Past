@@ -1,5 +1,5 @@
 //! Commandes tactiles en partie (telephone, tablette, navigateur mobile) : un joystick apparait sous le
-//! pouce sur la moitie gauche de l'ecran ; sur la moitie droite, un second joystick vise (mode manuel :
+//! pouce sur la moitie gauche de l'ecran et reste a cet endroit tant que le doigt est pose ; sur la moitie droite, un second joystick vise (mode manuel :
 //! l'epee frappe dans sa direction tant que le doigt est pose) ; boutons Esquive, Pause, Zoom et mode
 //! d'attaque. Les menus se pilotent au doigt par la souris emulee du moteur (appui court = clic,
 //! glisser = defilement).
@@ -11,7 +11,7 @@ use engine::gfx::{Blend, DrawList, Space};
 use engine::input::{Device, Input};
 use engine::Vec2;
 
-/// Rayon des joysticks (pixels d'interface) : au-dela, le centre suit le pouce.
+/// Rayon des joysticks (pixels d'interface) : au-dela, la direction reste au maximum (le socle ne bouge pas).
 const STICK_R: f32 = 28.0;
 
 /// Boutons : centre et rayon (pixels d'interface).
@@ -29,6 +29,27 @@ pub fn layout(view: Vec2) -> Layout {
         mode: (Vec2::new(view.x - 104.0, view.y - 26.0), 15.0),
         pause: (Vec2::new(view.x - 22.0, 78.0), 14.0),
         zoom: (Vec2::new(view.x - 22.0, 112.0), 14.0),
+    }
+}
+
+/// Bouton touche.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Button {
+    Pause,
+    Zoom,
+    Dash,
+    Mode,
+}
+
+impl Layout {
+    /// Bouton sous le doigt (marge de 6 pixels : on vise vite avec le pouce). Les marges de Pause et de
+    /// Zoom se recouvrent : le bouton le plus proche du doigt l'emporte.
+    pub fn button_at(&self, p: Vec2) -> Option<Button> {
+        [(self.pause, Button::Pause), (self.zoom, Button::Zoom), (self.dash, Button::Dash), (self.mode, Button::Mode)]
+            .into_iter()
+            .filter(|((c, r), _)| p.distance(*c) <= r + 6.0)
+            .min_by(|a, b| (p.distance(a.0 .0) - a.0 .1).total_cmp(&(p.distance(b.0 .0) - b.0 .1)))
+            .map(|(_, b)| b)
     }
 }
 
@@ -66,36 +87,23 @@ impl Touch {
         }
         let l = layout(view);
         let mut pause = false;
-        for &id in input.touch_started() {
-            let Some(t) = input.touches.iter().find(|t| t.id == id) else { continue };
-            let p = t.start / scale;
-            // marge de 6 pixels autour des boutons : on vise vite avec le pouce
-            let hit = |(c, r): (Vec2, f32)| p.distance(c) <= r + 6.0;
-            if hit(l.pause) {
-                pause = true;
-            } else if hit(l.zoom) {
-                self.zoom = true;
-            } else if hit(l.dash) {
-                self.dash = true;
-            } else if hit(l.mode) {
-                self.toggle = true;
-            } else if p.x < view.x * 0.5 {
-                self.mv = self.mv.or(Some((id, p)));
-            } else {
-                self.aim = self.aim.or(Some((id, p)));
+        for &(id, start) in input.touch_started() {
+            let p = start / scale;
+            match l.button_at(p) {
+                Some(Button::Pause) => pause = true,
+                Some(Button::Zoom) => self.zoom = true,
+                Some(Button::Dash) => self.dash = true,
+                Some(Button::Mode) => self.toggle = true,
+                // doigt deja leve : un joystick n'a rien a suivre
+                None if !input.touches.iter().any(|t| t.id == id) => {}
+                None if p.x < view.x * 0.5 => self.mv = self.mv.or(Some((id, p))),
+                None => self.aim = self.aim.or(Some((id, p))),
             }
         }
+        // doigt leve : plus de joystick (sinon le socle reste ou le doigt s'est pose)
         for s in [&mut self.mv, &mut self.aim] {
-            let finger = s.and_then(|(id, _)| input.touches.iter().find(|t| t.id == id));
-            match (s.as_mut(), finger) {
-                (Some((_, o)), Some(t)) => {
-                    let p = t.pos / scale;
-                    let d = p - *o;
-                    if d.length() > STICK_R {
-                        *o = p - d.normalize() * STICK_R;
-                    }
-                }
-                _ => *s = None,
+            if s.is_some_and(|(id, _)| !input.touches.iter().any(|t| t.id == id)) {
+                *s = None;
             }
         }
         pause
@@ -216,5 +224,40 @@ fn arrow(list: &mut DrawList, white: &assetkit::meta::Frame, c: Vec2, color: Col
             let h = 9.0 - i as f32 * 2.0;
             list.rect(white, (c + Vec2::new(x + i as f32, -h * 0.5)).round(), Vec2::new(1.0, h), color);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Haut de la loupe (dans la marge de Pause aussi) : c'est le Zoom ; centres et bords bien a eux.
+    #[test]
+    fn nearest_button_wins() {
+        let view = Vec2::new(640.0, 360.0);
+        let l = layout(view);
+        let x = view.x - 22.0;
+        assert_eq!(l.button_at(Vec2::new(x, 78.0)), Some(Button::Pause));
+        assert_eq!(l.button_at(Vec2::new(x, 112.0)), Some(Button::Zoom));
+        assert_eq!(l.button_at(Vec2::new(x, 98.0)), Some(Button::Zoom));
+        assert_eq!(l.button_at(Vec2::new(x, 93.0)), Some(Button::Pause));
+        assert_eq!(l.button_at(Vec2::new(100.0, 200.0)), None);
+    }
+
+    /// Le socle du joystick reste ou le doigt s'est pose, meme quand le doigt va plus loin que son rayon ;
+    /// doigt leve : plus de joystick.
+    #[test]
+    fn stick_stays_put() {
+        let view = Vec2::new(640.0, 360.0);
+        let o = Vec2::new(80.0, 250.0);
+        let mut input = Input::new();
+        input.touches.push(engine::input::TouchPt { id: 1, start: o, pos: o + Vec2::new(STICK_R * 3.0, 0.0) });
+        let mut t = Touch { mv: Some((1, o)), ..Touch::default() };
+        t.update(&input, view, 1.0, true);
+        assert_eq!(t.mv, Some((1, o)));
+        assert_eq!(t.read(&input, 1.0).mv, Vec2::X);
+        input.touches.clear();
+        t.update(&input, view, 1.0, true);
+        assert_eq!(t.mv, None);
     }
 }

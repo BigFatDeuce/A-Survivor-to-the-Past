@@ -97,8 +97,10 @@ impl Game {
                 character: self.opts.character.clone(),
                 difficulty: 3,
                 mult: 2.5,
+                kw: Some(3.0),
                 version: "10.20.30".into(),
                 published: k == 1,
+                team: Vec::new(),
             };
             self.profile.add_score(&first, rec);
         }
@@ -127,7 +129,18 @@ impl Game {
             })
             .collect();
         let board = online::Board { version: "10.20.30".into(), versions: vec!["10.20.30".into(), "10.20.29".into()], scores: entries };
-        self.online.force(&first, "", NetStatus::Done(board));
+        // coop a 4 : pseudos les plus larges, tous les personnages
+        let team = vec!["WWWWWWWWWWWW".to_string(); 4];
+        let team_chars = [self.opts.character.as_str(); 4].join(",");
+        let mut coop_board = board.clone();
+        for e in &mut coop_board.scores {
+            e.name = team.join(crate::scores::TEAM_SEP);
+            e.character = team_chars.clone();
+        }
+        for k in 0..profiles::KEEP_SCORES {
+            let rec = ScoreRecord { score: 99_999_999 - k as u64, time: 3599.0, kills: 99_999, level: 99, bosses: 9, won: true, character: team_chars.clone(), difficulty: 3, mult: 2.5, kw: Some(3.0), version: "10.20.30".into(), published: k == 1, team: team.clone() };
+            self.profile.add_score(&first, rec);
+        }
         let mut rep = Report::default();
         for code in LANGS {
             self.lang = Lang::load(&ctx.root, code);
@@ -198,6 +211,12 @@ impl Game {
                     for k in 0..nc + 2 {
                         screens.push((format!("persos_{page}_{k}"), State::CharSelect { page, sel: k }));
                     }
+                    // choix de la couleur (personnage valide) : clavier et souris
+                    let ids = chars::page_roster(&self.content, page);
+                    if let Some(k) = ids.iter().position(|id| self.content.characters[id].skins.len() > 1) {
+                        screens.push((format!("persos_couleur_{page}"), State::CharSelect { page, sel: k }));
+                        screens.push((format!("persos_couleur_souris_{page}"), State::CharSelect { page, sel: k }));
+                    }
                 }
                 screens.push(("victoire".into(), State::Victory { t: 3.0, sel: 0 }));
                 for tab in shop::SHOP {
@@ -211,12 +230,32 @@ impl Game {
                 for tab in 0..records::TABS.len() {
                     screens.push((format!("profil_{tab}"), State::Records { tab, sel: 1, armed: tab == records::TAB_SAVE }));
                 }
+                // fiches de la Collection : chaque arme, fusion, objet, trophee et ennemi
+                for tab in [records::TAB_WEAPONS, records::TAB_FUSIONS, records::TAB_ITEMS, records::TAB_TROPHIES] {
+                    for k in records::card_items(&c, &self.meta, &self.profile, tab).0 {
+                        screens.push((format!("fiche_{tab}_{k}"), State::Records { tab, sel: 1, armed: false }));
+                    }
+                }
+                for k in 0..c.enemies.len() {
+                    screens.push((format!("fiche_0_{k}"), State::Records { tab: 0, sel: 1, armed: false }));
+                }
                 screens.push(("joueurs".into(), State::Players { sel: 1, armed: false }));
                 screens.push(("joueurs_supprimer".into(), State::Players { sel: players::DELETE, armed: true }));
                 screens.push(("nom".into(), State::NameEntry { purpose: NamePurpose::Rename, text: "WWWWWWWWWWWW".into(), sel: players::DONE }));
                 screens.push(("nom_pseudo".into(), State::NameEntry { purpose: NamePurpose::Create(4), text: String::new(), sel: 0 }));
+                screens.push(("nom_creation".into(), State::NameEntry { purpose: NamePurpose::Setup, text: "WWWWWWWWWWWW".into(), sel: 0 }));
+                for wing in 0..gallery::kinds(&c).len() {
+                    screens.push((format!("galerie_{wing}"), State::Gallery { wing, from_title: false }));
+                }
+                for sel in [0, 9, players::AVATARS.len() - 1] {
+                    screens.push((format!("portraits_{sel}"), State::Avatars { sel, setup: true }));
+                }
                 for tab in 0..scores::TABS.len() {
-                    screens.push((format!("classement_{tab}"), State::Scores { tab, sel: 1, stage: 0, version: String::new() }));
+                    screens.push((format!("classement_{tab}"), State::Scores { tab, sel: 1, stage: 0, version: String::new(), players: 1 }));
+                }
+                // coop a 4 : equipe dans le detail (Mes parties) et classement mondial a part
+                for tab in [scores::MINE, scores::WORLD] {
+                    screens.push((format!("classement_coop_{tab}"), State::Scores { tab, sel: scores::head(tab), stage: 0, version: String::new(), players: 4 }));
                 }
                 for tab in 0..controls::TABS.len() {
                     let wait = Some((1, 1.0));
@@ -256,7 +295,21 @@ impl Game {
                     screens.push(("evolution_choix".into(), State::EvoChoice { options: pair, big: false, sel: 1, t: 2.0 }));
                 }
                 screens.push(("jeu_annonce_arme".into(), State::Playing));
-                for (name, st) in screens {
+                // coop en ligne : menu, code, salon (en connexion, plein), partie (allie qui choisit, a terre)
+                screens.push(("coop_menu".into(), State::Coop { sel: 0 }));
+                screens.push(("coop_code".into(), State::NameEntry { purpose: NamePurpose::Room, text: "KXQZ".into(), sel: 0 }));
+                screens.push(("coop_salon".into(), State::Lobby { sel: 1 }));
+                screens.push(("coop_salon_connexion".into(), State::Lobby { sel: 0 }));
+                screens.push(("coop_salon_invite".into(), State::Lobby { sel: 0 }));
+                screens.push(("coop_partie".into(), State::Playing));
+                screens.push(("coop_partie_terre".into(), State::Playing));
+                // choix en pleine partie : protection restante, puis finie
+                let pick: Vec<Offer> = offers.iter().copied().take(3).collect();
+                screens.push(("coop_partie_choix".into(), State::LevelUp { offers: pick.clone(), sel: 0, t: 1.0 }));
+                screens.push(("coop_partie_choix_expose".into(), State::LevelUp { offers: pick, sel: 0, t: 1.0 }));
+                // ASTP_UICHECK=<debut> : seulement les ecrans dont le nom commence ainsi (mise au point)
+                let only = std::env::var("ASTP_UICHECK").unwrap_or_default();
+                for (name, st) in screens.into_iter().filter(|(n, _)| n.starts_with(&only)) {
                     self.hud.toasts.clear();
                     if name == "jeu_annonce_arme" {
                         if let Some(k) = c.weapon_index("ocarina") {
@@ -278,23 +331,104 @@ impl Game {
                         _ => UpdateStatus::Idle,
                     });
                     self.state = st;
+                    // fiche ouverte (« fiche_<onglet>_<element> » ; onglet 0 : bestiaire)
+                    self.card = None;
+                    self.beast = None;
+                    if let Some((t, k)) = name.strip_prefix("fiche_").and_then(|r| r.split_once('_')).and_then(|(t, k)| Some((t.parse::<usize>().ok()?, k.parse::<usize>().ok()?))) {
+                        if t == 0 {
+                            self.beast = Some((k, ctx.real_time - 10.0));
+                        } else {
+                            self.card = Some((t, k, ctx.real_time - 10.0));
+                        }
+                    }
+                    // galerie : Link devant l'aile de l'ecran
+                    self.gallery = match self.state {
+                        State::Gallery { wing, .. } => Some(gallery::Room::new(&self.content, &self.meta, &self.profile, wing)),
+                        _ => None,
+                    };
+                    let solo_world = self.coop_screen(ctx, &name);
                     // personnage encore verrouille : texte d'indice et avancement
                     let kills = self.profile.totals.kills;
                     if name == "persos_verrouille" {
                         self.profile.totals.kills = 1234;
                     }
+                    self.char_lock = name.starts_with("persos_couleur");
+                    let device = ctx.input.last_device;
+                    if name.starts_with("persos_couleur_souris") {
+                        ctx.input.last_device = engine::input::Device::Mouse;
+                    }
+                    let players = if name.starts_with("classement_coop") { 4 } else { 1 };
+                    self.online.force(&first, "", players, NetStatus::Done(if players > 1 { coop_board.clone() } else { board.clone() }));
                     let mut list = DrawList::default();
                     list.probe = Some(Vec::new());
                     self.draw(ctx, 1.0, &mut list);
+                    ctx.input.last_device = device;
+                    self.char_lock = false;
                     self.profile.totals.kills = kills;
+                    if let Some(w) = solo_world {
+                        self.world = w;
+                    }
+                    self.coop_close();
+                    self.others_vis.clear();
+                    self.coop_names.clear();
                     rep.analyze(list.probe.as_deref().unwrap_or(&[]), view, ctx.atlas.font("main"), &name, code);
                 }
             }
         }
         ctx.view = real_view;
+        self.gallery = None;
+        self.card = None;
+        self.beast = None;
         self.hud.toasts.clear();
         self.state = State::Title { sel: 0 };
         let text = rep.print();
         println!("{text}");
+    }
+
+    /// Ecrans de la coop : salle factice (4 joueurs aux noms longs) ; partie a 4 avec le monde commun.
+    /// Rend le monde solo a remettre apres le dessin.
+    pub(super) fn coop_screen(&mut self, ctx: &Ctx, name: &str) -> Option<World> {
+        if !name.starts_with("coop_") || name == "coop_menu" || name == "coop_code" {
+            return None;
+        }
+        let players = [("WWWWWWWWWWWW", "link", true), ("Zelda", "zelda", false), ("MMMMMMMMMMMM", "co_monoco", true), ("Impa", "sheik", true)];
+        let mut s = crate::coop::Session::demo(&players);
+        match name {
+            "coop_salon_connexion" => s.status = crate::coop::Status::Connecting,
+            "coop_salon_invite" => s.slot = 1,
+            _ => {}
+        }
+        if !name.starts_with("coop_partie") {
+            self.coop = Some(s);
+            return None;
+        }
+        let heroes: Vec<crate::coop::Hero> = players
+            .iter()
+            .enumerate()
+            .map(|(k, p)| crate::coop::Hero { slot: k as u8, name: p.0.into(), character: p.1.into(), skin: String::new(), mods: sim::mods::RunMods::default() })
+            .collect();
+        let start = crate::coop::Start { seed: 3, map: self.world.map_id.clone(), delay: 4, view: [240.0, 135.0], heroes, difficulty: 1, seals: Vec::new() };
+        let mut w = crate::coop::build_world(&self.content, &start, 0);
+        for (k, h) in w.others.iter_mut().enumerate() {
+            h.player.pos = Vec2::new(-60.0 + k as f32 * 60.0, 30.0);
+            h.player.prev = h.player.pos;
+        }
+        // un allie choisit sa recompense, un autre est a terre (a moitie releve)
+        w.others[0].pending_levels = 1;
+        w.others[0].player.choose_t = 4.0;
+        if name.starts_with("coop_partie_choix") {
+            w.pending_levels = 1;
+            w.player.choose_t = if name.ends_with("expose") { 12.0 } else { 3.2 };
+        }
+        w.others[1].player.alive = false;
+        w.others[1].player.revive = 1.5;
+        if name == "coop_partie_terre" {
+            w.player.alive = false;
+        }
+        self.others_vis = start.heroes.iter().map(|h| self.ally_vis(&ctx.atlas, &h.character, &h.skin)).collect();
+        self.coop_names = start.heroes.iter().map(|h| h.name.clone()).collect();
+        s.run = Some(crate::coop::Run::new(start, 0));
+        self.coop = Some(s);
+        Some(std::mem::replace(&mut self.world, w))
     }
 }

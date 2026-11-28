@@ -49,7 +49,7 @@ pub fn title_music<'a>(meta: &'a Meta, p: &Profile) -> Option<&'a str> {
     meta.jukebox.iter().find(|t| t.id == p.title_music && track_owned(t, p)).map(|t| t.id.as_str())
 }
 
-fn track_owned(t: &crate::meta::Track, p: &Profile) -> bool {
+pub fn track_owned(t: &crate::meta::Track, p: &Profile) -> bool {
     t.cost == 0 || p.jukebox.contains(&t.id)
 }
 
@@ -66,11 +66,45 @@ pub fn titled_name(title: u32, name: &str) -> String {
 const PRICE: engine::draw::Color = rgb(248, 216, 88);
 
 /// Tenues montrees a la garde-robe : celles des personnages deja debloques (ou achetes), pour ne pas
-/// noyer la liste sous les centaines de couleurs des personnages encore inconnus.
-pub fn wardrobe_items<'a>(meta: &'a Meta, content: &sim::defs::Content, p: &Profile) -> Vec<&'a crate::meta::WardrobeItem> {
-    meta.wardrobe
+/// noyer la liste sous les centaines de couleurs des personnages encore inconnus. Par ordre
+/// alphabetique du nom affiche (dans la langue choisie).
+pub fn wardrobe_items<'a>(meta: &'a Meta, content: &sim::defs::Content, p: &Profile, lang: &Lang) -> Vec<&'a crate::meta::WardrobeItem> {
+    let mut items: Vec<_> = meta
+        .wardrobe
         .iter()
         .filter(|w| content.characters.get(&w.character).is_some_and(|d| crate::chars::unlocked(content, d, p)))
+        .collect();
+    items.sort_by_cached_key(|w| sort_key(&wardrobe_label(lang, content, w)));
+    items
+}
+
+/// Nom d'une tenue ; couleur ajoutee au chargement : « Personnage : couleur ».
+fn wardrobe_label(lang: &Lang, content: &sim::defs::Content, w: &crate::meta::WardrobeItem) -> String {
+    if !w.auto {
+        return lang.get(&format!("wardrobe.{}.name", w.sprite)).to_string();
+    }
+    let color = content.characters.get(&w.character).and_then(|d| d.skins.iter().find(|s| s.0 == w.sprite)).map(|s| lang.get(&format!("skin.{}", s.1)).to_string()).unwrap_or_default();
+    format!("{} : {color}", crate::chars::name(lang, &w.character))
+}
+
+/// Cle de tri alphabetique : minuscules, lettres accentuees ramenees a leur base (« Écho » avec les e).
+pub fn sort_key(s: &str) -> String {
+    s.chars()
+        .flat_map(char::to_lowercase)
+        .map(|c| match c {
+            'à' | 'á' | 'â' | 'ã' | 'ä' | 'å' => "a".to_string(),
+            'ç' => "c".to_string(),
+            'è' | 'é' | 'ê' | 'ë' => "e".to_string(),
+            'ì' | 'í' | 'î' | 'ï' => "i".to_string(),
+            'ñ' => "n".to_string(),
+            'ò' | 'ó' | 'ô' | 'õ' | 'ö' => "o".to_string(),
+            'ù' | 'ú' | 'û' | 'ü' => "u".to_string(),
+            'ý' | 'ÿ' => "y".to_string(),
+            'ß' => "ss".to_string(),
+            'œ' => "oe".to_string(),
+            'æ' => "ae".to_string(),
+            c => c.to_string(),
+        })
         .collect()
 }
 
@@ -189,16 +223,14 @@ pub fn rows(meta: &Meta, content: &sim::defs::Content, p: &Profile, lang: &Lang,
             }
         }
         TAB_WARDROBE => {
-            for w in wardrobe_items(meta, content, p) {
+            for w in wardrobe_items(meta, content, p, lang) {
                 let owned = p.wardrobe.contains(&w.sprite);
                 let def = content.characters.get(&w.character);
                 let worn = def.is_some_and(|d| d.skins.get(crate::chars::skin(d, p, &w.character, meta)).is_some_and(|s| s.0 == w.sprite));
-                // couleur ajoutee au chargement : « Personnage : couleur »
-                let color = def.and_then(|d| d.skins.iter().find(|s| s.0 == w.sprite)).map(|s| lang.get(&format!("skin.{}", s.1)).to_string()).unwrap_or_default();
                 let cname = crate::chars::name(lang, &w.character);
                 rows.push(Row {
                     icon: icon(atlas, &w.icon).or_else(|| atlas.find(&w.sprite, "idle_down")),
-                    label: if w.auto { format!("{cname} : {color}") } else { lang.get(&format!("wardrobe.{}.name", w.sprite)).to_string() },
+                    label: wardrobe_label(lang, content, w),
                     value: if worn {
                         lang.get("ui.equipped").to_string()
                     } else if owned {
@@ -344,7 +376,7 @@ pub enum Outcome {
 }
 
 /// Action sur la ligne `k` : `dir` 0 = choisir, -1 / +1 = gauche / droite.
-pub fn act(meta: &Meta, content: &sim::defs::Content, p: &mut Profile, tab: usize, k: usize, dir: i32) -> Outcome {
+pub fn act(meta: &Meta, content: &sim::defs::Content, lang: &Lang, p: &mut Profile, tab: usize, k: usize, dir: i32) -> Outcome {
     match tab {
         TAB_KAKARIKO if dir == 0 => {
             let Some(it) = meta.shop.get(k) else { return Outcome::Nothing };
@@ -432,7 +464,7 @@ pub fn act(meta: &Meta, content: &sim::defs::Content, p: &mut Profile, tab: usiz
         }
         // la tenue est ensuite portee par le jeu (il connait les couleurs du personnage)
         TAB_WARDROBE if dir == 0 => {
-            let Some(w) = wardrobe_items(meta, content, p).get(k).copied() else { return Outcome::Nothing };
+            let Some(w) = wardrobe_items(meta, content, p, lang).get(k).copied() else { return Outcome::Nothing };
             if p.wardrobe.contains(&w.sprite) {
                 return Outcome::Selected;
             }
@@ -491,25 +523,32 @@ mod tests {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let meta = Meta::load(&root);
         let content = crate::content::load_content(&root);
+        let lang = Lang::load(&root, "fr");
         let mut p = Profile::new();
         p.rupees = 100_000;
         // offrandes : dans l'ordre seulement
         let nb = meta.blessings.len();
-        assert!(matches!(act(&meta, &content, &mut p, TAB_FAIRY, nb + 1, 0), Outcome::Refused("ui.locked")));
-        assert!(matches!(act(&meta, &content, &mut p, TAB_FAIRY, nb, 0), Outcome::Done));
+        assert!(matches!(act(&meta, &content, &lang, &mut p, TAB_FAIRY, nb + 1, 0), Outcome::Refused("ui.locked")));
+        assert!(matches!(act(&meta, &content, &lang, &mut p, TAB_FAIRY, nb, 0), Outcome::Done));
         assert_eq!(p.title, 1);
-        assert!(matches!(act(&meta, &content, &mut p, TAB_FAIRY, nb, 0), Outcome::Refused("ui.owned")));
+        assert!(matches!(act(&meta, &content, &lang, &mut p, TAB_FAIRY, nb, 0), Outcome::Refused("ui.owned")));
         // garde-robe : achetee une fois, puis seulement portee
         assert!(meta.skin_locked(&p, "link_blue"));
-        assert!(matches!(act(&meta, &content, &mut p, TAB_WARDROBE, 0, 0), Outcome::Done));
+        let items = wardrobe_items(&meta, &content, &p, &lang);
+        let blue = items.iter().position(|w| w.sprite == "link_blue").expect("tenue bleue de Link");
+        // garde-robe triee par nom affiche, accents compris
+        let keys: Vec<String> = items.iter().map(|w| sort_key(&wardrobe_label(&lang, &content, w))).collect();
+        assert!(keys.windows(2).all(|k| k[0] <= k[1]), "garde-robe non triee");
+        assert_eq!(sort_key("Écho Bleu"), "echo bleu");
+        assert!(matches!(act(&meta, &content, &lang, &mut p, TAB_WARDROBE, blue, 0), Outcome::Done));
         assert!(!meta.skin_locked(&p, "link_blue"));
         let left = p.rupees;
-        assert!(matches!(act(&meta, &content, &mut p, TAB_WARDROBE, 0, 0), Outcome::Selected));
+        assert!(matches!(act(&meta, &content, &lang, &mut p, TAB_WARDROBE, blue, 0), Outcome::Selected));
         assert_eq!(p.rupees, left);
         // juke-box : la premiere est offerte, les autres achetees puis choisies
         assert_eq!(title_music(&meta, &p), None);
-        assert!(matches!(act(&meta, &content, &mut p, TAB_JUKEBOX, 0, 0), Outcome::Selected));
-        assert!(matches!(act(&meta, &content, &mut p, TAB_JUKEBOX, 3, 0), Outcome::Done));
+        assert!(matches!(act(&meta, &content, &lang, &mut p, TAB_JUKEBOX, 0, 0), Outcome::Selected));
+        assert!(matches!(act(&meta, &content, &lang, &mut p, TAB_JUKEBOX, 3, 0), Outcome::Done));
         assert_eq!(title_music(&meta, &p), Some(meta.jukebox[3].id.as_str()));
         assert_eq!(track_title("princess_zelda_s_rescue"), "Princess Zelda's Rescue");
         assert_eq!(track_title("title_link_to_the_past"), "Title Link to the Past");
@@ -517,13 +556,13 @@ mod tests {
         let (id, cost) = crate::chars::for_sale(&content)[0].clone();
         assert!(!crate::chars::unlocked(&content, &content.characters[&id], &p));
         let left = p.rupees;
-        assert!(matches!(act(&meta, &content, &mut p, TAB_CHARS, 0, 0), Outcome::Done));
+        assert!(matches!(act(&meta, &content, &lang, &mut p, TAB_CHARS, 0, 0), Outcome::Done));
         assert_eq!(p.rupees, left - cost);
         assert!(crate::chars::unlocked(&content, &content.characters[&id], &p));
-        assert!(matches!(act(&meta, &content, &mut p, TAB_CHARS, 0, 0), Outcome::Refused("ui.owned")));
+        assert!(matches!(act(&meta, &content, &lang, &mut p, TAB_CHARS, 0, 0), Outcome::Refused("ui.owned")));
         // pas assez de rubis : rien ne change
         p.rupees = 0;
-        assert!(matches!(act(&meta, &content, &mut p, TAB_JUKEBOX, 4, 0), Outcome::Refused("ui.not_enough")));
+        assert!(matches!(act(&meta, &content, &lang, &mut p, TAB_JUKEBOX, 4, 0), Outcome::Refused("ui.not_enough")));
         assert!(!p.jukebox.contains(&meta.jukebox[4].id));
     }
 }

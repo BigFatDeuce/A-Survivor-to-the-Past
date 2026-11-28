@@ -25,6 +25,7 @@
     <a href="#game" data-i="ui_nav_what">The game</a>
     <a href="#shots" data-i="ui_nav_shots">Screenshots</a>
     <a href="#evo" data-i="ui_nav_evo">Evolutions</a>
+    <a href="#scores" data-i="ui_nav_scores">Leaderboard</a>
     <a href="#road" data-i="ui_nav_road">Roadmap</a>
   </nav>
   <label class="lang"><span class="sr" data-i="ui_lang">Language</span>
@@ -67,6 +68,20 @@
   <div class="scroll"><table data-i="evo"><thead><tr><th>Weapon</th><th>+ Item</th><th>Evolution (both at max level)</th></tr></thead><tbody><tr><td>Fighter&#x27;s Sword</td><td>Heart Container</td><td><strong>Tempered Sword</strong></td></tr><tr><td>Bow</td><td>Quiver</td><td><strong>Silver Arrows</strong></td></tr><tr><td>Boomerang</td><td>Zora&#x27;s Flippers</td><td><strong>Magical Boomerang</strong></td></tr><tr><td>Fire Rod</td><td>Lamp</td><td><strong>Bombos Medallion</strong></td></tr><tr><td>Ice Rod</td><td>Half Magic</td><td><strong>Ether Medallion</strong></td></tr><tr><td>Magic Hammer</td><td>Power Glove</td><td><strong>Quake Medallion</strong></td></tr><tr><td>Bombs</td><td>Mirror Shield</td><td><strong>Super Bomb</strong></td></tr><tr><td>Cane of Byrna</td><td>Magic Cape</td><td><strong>Fairy Ring</strong></td></tr><tr><td>Hookshot</td><td>Pegasus Boots</td><td><strong>Longshot</strong></td></tr><tr><td>Magic Powder</td><td>Mushroom</td><td><strong>Witch&#x27;s Powder</strong></td></tr><tr><td>Cane of Somaria</td><td>Book of Mudora</td><td><strong>Great Somaria</strong></td></tr><tr><td>Bees</td><td>Bug-Catching Net</td><td><strong>Golden Bees</strong></td></tr><tr><td>Slingshot</td><td>Quiver</td><td><strong>Hyper Slingshot</strong></td></tr><tr><td>Roc&#x27;s Feather</td><td>Pegasus Boots</td><td><strong>Roc&#x27;s Cape</strong></td></tr><tr><td>Lantern</td><td>Half Magic</td><td><strong>Blue Lantern</strong></td></tr><tr><td>Gust Jar</td><td>Magic Cape</td><td><strong>Vaati&#x27;s Jar</strong></td></tr><tr><td>Fairy Ocarina</td><td>Book of Mudora</td><td><strong>Ocarina of Time</strong></td></tr><tr><td>Din&#x27;s Fire</td><td>Lamp</td><td><strong>Din&#x27;s Wrath</strong></td></tr></tbody></table></div>
   <h2 data-i="ctrl_h">Controls</h2>
   <div class="scroll"><table data-i="ctrl"><thead><tr><th>Action</th><th>Keyboard / mouse</th><th>Gamepad</th></tr></thead><tbody><tr><td>Move</td><td>WASD / arrows</td><td>Left stick / D-pad</td></tr><tr><td>Attack (manual mode)</td><td>J / left click</td><td>X / right trigger</td></tr><tr><td>Dash</td><td>Space / right click</td><td>A / left trigger</td></tr><tr><td>Auto or manual attack</td><td>Tab / R</td><td>Y</td></tr><tr><td>Pause</td><td>Esc / P</td><td>Start</td></tr><tr><td>Fullscreen · info · screenshot</td><td>F11 · F3 · F12</td><td>Select · – · –</td></tr></tbody></table></div>
+</section>
+
+<section id="scores" class="panel">
+  <h2 data-i="ui_scores_h">World leaderboard</h2>
+  <div class="lb-bar">
+    <label><span id="lb-l-stage"></span><select id="lb-map"></select></label>
+    <label><span id="lb-l-mode"></span><select id="lb-mode"></select></label>
+    <label><span id="lb-l-ver"></span><select id="lb-ver"></select></label>
+  </div>
+  <p id="lb-msg" class="soon"></p>
+  <div class="scroll"><table id="lb"><thead><tr><th>#</th><th id="lb-h-player"></th><th id="lb-h-char"></th>
+    <th id="lb-h-score" class="num"></th><th id="lb-h-time" class="num"></th><th id="lb-h-kills" class="num"></th>
+    <th id="lb-h-diff"></th></tr></thead><tbody></tbody></table></div>
+  <p id="lb-legend" class="soon"></p>
 </section>
 
 <section id="road" class="panel">

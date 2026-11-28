@@ -141,6 +141,8 @@ pub trait Game {
     fn draw(&mut self, ctx: &Ctx, alpha: f32, list: &mut DrawList) -> Frame;
     /// Appele a la fermeture (sauvegarde, bilan).
     fn exit(&mut self, _ctx: &mut Ctx) {}
+    /// Android : appli passee en arriere-plan (le systeme peut la fermer ensuite sans prevenir).
+    fn suspend(&mut self, _ctx: &mut Ctx) {}
 }
 
 type Maker<G> = Box<dyn FnOnce(&mut Ctx) -> G>;
@@ -266,6 +268,7 @@ impl<G: Game> ApplicationHandler for Runner<G> {
         if let Some(s) = self.state.as_mut() {
             if s.suspended {
                 s.suspended = false;
+                s.ctx.audio.set_paused(false);
                 s.gfx.recreate_surface();
                 s.ctx.view = s.gfx.view;
                 s.ctx.scale = s.gfx.scale;
@@ -422,10 +425,12 @@ impl<G: Game> ApplicationHandler for Runner<G> {
         if let Some(s) = self.state.as_mut() {
             s.suspended = true;
             s.ctx.input.focus_lost();
+            s.game.suspend(&mut s.ctx);
+            s.ctx.audio.set_paused(true);
         }
     }
 
-    fn about_to_wait(&mut self, _el: &ActiveEventLoop) {
+    fn about_to_wait(&mut self, el: &ActiveEventLoop) {
         #[cfg(target_arch = "wasm32")]
         if self.state.is_none() {
             let ready = self.pending.borrow_mut().take();
@@ -434,7 +439,11 @@ impl<G: Game> ApplicationHandler for Runner<G> {
             }
         }
         if let Some(s) = self.state.as_ref() {
-            s.gfx.window.request_redraw();
+            // en arriere-plan (Android) : attendre le retour au lieu de tourner a vide (batterie)
+            el.set_control_flow(if s.suspended { ControlFlow::Wait } else { ControlFlow::Poll });
+            if !s.suspended {
+                s.gfx.window.request_redraw();
+            }
         }
     }
 }

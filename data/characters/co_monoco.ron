@@ -1,0 +1,18 @@
+// Monoco (Clair Obscur) : gestral : grosses frappes (marteau), robuste et lent.
+// Sprite : research/tools/gen_clair_obscur.py. A acheter a la boutique.
+(
+    name: "Monoco",
+    sprite: "co_monoco",
+    max_hp: 70.0,
+    speed: 78.0,
+    radius: 6.0,
+    magnet: 30.0,
+    dash: (speed: 330.0, duration: 0.15, cooldown: 1.6),
+    weapon: "hammer",
+    weapon_sprite: "sword1",
+    side_faces_left: true,
+    stats: [(Might, 0.15), (Armor, 1.0), (MoveSpeed, -0.1)],
+    order: 1000,
+    group: "rpg",
+    unlock: Some(Shop(4000)),
+)

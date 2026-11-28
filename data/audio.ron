@@ -47,6 +47,8 @@
         "power_of_the_gods": (file: "33_power_of_the_gods.ogg", loop_start: 31.977937, loop_end: Some(70.272000)),
         "epilogue_beautiful_hyrule": (file: "34_epilogue_beautiful_hyrule.ogg", loop_start: 113.2061, loop_end: Some(217.04)),
         "staff_roll": (file: "35_staff_roll.ogg", loop_start: 113.1873, loop_end: Some(230.096)),
+        // galerie (piste fournie) : boucle de presque tout le morceau, l'intro de harpe (3,5 s) jouee une fois
+        "great_fairys_fountain": (file: "40_great_fairys_fountain.ogg", loop_start: 3.561219, loop_end: Some(28.176000)),
         "fierce_rainstorm": (file: "01_fierce_rainstorm.ogg", loop_start: 0.500000, loop_end: Some(6.000000), volume: 0.85),
         "howling_wind": (file: "02_howling_wind.ogg", loop_start: 0.500000, loop_end: Some(10.000000)),
         "jingle_secret": (file: "04_secret.ogg", once: true),

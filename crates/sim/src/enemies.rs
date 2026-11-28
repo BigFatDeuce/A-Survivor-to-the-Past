@@ -44,10 +44,10 @@ impl World {
     pub(crate) fn update_horde(&mut self) {
         let n = self.horde.len();
         self.accel.resize(n, Vec2::ZERO);
-        let pp = self.player.pos;
+        // joueurs : chaque ennemi poursuit le plus proche des joueurs debout (solo : le joueur)
+        let targets = self.targets();
         let t = self.time;
-        let can_hurt = self.player.alive && self.player.invuln <= 0.0 && !self.player.god;
-        let mut contact: Option<f32> = None;
+        let mut contact: Vec<Option<f32>> = vec![None; targets.len()];
         let mut shots: Vec<ShotRequest> = Vec::new();
         let mut summons: Vec<(u16, Vec2, u32, u8)> = Vec::new();
         let mut windups: Vec<(Vec2, u16)> = Vec::new();
@@ -65,6 +65,7 @@ impl World {
                 let kind = h.kind[i];
                 let def = &defs[kind as usize];
                 let x = h.pos[i];
+                let pp = nearest(&targets, x).pos;
                 let to = pp - x;
                 let dist = to.length().max(0.001);
                 let dirp = to / dist;
@@ -77,9 +78,9 @@ impl World {
                     match &def.behavior {
                         Behavior::Chase => dirp * def.speed,
                         Behavior::Flutter { amp, freq } => {
-                            let a = (t * freq + ph).sin() * amp;
-                            let (s, c) = a.sin_cos();
-                            h.z[i] = 10.0 + (t * freq * 2.0 + ph).sin() * 3.0;
+                            let a = libm::sinf(t * freq + ph) * amp;
+                            let (s, c) = libm::sincosf(a);
+                            h.z[i] = 10.0 + libm::sinf(t * freq * 2.0 + ph) * 3.0;
                             Vec2::new(dirp.x * c - dirp.y * s, dirp.x * s + dirp.y * c) * def.speed
                         }
                         Behavior::Hop { rest, jump, speed } => {
@@ -107,7 +108,7 @@ impl World {
                             if h.timer[i] < *rest {
                                 h.z[i] = 0.0;
                                 // direction du prochain bond : loin du joueur, avec un ecart qui change
-                                let side = Vec2::from_angle((t * 0.9 + ph * 5.0).sin() * 0.9);
+                                let side = Vec2::from_angle(libm::sinf(t * 0.9 + ph * 5.0) * 0.9);
                                 let away = -dirp;
                                 let rot = Vec2::new(away.x * side.x - away.y * side.y, away.x * side.y + away.y * side.x);
                                 h.vel[i] = if dist < *range { rot } else { Vec2::from_angle(ph * 6.0 + t * 0.4) };
@@ -120,7 +121,7 @@ impl World {
                             }
                         }
                         Behavior::Wander { turn } => {
-                            let a = ph * 6.0 + (t * 0.55 + ph).sin() * turn + (t * 1.3 + ph * 3.0).sin() * turn * 0.5;
+                            let a = ph * 6.0 + libm::sinf(t * 0.55 + ph) * turn + libm::sinf(t * 1.3 + ph * 3.0) * turn * 0.5;
                             let drift = Vec2::from_angle(a);
                             (dirp * 0.55 + drift * 0.6).normalize_or(dirp) * def.speed
                         }
@@ -286,7 +287,7 @@ impl World {
                                         }
                                         _ => {
                                             if h.timer[i] <= 0.0 {
-                                                let a = (t * 1.7 + ph * 5.0).sin() * std::f32::consts::PI + dirp.y.atan2(dirp.x);
+                                                let a = libm::sinf(t * 1.7 + ph * 5.0) * std::f32::consts::PI + libm::atan2f(dirp.y, dirp.x);
                                                 let dest = pp + Vec2::from_angle(a + std::f32::consts::PI) * *range;
                                                 teleports.push((x, dest, kind));
                                                 h.pos[i] = dest;
@@ -352,12 +353,14 @@ impl World {
                     let look = if h.state[i] == ST_WINDUP || want.length_squared() < 1.0 { dirp } else { want };
                     h.face[i] = face_from(look, h.face[i]);
                 }
-                // contact avec le joueur
-                if can_hurt && h.z[i] < 6.0 && h.freeze[i] <= 0.0 {
-                    let rr = self.player.radius + h.radius[i] * 0.75;
+                // contact avec les joueurs
+                if h.z[i] < 6.0 && h.freeze[i] <= 0.0 {
                     let dmg = def.damage * h.power[i];
-                    if dmg > 0.0 && dist < rr && contact.is_none_or(|d| dmg > d) {
-                        contact = Some(dmg);
+                    for (k, tg) in targets.iter().enumerate() {
+                        let rr = tg.radius + h.radius[i] * 0.75;
+                        if tg.can_hurt && dmg > 0.0 && (tg.pos - x).length().max(0.001) < rr && contact[k].is_none_or(|d| dmg > d) {
+                            contact[k] = Some(dmg);
+                        }
                     }
                 }
             }
@@ -371,6 +374,7 @@ impl World {
                     // les volants passent au-dessus, les boss renversent tout
                     if !def.flying && !def.boss {
                         let side = if h.seed[i] & 2 == 0 { 1.0 } else { -1.0 };
+                        let pp = nearest(&targets, h.pos[i]).pos;
                         h.pos[i] = crate::props::resolve(props, self.prop_seed, h.pos[i], h.radius[i] * 0.8, pp - h.pos[i], side);
                     }
                 }
@@ -387,16 +391,41 @@ impl World {
         }
         for (pos, radius, damage) in slams {
             self.events.push(Event::BossSlam { pos, radius });
-            if can_hurt && (self.player.pos - pos).length() < radius + self.player.radius && !self.player.dashing() {
-                contact = Some(contact.unwrap_or(0.0).max(damage));
+            for (k, tg) in targets.iter().enumerate() {
+                if tg.can_hurt && (tg.pos - pos).length() < radius + tg.radius && !tg.dashing {
+                    contact[k] = Some(contact[k].unwrap_or(0.0).max(damage));
+                }
             }
         }
         for (from, to, kind) in teleports {
             self.events.push(Event::Teleport { from, to, kind });
         }
-        if let Some(dmg) = contact {
-            self.hurt_player(dmg);
+        self.hurt_targets(&targets, &contact);
+    }
+
+    /// Joueurs dans l'ordre des places, pour les ennemis.
+    pub(crate) fn targets(&self) -> Vec<Target> {
+        let mut v: Vec<Target> = std::iter::once(&self.player)
+            .chain(self.others.iter().map(|h| &h.player))
+            // coop : un joueur qui choisit (protege) n'est ni vise ni touche
+            .map(|p| {
+                let alive = p.alive && !p.shielded();
+                Target { slot: p.slot, pos: p.pos, radius: p.radius, alive, can_hurt: alive && p.invuln <= 0.0 && !p.god, dashing: p.dashing() }
+            })
+            .collect();
+        v.sort_by_key(|t| t.slot);
+        v
+    }
+
+    /// Degats aux joueurs touches (chacun au premier plan a son tour, puis retour a l'ordre commun).
+    fn hurt_targets(&mut self, targets: &[Target], dmg: &[Option<f32>]) {
+        for (tg, d) in targets.iter().zip(dmg) {
+            if let Some(d) = *d {
+                self.front(tg.slot);
+                self.hurt_player(d);
+            }
         }
+        self.front(targets.first().map_or(0, |t| t.slot));
     }
 
     fn shot_def(&self, kind: u16, boss_step: Option<u8>) -> Option<ShotDef> {
@@ -426,7 +455,7 @@ impl World {
         };
         for k in 0..n {
             let off = if shot.ring { k as f32 * spread } else { (k as f32 - (n - 1) as f32 * 0.5) * spread };
-            let dir = Vec2::from_angle(base.y.atan2(base.x) + off);
+            let dir = Vec2::from_angle(libm::atan2f(base.y, base.x) + off);
             if shot.lob {
                 // bombes : visent la position du joueur (+ dispersion)
                 let target = r.at + dir.perp() * off * 40.0 + self.rng.dir() * self.rng.range(0.0, 14.0);
@@ -487,9 +516,8 @@ impl World {
     }
 
     pub(crate) fn update_shots(&mut self) {
-        let pp = self.player.pos;
-        let pr = self.player.radius;
-        let mut hurt: Option<f32> = None;
+        let targets = self.targets();
+        let mut hurt: Vec<Option<f32>> = vec![None; targets.len()];
         let mut blasts: Vec<(Vec2, f32)> = Vec::new();
         for s in self.shots.iter_mut() {
             s.prev = s.pos;
@@ -505,16 +533,19 @@ impl World {
                     if s.age >= s.life {
                         s.dead = true;
                         blasts.push((s.pos, s.radius));
-                        if (pp - s.pos).length() < s.radius + pr {
-                            hurt = Some(hurt.unwrap_or(0.0).max(s.damage));
+                        for (k, tg) in targets.iter().enumerate() {
+                            if tg.alive && (tg.pos - s.pos).length() < s.radius + tg.radius {
+                                hurt[k] = Some(hurt[k].unwrap_or(0.0).max(s.damage));
+                            }
                         }
                     }
                 }
             } else {
                 s.pos += s.vel * DT;
-                if (pp - Vec2::new(0.0, 6.0) - s.pos).length() < s.radius + pr {
+                // le premier joueur touche arrete le tir
+                if let Some(k) = targets.iter().position(|tg| tg.alive && (tg.pos - Vec2::new(0.0, 6.0) - s.pos).length() < s.radius + tg.radius) {
                     s.dead = true;
-                    hurt = Some(hurt.unwrap_or(0.0).max(s.damage));
+                    hurt[k] = Some(hurt[k].unwrap_or(0.0).max(s.damage));
                 }
                 if s.age >= s.life {
                     s.dead = true;
@@ -525,10 +556,31 @@ impl World {
         for (pos, radius) in blasts {
             self.events.push(Event::ShotBlast { pos, radius });
         }
-        if let Some(d) = hurt {
-            if !self.player.dashing() {
-                self.hurt_player(d);
-            }
-        }
+        // pendant un dash, les tirs ne blessent pas
+        let hurt: Vec<Option<f32>> = targets.iter().zip(hurt).map(|(tg, d)| d.filter(|_| !tg.dashing)).collect();
+        self.hurt_targets(&targets, &hurt);
     }
 }
+
+/// Un joueur vu par les ennemis.
+#[derive(Clone, Copy)]
+pub(crate) struct Target {
+    slot: u8,
+    pos: Vec2,
+    radius: f32,
+    alive: bool,
+    can_hurt: bool,
+    dashing: bool,
+}
+
+/// Joueur debout le plus proche (sinon le premier).
+fn nearest(targets: &[Target], at: Vec2) -> Target {
+    targets
+        .iter()
+        .filter(|t| t.alive)
+        .min_by(|a, b| (a.pos - at).length_squared().total_cmp(&(b.pos - at).length_squared()))
+        .or(targets.first())
+        .copied()
+        .expect("au moins un joueur")
+}
+

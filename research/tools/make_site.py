@@ -19,25 +19,32 @@ OUT = ROOT / "site"
 UI = {
     "en": dict(download="Download", web="Play in your browser", soon=f"Alpha {rd.VERSION} for Windows, Linux, macOS, handhelds (PortMaster, experimental), Android and the browser",
                discord="Join the Discord", github="Source code", lang="Language", nav_what="The game",
-               nav_shots="Screenshots", nav_evo="Evolutions", nav_road="Roadmap", horde="A horde at 3:30", manual="Instruction booklet (PDF)"),
+               nav_shots="Screenshots", nav_evo="Evolutions", nav_road="Roadmap", horde="A horde at 3:30", manual="Instruction booklet (PDF)",
+               nav_scores="Leaderboard", scores_h="World leaderboard"),
     "fr": dict(download="Télécharger", web="Jouer dans le navigateur", soon=f"Alpha {rd.VERSION} pour Windows, Linux, macOS, consoles portables (PortMaster, expérimental), Android et le navigateur",
                discord="Rejoindre le Discord", github="Code source", lang="Langue", nav_what="Le jeu",
-               nav_shots="Captures", nav_evo="Évolutions", nav_road="Feuille de route", horde="Une horde à 3:30", manual="Livret d'instructions (PDF)"),
+               nav_shots="Captures", nav_evo="Évolutions", nav_road="Feuille de route", horde="Une horde à 3:30", manual="Livret d'instructions (PDF)",
+               nav_scores="Classement", scores_h="Classement mondial"),
     "de": dict(download="Herunterladen", web="Im Browser spielen", soon=f"Alpha {rd.VERSION} für Windows, Linux, macOS, Handhelds (PortMaster, experimentell), Android und den Browser",
                discord="Zum Discord", github="Quellcode", lang="Sprache", nav_what="Das Spiel",
-               nav_shots="Bilder", nav_evo="Entwicklungen", nav_road="Fahrplan", horde="Eine Horde bei 3:30", manual="Spielanleitung (PDF)"),
+               nav_shots="Bilder", nav_evo="Entwicklungen", nav_road="Fahrplan", horde="Eine Horde bei 3:30", manual="Spielanleitung (PDF)",
+               nav_scores="Rangliste", scores_h="Weltrangliste"),
     "es": dict(download="Descargar", web="Jugar en el navegador", soon=f"Alfa {rd.VERSION} para Windows, Linux, macOS, portátiles (PortMaster, experimental), Android y el navegador",
                discord="Únete al Discord", github="Código fuente", lang="Idioma", nav_what="El juego",
-               nav_shots="Capturas", nav_evo="Evoluciones", nav_road="Hoja de ruta", horde="Una horda a los 3:30", manual="Manual de instrucciones (PDF)"),
+               nav_shots="Capturas", nav_evo="Evoluciones", nav_road="Hoja de ruta", horde="Una horda a los 3:30", manual="Manual de instrucciones (PDF)",
+               nav_scores="Clasificación", scores_h="Clasificación mundial"),
     "it": dict(download="Scarica", web="Gioca nel browser", soon=f"Alfa {rd.VERSION} per Windows, Linux, macOS, console portatili (PortMaster, sperimentale), Android e il browser",
                discord="Entra nel Discord", github="Codice sorgente", lang="Lingua", nav_what="Il gioco",
-               nav_shots="Immagini", nav_evo="Evoluzioni", nav_road="Tabella di marcia", horde="Un'orda a 3:30", manual="Libretto di istruzioni (PDF)"),
+               nav_shots="Immagini", nav_evo="Evoluzioni", nav_road="Tabella di marcia", horde="Un'orda a 3:30", manual="Libretto di istruzioni (PDF)",
+               nav_scores="Classifica", scores_h="Classifica mondiale"),
     "pt": dict(download="Baixar", web="Jogar no navegador", soon=f"Alfa {rd.VERSION} para Windows, Linux, macOS, portáteis (PortMaster, experimental), Android e o navegador",
                discord="Entrar no Discord", github="Código-fonte", lang="Idioma", nav_what="O jogo",
-               nav_shots="Imagens", nav_evo="Evoluções", nav_road="Próximos passos", horde="Uma horda aos 3:30", manual="Manual de instruções (PDF)"),
+               nav_shots="Imagens", nav_evo="Evoluções", nav_road="Próximos passos", horde="Uma horda aos 3:30", manual="Manual de instruções (PDF)",
+               nav_scores="Classificação", scores_h="Classificação mundial"),
     "ja": dict(download="ダウンロード", web="ブラウザでプレイ", soon=f"アルファ {rd.VERSION}：Windows・Linux・macOS・携帯機（PortMaster、試験版）・Android・ブラウザ",
                discord="Discord に参加", github="ソースコード", lang="言語", nav_what="ゲーム",
-               nav_shots="スクリーンショット", nav_evo="進化", nav_road="今後の予定", horde="3:30 の大群", manual="取扱説明書（PDF）"),
+               nav_shots="スクリーンショット", nav_evo="進化", nav_road="今後の予定", horde="3:30 の大群", manual="取扱説明書（PDF）",
+               nav_scores="ランキング", scores_h="せかいランキング"),
 }
 
 MANUALS = ("A-Survivor-to-the-Past-Manual-en.pdf", "A-Survivor-to-the-Past-Manuel-fr.pdf")
@@ -59,6 +66,30 @@ def md(s):
 
 def paras(s):
     return "".join(f"<p>{md(p)}</p>" for p in s.split("\n\n"))
+
+
+# Classement : textes repris du jeu (data/lang), sans les marques de couleur du texte riche.
+BOARD_KEYS = dict(stage="ui.stage", version="ui.version", mode="ui.score_mode", solo="ui.score_solo",
+                  coop="ui.score_coop", score="ui.score", player="ui.scores_players", char="ui.unlock_kind_char",
+                  time="ui.time_win", kills="ui.enemies_defeated", diff="ui.difficulty", loading="ui.loading",
+                  failed="ui.online_failed", empty="ui.no_scores_world", legend="ui.scores_legend")
+
+
+def lang_dict(code):
+    d = dict(rd.PAT.findall((ROOT / f"data/lang/{code}.ron").read_text(encoding="utf-8")))
+    return {k: re.sub(r"[\x00-\x1f]", "", v) for k, v in d.items()}
+
+
+def board_strings(code, en):
+    """Textes, stages, difficultes et personnages du classement ; personnages : seulement les noms qui
+    different de l'anglais (le site complete avec ceux de l'anglais)."""
+    d = lang_dict(code)
+    s = {k: d[v] for k, v in BOARD_KEYS.items()}
+    s["maps"] = {m: d.get(f"map.{m}.name", m) for m in stage_ids()}
+    s["diffs"] = [d.get(f"difficulty.{i}.name", i) for i in DIFFS]
+    chars = {k[5:-5]: v for k, v in d.items() if k.startswith("char.") and k.endswith(".name")}
+    s["chars"] = chars if en is None else {k: v for k, v in chars.items() if en.get(k) != v}
+    return s
 
 
 def strings(code):
@@ -122,6 +153,7 @@ PAGE = """<!doctype html>
     <a href="#game" data-i="ui_nav_what">{ui_nav_what}</a>
     <a href="#shots" data-i="ui_nav_shots">{ui_nav_shots}</a>
     <a href="#evo" data-i="ui_nav_evo">{ui_nav_evo}</a>
+    <a href="#scores" data-i="ui_nav_scores">{ui_nav_scores}</a>
     <a href="#road" data-i="ui_nav_road">{ui_nav_road}</a>
   </nav>
   <label class="lang"><span class="sr" data-i="ui_lang">{ui_lang}</span>
@@ -164,6 +196,20 @@ PAGE = """<!doctype html>
   <div class="scroll"><table data-i="evo">{evo}</table></div>
   <h2 data-i="ctrl_h">{ctrl_h}</h2>
   <div class="scroll"><table data-i="ctrl">{ctrl}</table></div>
+</section>
+
+<section id="scores" class="panel">
+  <h2 data-i="ui_scores_h">{ui_scores_h}</h2>
+  <div class="lb-bar">
+    <label><span id="lb-l-stage"></span><select id="lb-map"></select></label>
+    <label><span id="lb-l-mode"></span><select id="lb-mode"></select></label>
+    <label><span id="lb-l-ver"></span><select id="lb-ver"></select></label>
+  </div>
+  <p id="lb-msg" class="soon"></p>
+  <div class="scroll"><table id="lb"><thead><tr><th>#</th><th id="lb-h-player"></th><th id="lb-h-char"></th>
+    <th id="lb-h-score" class="num"></th><th id="lb-h-time" class="num"></th><th id="lb-h-kills" class="num"></th>
+    <th id="lb-h-diff"></th></tr></thead><tbody></tbody></table></div>
+  <p id="lb-legend" class="soon"></p>
 </section>
 
 <section id="road" class="panel">
@@ -252,6 +298,15 @@ table { width: 100%; border-collapse: collapse; margin: 6px 0 4px; font-size: 15
 th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
 th { color: var(--gold); font-weight: 700; }
 code { background: #000; padding: 1px 6px; border-radius: 4px; font-size: 14px; }
+.lb-bar { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 6px 0 10px; }
+.lb-bar label { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 15px; }
+.lb-bar select { background: var(--panel); color: var(--ink); border: 2px solid var(--frame); border-radius: 4px;
+  padding: 4px 8px; font: inherit; font-size: 14px; max-width: 100%; }
+#lb td.num, #lb th.num { text-align: right; white-space: nowrap; }
+#lb td { font-size: 14px; }
+#lb tr.won td:nth-child(4) { color: #80e890; }
+#lb tr.lost td:nth-child(4) { color: #ff8a80; }
+#lb .t1 { color: #80e890; } #lb .t2 { color: var(--gold); } #lb .t3 { color: #ff9ad8; }
 .legal { max-width: 1040px; margin: 10px auto 0; padding: 18px 16px 40px; color: var(--dim); font-size: 14px; border-top: 2px solid var(--line); }
 .legal h2 { font-size: 18px; }
 .legal strong { color: var(--ink); }
@@ -296,13 +351,80 @@ APP = """(function () {
   sel.addEventListener('change', function () {
     try { localStorage.setItem('lang', sel.value); } catch (e) {}
     apply(sel.value);
+    board.lang();
   });
+
+  // Classement mondial (/api/scores du worker), charge quand la section devient visible
+  var board = (function () {
+    var lb = document.getElementById('lb');
+    if (!lb) return { lang: function () {} };
+    function $(id) { return document.getElementById(id); }
+    var map = $('lb-map'), mode = $('lb-mode'), ver = $('lb-ver'), msg = $('lb-msg'), body = lb.tBodies[0];
+    var data = null, status = 'idle';
+    function T() { return (L[sel.value] || L.en).board; }
+    function chars(id) {
+      return String(id).split(',').map(function (c) { return T().chars[c] || L.en.board.chars[c] || c; }).join(' + ');
+    }
+    function time(t) { t = Math.floor(t); return Math.floor(t / 60) + ':' + ('0' + t % 60).slice(-2); }
+    function cell(tr, text, cls) { var td = tr.insertCell(); td.textContent = text; if (cls) td.className = cls; return td; }
+    function options(s, items, keep) {
+      var v = s.value; s.textContent = '';
+      items.forEach(function (it) { var o = document.createElement('option'); o.value = it[0]; o.textContent = it[1]; s.appendChild(o); });
+      if (keep && v) s.value = v;
+      if (s.selectedIndex < 0) s.selectedIndex = 0;
+    }
+    function render() {
+      var t = T();
+      $('lb-l-stage').textContent = t.stage; $('lb-l-mode').textContent = t.mode; $('lb-l-ver').textContent = t.version;
+      ['player', 'char', 'score', 'time', 'kills', 'diff'].forEach(function (k) { $('lb-h-' + k).textContent = t[k]; });
+      $('lb-legend').textContent = t.legend;
+      options(map, Object.keys(t.maps).map(function (k) { return [k, t.maps[k]]; }), true);
+      var modes = [['1', t.solo]];
+      for (var n = 2; n <= 4; n++) modes.push([String(n), t.coop.replace('{n}', n)]);
+      options(mode, modes, true);
+      body.textContent = '';
+      msg.textContent = status === 'loading' ? t.loading : status === 'failed' ? t.failed : '';
+      if (!data) return;
+      options(ver, data.versions.map(function (v) { return [v, v]; }), false);
+      ver.value = data.version;
+      if (!data.scores.length) msg.textContent = t.empty;
+      data.scores.forEach(function (e) {
+        var tr = body.insertRow();
+        tr.className = e.won ? 'won' : 'lost';
+        cell(tr, e.rank);
+        cell(tr, e.name, e.title ? 't' + Math.min(e.title, 3) : '');
+        cell(tr, chars(e.character));
+        cell(tr, e.score.toLocaleString(sel.value), 'num');
+        cell(tr, time(e.time), 'num');
+        cell(tr, e.kills.toLocaleString(sel.value), 'num');
+        cell(tr, t.diffs[e.difficulty] || '');
+      });
+    }
+    function load(version) {
+      status = 'loading'; data = null; render();
+      var q = 'map=' + encodeURIComponent(map.value) + '&players=' + mode.value + '&version=' + encodeURIComponent(version || '');
+      fetch('/api/scores?' + q).then(function (r) { if (!r.ok) throw r; return r.json(); })
+        .then(function (d) { data = d; status = 'done'; render(); })
+        .catch(function () { status = 'failed'; render(); });
+    }
+    map.addEventListener('change', function () { load(''); });
+    mode.addEventListener('change', function () { load(ver.value); });
+    ver.addEventListener('change', function () { load(ver.value); });
+    render();
+    var started = false;
+    function start() { if (!started) { started = true; load(''); } }
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es, o) { if (es[0].isIntersecting) { o.disconnect(); start(); } }).observe(lb);
+    } else start();
+    return { lang: render };
+  })();
   apply(pick());
+  board.lang();
 })();
 """
 
 HEADERS = """/*
-  Content-Security-Policy: default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: no-referrer
@@ -325,15 +447,24 @@ HEADERS = """/*
 """
 
 
-def sync_worker():
-    """Classement en ligne : version du jeu (LATEST), stages (STAGES) et multiplicateur de score
-    maximal (MAX_MULT : difficulte la plus payante x tous les Sceaux) dans wrangler.jsonc."""
+def stage_ids():
+    """Stages du classement, dans l'ordre du jeu."""
     maps = []
     for f in sorted((ROOT / "data/maps").glob("*.ron")):
         m = re.search(r"\border:\s*(\d+)", f.read_text(encoding="utf-8"))
         if m and int(m.group(1)) > 0:
             maps.append((int(m.group(1)), f.stem))
-    stages = ",".join(s for _, s in sorted(maps))
+    return [s for _, s in sorted(maps)]
+
+
+# difficultes, dans l'ordre de meta.ron (index envoye par le jeu)
+DIFFS = re.findall(r"\(id:\s*\"(\w+)\",\s*enemy_hp:", (ROOT / "data/meta.ron").read_text(encoding="utf-8"))
+
+
+def sync_worker():
+    """Classement en ligne : version du jeu (LATEST), stages (STAGES) et multiplicateur de score
+    maximal (MAX_MULT : difficulte la plus payante x tous les Sceaux) dans wrangler.jsonc."""
+    stages = ",".join(stage_ids())
     cfg = ROOT / "wrangler.jsonc"
     t = cfg.read_text(encoding="utf-8")
     t = re.sub(r'"LATEST":\s*"[^"]*"', f'"LATEST": "{rd.VERSION}"', t)
@@ -342,6 +473,18 @@ def sync_worker():
     diff = max(float(v) for v in re.findall(r"\(id:\s*\"\w+\",[^)]*\brupees:\s*([\d.]+)", meta))
     seals = sum(float(v) for v in re.findall(r"\(id:\s*\"seal_\w+\"[^)]*\bbonus:\s*([\d.]+)", meta))
     t = re.sub(r'"MAX_MULT":\s*"[^"]*"', f'"MAX_MULT": "{round(diff * (1 + seals), 4)}"', t)
+    # multiplicateurs par difficulte (ordre de meta.ron = index envoye par le jeu) et bonus des Sceaux
+    diffs = ",".join(re.findall(r"\(id:\s*\"\w+\",[^)]*\brupees:\s*([\d.]+)", meta))
+    bonuses = ",".join(re.findall(r"\(id:\s*\"seal_\w+\"[^)]*\bbonus:\s*([\d.]+)", meta))
+    # 0.9 : vie des ennemis par difficulte et par Sceau (1 si absente), pour le poids de vie (kill_weight)
+    diff_hp = ",".join(re.findall(r"\(id:\s*\"\w+\",\s*enemy_hp:\s*([\d.]+)[^)]*\brupees:", meta))
+    hp = lambda s: (lambda m: m.group(1) if m else "1")(re.search(r"\benemy_hp:\s*([\d.]+)", s))
+    seal_hp = ",".join(hp(s) for s in re.findall(r"\(id:\s*\"seal_\w+\"[^)]*\bbonus:[^)]*\)", meta))
+    for k, v in (("DIFF_MULTS", diffs), ("SEAL_BONUSES", bonuses), ("DIFF_HP", diff_hp), ("SEAL_HP", seal_hp)):
+        if f'"{k}"' in t:
+            t = re.sub(rf'"{k}":\s*"[^"]*"', f'"{k}": "{v}"', t)
+        else:
+            t = re.sub(r'("MAX_MULT":\s*"[^"]*")', lambda m: f'{m.group(1)},\n    "{k}": "{v}"', t)
     cfg.write_text(t, encoding="utf-8", newline="\n")
 
 
@@ -356,6 +499,9 @@ def main():
         shutil.copy(ROOT / f"assets/icons/icon_{s}.png", OUT / f"img/icon_{s}.png")
     shutil.copy(ROOT / "assets/icons/favicon.ico", OUT / "favicon.ico")
     all_s = {c: strings(c) for c, _ in rd.LANGS}
+    en_chars = board_strings("en", None)["chars"]
+    for c, s in all_s.items():
+        s["board"] = board_strings(c, None if c == "en" else en_chars)
     en = all_s["en"]
     gallery = "".join(
         f'<figure><img class="shot" src="img/{k}.png" width="1280" height="720" alt="{html.escape(rd.T["en"]["caps"][k])}" '

@@ -1,6 +1,7 @@
 //! Pikit voleur de rubis : 2 a 3 fois par partie, un Pikit (A Link to the Past) arrive hors de l'ecran.
 //! Une annonce et une fleche indiquent ou il est ; il fuit en sautant quand le joueur approche.
-//! Vaincu, sa langue rapporte au joueur tous les rubis encore au sol ; ignore, il repart.
+//! Tant qu'il est la, il vole peu a peu les rubis de la partie. Vaincu, il les rend et attire tous les
+//! rubis encore au sol ; ignore, il repart avec.
 use crate::world::{Event, World, DT};
 use glam::Vec2;
 
@@ -10,6 +11,9 @@ pub struct Thief {
     pub uid: u32,
     /// Temps restant avant son depart (s).
     pub t: f32,
+    /// Rubis du joueur a son arrivee, et rubis deja voles.
+    pub bag: u32,
+    pub stolen: u32,
 }
 
 impl World {
@@ -29,6 +33,11 @@ impl World {
                 return;
             };
             th.t -= DT;
+            // vol regulier : `steal` des rubis de l'arrivee sur toute sa presence
+            let want = (th.bag as f32 * r.steal * (1.0 - th.t.max(0.0) / r.life)) as u32;
+            let take = want.saturating_sub(th.stolen).min(self.player.rupees);
+            self.player.rupees -= take;
+            th.stolen += take;
             if th.t <= 0.0 {
                 let pos = self.horde.pos[i];
                 self.horde.remove(i);
@@ -54,14 +63,14 @@ impl World {
         self.toughen_encounter(i);
         self.horde.hp[i] *= r.hp;
         self.horde.max_hp[i] = self.horde.hp[i];
-        self.thief = Some(Thief { uid: self.horde.uid[i], t: r.life });
+        self.thief = Some(Thief { uid: self.horde.uid[i], t: r.life, bag: self.player.rupees, stolen: 0 });
         self.events.push(Event::ThiefSpawned { pos: at });
     }
 
-    /// Pikit vaincu : tous les rubis au sol viennent au joueur.
+    /// Pikit vaincu : il rend les rubis voles, et tous les rubis au sol viennent au joueur.
     pub(crate) fn thief_defeated(&mut self, pos: Vec2) {
-        let count = (0..self.pickups.len()).filter(|&i| self.pickups.kind[i].is_rupee()).count() as u32;
-        self.thief = None;
+        let count = self.thief.take().map_or(0, |th| th.stolen);
+        self.player.rupees += count;
         let r = &self.content.rules.thief;
         self.thief_t = self.rng.range(r.every.0, r.every.1);
         self.vacuum();

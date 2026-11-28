@@ -2,7 +2,7 @@
 //! reliques et benedictions (bonus), difficulte et Sceaux de Ganon (malus).
 use crate::defs::Stat;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct RunMods {
     /// Bonus permanents ajoutes aux statistiques de depart.
     pub stats: Vec<(Stat, f32)>,

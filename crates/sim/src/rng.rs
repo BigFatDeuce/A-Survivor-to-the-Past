@@ -47,6 +47,6 @@ impl Rng {
     /// Vecteur unitaire de direction aleatoire.
     pub fn dir(&mut self) -> Vec2 {
         let a = self.f() * std::f32::consts::TAU;
-        Vec2::new(a.cos(), a.sin())
+        Vec2::new(libm::cosf(a), libm::sinf(a))
     }
 }

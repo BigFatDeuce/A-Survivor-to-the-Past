@@ -85,7 +85,7 @@ pub fn count(fams: &[Family]) -> ([usize; 3], usize) {
     (got, total)
 }
 
-fn amount(f: &Family, v: u64) -> String {
+pub fn amount(f: &Family, v: u64) -> String {
     if f.hours {
         format!("{} h", v / 3600)
     } else {

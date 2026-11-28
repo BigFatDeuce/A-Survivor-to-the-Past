@@ -769,7 +769,7 @@
         credit: "Botchos",
     ),
     "zspr_pridelink": (
-        name: "Pride Link",
+        name: "Gay Link",
         sprite: "zspr_pridelink",
         max_hp: 70.0, speed: 86.0, magnet: 38.0,
         dash: (speed: 330.0, duration: 0.15, cooldown: 1.8),
@@ -1536,7 +1536,7 @@
         credit: "kan",
     ),
     "zspr_mushy": (
-        name: "Power Up with Pride Mushroom",
+        name: "Power Up with Gay Mushroom",
         sprite: "zspr_mushy",
         max_hp: 60.0, speed: 86.0, magnet: 34.0,
         dash: (speed: 320.0, duration: 0.15, cooldown: 1.9),

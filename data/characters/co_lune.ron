@@ -1,0 +1,18 @@
+// Lune (Clair Obscur) : mage des elements : baguette de feu, zone +15 %, recharge -10 %.
+// Sprite : research/tools/gen_clair_obscur.py. A acheter a la boutique.
+(
+    name: "Lune",
+    sprite: "co_lune",
+    max_hp: 40.0,
+    speed: 80.0,
+    radius: 5.0,
+    magnet: 36.0,
+    dash: (speed: 330.0, duration: 0.15, cooldown: 1.6),
+    weapon: "fire_rod",
+    weapon_sprite: "sword1",
+    side_faces_left: true,
+    stats: [(Area, 0.15), (Cooldown, -0.1), (MoveSpeed, -0.05)],
+    order: 1000,
+    group: "rpg",
+    unlock: Some(Shop(3000)),
+)

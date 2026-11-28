@@ -60,6 +60,9 @@ pub struct MusicDef {
 /// d'entree tres court (pas de claquement).
 const SEQUENCE_AT: f32 = 0.8;
 const SEQUENCE_FADE_IN: f32 = 0.15;
+/// Extrait du juke-box : extinction de la musique en cours, puis depart differe et long fondu d'entree.
+const PREVIEW_OUT: f32 = 0.6;
+const PREVIEW_IN: (f32, f32) = (0.5, 1.5);
 
 /// Une piste en cours (musique ou ambiance).
 #[cfg(not(target_arch = "wasm32"))]
@@ -174,16 +177,45 @@ fn amp_to_db(a: f32) -> Decibels {
     }
 }
 
+/// Ordre d'essai d'une sortie audio de secours (identifiant cpal, ex. « alsa:plughw:CARD=0,DEV=0 ») :
+/// sorties systeme d'abord, puis la carte avec conversion de format ; jamais « null » (jette le son).
+#[cfg_attr(target_arch = "wasm32", allow(dead_code))]
+fn fallback_rank(id: &str) -> Option<u8> {
+    let id = id.to_ascii_lowercase();
+    let pcm = id.split_once(':').map_or(id.as_str(), |(_, p)| p);
+    if pcm.starts_with("null") {
+        return None;
+    }
+    Some(match pcm {
+        p if p.starts_with("default") || p.starts_with("sysdefault") => 0,
+        p if p.starts_with("pipewire") || p.starts_with("pulse") => 1,
+        p if p.starts_with("plughw") => 2,
+        p if p.starts_with("dmix") => 3,
+        p if p.starts_with("hw:") => 5,
+        _ => 4,
+    })
+}
+
 /// Sortie audio par defaut ; si elle refuse (consoles Linux : peripherique « default » d'ALSA absent ou
-/// occupe), chaque autre sortie est essayee. La sortie retenue est notee dans le journal.
+/// occupe), les autres sorties sont essayees dans l'ordre de `fallback_rank`. La sortie retenue est
+/// notee dans le journal.
 fn open_manager() -> Result<AudioManager, String> {
     let first = AudioManager::<DefaultBackend>::new(AudioManagerSettings::default());
     #[cfg(not(target_arch = "wasm32"))]
     if let Err(e) = &first {
-        use kira::backend::cpal::{cpal, cpal::traits::HostTrait, CpalBackendSettings};
+        use kira::backend::cpal::{cpal, cpal::traits::DeviceTrait, cpal::traits::HostTrait, CpalBackendSettings};
         log::warn!("sortie audio par defaut : {e}");
-        for d in cpal::default_host().output_devices().into_iter().flatten() {
-            let name = d.to_string();
+        let mut devices: Vec<(u8, String, _)> = cpal::default_host()
+            .output_devices()
+            .into_iter()
+            .flatten()
+            .filter_map(|d| {
+                let id = d.id().map(|i| i.to_string()).unwrap_or_else(|_| d.to_string());
+                fallback_rank(&id).map(|r| (r, id, d))
+            })
+            .collect();
+        devices.sort_by_key(|d| d.0);
+        for (_, name, d) in devices {
             let settings = AudioManagerSettings {
                 backend_settings: CpalBackendSettings { device: Some(d), config: None },
                 ..AudioManagerSettings::default()
@@ -201,6 +233,20 @@ fn open_manager() -> Result<AudioManager, String> {
 }
 
 impl Audio {
+    /// Appli en arriere-plan (Android) : musique, ambiance et effets en pause, repris au retour. Le son
+    /// tourne sur son propre fil : sans cela, il continue quand l'appli est reduite.
+    pub fn set_paused(&mut self, paused: bool) {
+        let tween = Tween { duration: Duration::from_millis(80), ..Default::default() };
+        for t in [&mut self.music_track, &mut self.sfx_track].into_iter().flatten() {
+            if paused {
+                t.pause(tween);
+            } else {
+                t.resume(tween);
+            }
+        }
+        log::info!("son : {}", if paused { "en pause (arriere-plan)" } else { "repris" });
+    }
+
     /// Initialise la sortie audio ; en cas d'echec le jeu continue en silence.
     pub fn new(root: &Path) -> Audio {
         let mut a = Audio {
@@ -318,12 +364,12 @@ impl Audio {
 
     /// Musique : enchainement facon SNES ; ambiance : fondu enchaine.
     #[cfg(target_arch = "wasm32")]
-    fn web_start(&mut self, music: bool, id: &str, def: &MusicDef, fade: f32) {
+    fn web_start(&mut self, music: bool, id: &str, def: &MusicDef, fade: f32, timing: Option<(f32, f32)>) {
         let slot = if music { &mut self.web_music } else { &mut self.web_amb };
         if slot.as_ref().is_some_and(|v| v.id == id) {
             return;
         }
-        let (wait, fade_in) = transition(music, slot.is_some(), fade);
+        let (wait, fade_in) = timing.unwrap_or_else(|| transition(music, slot.is_some(), fade));
         self.web_stop(music, fade);
         let slot = if music { &mut self.web_music } else { &mut self.web_amb };
         *slot = Some(crate::webmusic::Voice::start(id, def, crate::webmusic::url_of(&def.file), wait, fade_in));
@@ -349,7 +395,7 @@ impl Audio {
 
     #[cfg(target_arch = "wasm32")]
     pub fn play_ambience(&mut self, id: &str, def: &MusicDef, _root: &Path, fade: f32) {
-        self.web_start(false, id, def, fade);
+        self.web_start(false, id, def, fade, None);
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -359,7 +405,12 @@ impl Audio {
 
     #[cfg(target_arch = "wasm32")]
     pub fn play_music(&mut self, id: &str, def: &MusicDef, _root: &Path, fade: f32) {
-        self.web_start(true, id, def, fade);
+        self.web_start(true, id, def, fade, None);
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn preview_music(&mut self, id: &str, def: &MusicDef, _root: &Path) {
+        self.web_start(true, id, def, PREVIEW_OUT, Some(PREVIEW_IN));
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -399,8 +450,9 @@ impl Audio {
     }
 
     /// `music` : enchainement facon SNES (l'ancienne piste s'eteint, puis la nouvelle part) ;
-    /// sinon fondu enchaine (ambiances).
+    /// sinon fondu enchaine (ambiances). `timing` : depart differe et fondu d'entree imposes.
     #[cfg(not(target_arch = "wasm32"))]
+    #[allow(clippy::too_many_arguments)]
     fn start_voice(
         slot: &mut Option<Voice>,
         track: Option<&mut TrackHandle>,
@@ -409,11 +461,12 @@ impl Audio {
         path: PathBuf,
         fade: f32,
         music: bool,
+        timing: Option<(f32, f32)>,
     ) {
         if slot.as_ref().is_some_and(|v| v.id == id) {
             return;
         }
-        let (delay, fade_in) = transition(music, slot.is_some(), fade);
+        let (delay, fade_in) = timing.unwrap_or_else(|| transition(music, slot.is_some(), fade));
         Self::stop_voice(slot, fade);
         let Some(track) = track else { return };
         match Self::open(&path, def, delay, fade_in) {
@@ -436,7 +489,7 @@ impl Audio {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn play_ambience(&mut self, id: &str, def: &MusicDef, root: &Path, fade: f32) {
         let path = root.join("assets/audio/music").join(&def.file);
-        Self::start_voice(&mut self.ambience, self.sfx_track.as_mut(), id, def, path, fade, false);
+        Self::start_voice(&mut self.ambience, self.sfx_track.as_mut(), id, def, path, fade, false, None);
     }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -478,7 +531,15 @@ impl Audio {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn play_music(&mut self, id: &str, def: &MusicDef, root: &Path, fade: f32) {
         let path = root.join("assets/audio/music").join(&def.file);
-        Self::start_voice(&mut self.music, self.music_track.as_mut(), id, def, path, fade, true);
+        Self::start_voice(&mut self.music, self.music_track.as_mut(), id, def, path, fade, true, None);
+    }
+
+    /// Extrait d'une musique (juke-box) : la musique en cours s'eteint, puis celle-ci entre en long
+    /// fondu. Pour la couper, relancer une musique (`play_music`) : elle s'eteint en fondu de sortie.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn preview_music(&mut self, id: &str, def: &MusicDef, root: &Path) {
+        let path = root.join("assets/audio/music").join(&def.file);
+        Self::start_voice(&mut self.music, self.music_track.as_mut(), id, def, path, PREVIEW_OUT, true, Some(PREVIEW_IN));
     }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -526,5 +587,16 @@ impl Audio {
         if let Some(t) = self.sfx_track.as_mut() {
             t.set_volume(amp_to_db(v.master * v.sfx), Tween::default());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn fallback_order_skips_null() {
+        use super::fallback_rank as r;
+        assert_eq!(r("alsa:null"), None);
+        assert!(r("alsa:sysdefault:CARD=0") < r("alsa:plughw:CARD=0,DEV=0"));
+        assert!(r("alsa:plughw:CARD=0,DEV=0") < r("alsa:hw:CARD=0,DEV=0"));
     }
 }

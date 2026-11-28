@@ -273,12 +273,22 @@ impl Meta {
         m
     }
 
-    /// Multiplicateur des rubis mis en banque (difficulte, Sceaux, Avarice).
+    /// Multiplicateur des rubis mis en banque (difficulte, Sceaux, Avarice), et poids de vie des ennemis
+    /// (les rubis viennent des ennemis tues : voir `kill_weight`).
     pub fn bank_mult(&self, profile: &Profile) -> f32 {
         let d = self.difficulty(profile).map(|d| d.rupees).unwrap_or(1.0);
         let seals: f32 = self.seals.iter().filter(|s| profile.seals.contains(&s.id)).map(|s| s.bonus).sum();
         let greed: f32 = self.shop.iter().filter(|i| i.stat.is_none() && i.perk.is_none()).map(|i| i.per_level * profile.shop_level(&i.id) as f32).sum();
-        d * (1.0 + seals) * (1.0 + greed)
+        d * (1.0 + seals) * (1.0 + greed) * self.kill_weight(profile)
+    }
+
+    /// Poids d'un ennemi tue : sa vie par rapport au Normal (difficulte, Sceau de la Force). Quand les
+    /// degats du joueur limitent le nombre d'ennemis tues, ce nombre est divise par la vie des ennemis ;
+    /// le poids l'annule : le gain suit alors exactement le multiplicateur (Facile ne paie jamais plus que
+    /// Normal, un Sceau paie toujours plus).
+    pub fn kill_weight(&self, profile: &Profile) -> f32 {
+        let d = self.difficulty(profile).map(|d| d.enemy_hp).unwrap_or(1.0);
+        d * self.seals.iter().filter(|s| profile.seals.contains(&s.id)).map(|s| s.enemy_hp).product::<f32>()
     }
 
     /// Multiplicateur de score : difficulte et Sceaux de Ganon (sans l'Avarice, achetee en boutique).

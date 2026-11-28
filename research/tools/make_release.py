@@ -205,10 +205,13 @@ if [[ "$PM_CAN_MOUNT" != "N" ]]; then
 fi
 $ESUDO mount "$controlfolder/libs/${weston_runtime}.squashfs" "${weston_dir}"
 
+# configuration manette de PortMaster, par l'environnement (lue par le jeu si elle passe jusqu'a lui) ;
+# jamais en argument de westonwrap.sh : le nom de la manette contient des espaces
+export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 $GPTOKEYB "@EXE@" -c "./@PORT_DIR@.gptk" &
 pm_platform_helper "$GAMEDIR/@EXE@"
 $ESUDO env $weston_dir/westonwrap.sh headless noop kiosk crusty_x11egl \
-  WGPU_BACKEND=gl ASTP_NO_UPDATE=1 WAYLAND_DISPLAY= SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig" ./@EXE@
+  WGPU_BACKEND=gl ASTP_NO_UPDATE=1 WAYLAND_DISPLAY= ./@EXE@
 
 if [[ "$PM_CAN_MOUNT" != "N" ]]; then
   $ESUDO umount "${weston_dir}"

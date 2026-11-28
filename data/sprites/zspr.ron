@@ -7604,7 +7604,7 @@
                 },
             },
         ),
-        // Power Up with Pride Mushroom (Achy)
+        // Power Up with Gay Mushroom (Achy)
         (
             source: "zspr/zspr_mushy.png",
             sprites: {
@@ -8782,7 +8782,7 @@
                 },
             },
         ),
-        // Pride Link (proximitysound)
+        // Gay Link (proximitysound)
         (
             source: "zspr/zspr_pridelink.png",
             sprites: {

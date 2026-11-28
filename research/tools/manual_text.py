@@ -60,9 +60,11 @@ T = {
         title_txt="Sous l'orage, au bord du lac d'Hyrule, l'écran titre propose :",
         menu=[
             ("ui.play", "Choisir un personnage puis un stage, et partir à l'aventure."),
+            ("ui.coop", "Jouer en ligne à plusieurs (2 à 4) : créer une salle ou en rejoindre une avec son code."),
             ("ui.player_item", "Le joueur actif (nom et avatar). Ouvre l'écran des joueurs."),
             ("ui.shop", "Dépenser les rubis rouges : améliorations de Cocorico, bénédictions de la Grande Fée, personnages, tenues, musiques."),
             ("ui.collection", "Bestiaire, armes, objets et fusions découverts par le joueur actif."),
+            ("ui.gallery", "La salle de la collection : Link s'y promène parmi trophées, armes, objets, figurines et statues."),
             ("ui.exploits", "Trophées (bronze, argent, or) et statistiques du joueur actif."),
             ("ui.scores", "Les meilleurs scores de chaque stage : les vôtres, ceux des autres joueurs, le monde."),
             ("ui.options", "Son, image, filtres rétro, langue, commandes, mises à jour et sauvegarde."),
@@ -71,8 +73,10 @@ T = {
         players_h="L'écran des joueurs",
         players=[
             "Jusqu'à **cinq joueurs** peuvent partager le jeu sur un même ordinateur. Chacun a son nom, son avatar "
-            "(vingt personnages et monstres d'A Link to the Past) et toute sa progression : stages gagnés, rubis en "
+            "(trente personnages et monstres d'A Link to the Past) et toute sa progression : stages gagnés, rubis en "
             "banque, achats, reliques, bestiaire et meilleurs scores.",
+            "Au tout premier lancement, le jeu demande d'abord un **nom**, puis un **portrait** : le joueur n'est "
+            "enregistré qu'une fois les deux choisis.",
             "Choisissez un emplacement libre pour **créer** un joueur, ou un autre joueur pour **jouer avec lui**. "
             "Sur le joueur actif, validez pour le **renommer** et utilisez Gauche/Droite pour changer d'**avatar**.",
             "**Supprimer** efface le joueur actif et toute sa progression, après une seconde confirmation. "
@@ -173,9 +177,23 @@ T = {
         champion="**Champions errants** : un ennemi plus fort que les autres attend quelque part ; une flèche montre "
                  "le chemin. Vaincu, il vous offre une récompense au choix : bénédiction, amélioration spéciale "
                  "d'une arme, ou relique gardée si vous gagnez le stage.",
-        thief="**Boo voleur** : deux à trois fois par partie, un Boo surgit et dévore les rubis restés au sol. "
-              "Il s'enfuit par bonds quand vous approchez et repart au bout de 45 secondes. Rattrapez-le et vainquez-le : "
-              "il vous rend **tous les rubis** encore au sol !",
+        thief="**Boo voleur** : deux à trois fois par partie, un Boo surgit et vous vole peu à peu vos rubis (jusqu'à 30 %). "
+              "Il s'enfuit par bonds quand vous approchez et repart avec son butin au bout de 45 secondes. Rattrapez-le et vainquez-le : "
+              "il **rend ce qu'il a volé** et vous attire tous les rubis encore au sol !",
+        coop_h="Jouer à plusieurs : la coop en ligne",
+        coop=[
+            "De **2 à 4 joueurs**, chacun sur son ordinateur, son téléphone ou son navigateur, avec la même version du "
+            "jeu. Dans **Coop en ligne**, un joueur crée une salle et donne son **code de 4 lettres** ; les autres le "
+            "saisissent pour la rejoindre. Chacun choisit son personnage et sa couleur ; l'hôte choisit le stage et "
+            "lance la partie avec **ses** réglages (difficulté, Sceaux).",
+            "Les ennemis ont plus de vie et arrivent plus nombreux à chaque joueur. Un joueur à terre peut être "
+            "**relevé** : restez trois secondes à côté de lui.",
+            "Quand vous montez de niveau ou ouvrez un coffre, **la partie continue** pour les autres. Pendant votre "
+            "choix, votre personnage n'attaque pas, mais les ennemis vous ignorent pendant **10 secondes** (compte à "
+            "rebours en haut de l'écran) ; ensuite, choisissez vite !",
+            "En coop, pas de Boo voleur, de champion errant ni de personnage à rencontrer ; la Bob-omb, elle, est "
+            "bien là. Le score de l'équipe compte les ennemis vaincus par tous.",
+        ],
         # 5. Equipement
         ch_gear="5. Armes et objets",
         gear_intro="Vous partez avec l'arme de votre personnage. Les autres arrivent en montant de niveau. Six armes et six "
@@ -192,7 +210,8 @@ T = {
         chars_intro="Chaque personnage a ses forces, ses faiblesses et son arme de départ. Les autres se débloquent en jouant. "
                     "Voici la troupe faite main ; plus de 300 autres, venus des sprites du A Link to the Past Randomizer, "
                     "se rangent par univers (gauche / droite sur le nom de l'univers, en haut de la grille) : certains se "
-                    "débloquent par des exploits, les autres s'achètent à la boutique (onglet Personnages).",
+                    "débloquent par des exploits, les autres s'achètent à la boutique (onglet Personnages), comme "
+                    "l'équipe de *Clair Obscur: Expedition 33*.",
         unlocked="Disponible dès le début.",
         # 7. Stages
         ch_stages="7. Les stages",
@@ -221,7 +240,10 @@ T = {
         profile_h="Recueil, exploits et sauvegarde",
         profile="Le Recueil montre le bestiaire, les armes, les objets et les fusions du joueur actif. Dans le bestiaire, "
                 "validez (ou cliquez) un ennemi déjà vaincu pour ouvrir sa fiche : son sprite animé à sa vraie taille "
-                "et ses statistiques ; Gauche/Droite passe au suivant. Les Exploits rassemblent les trophées (bronze, "
+                "et ses statistiques ; Gauche/Droite passe au suivant. Les armes, fusions et objets ont aussi leur fiche "
+                "(niveau 1 et niveau maximal, effets, fusions). Dans la **Galerie**, Link se promène parmi les trophées, "
+                "les armes, les objets, les figurines (à acheter en rubis rouges) et les statues des personnages "
+                "débloqués : validez devant un socle pour ouvrir sa fiche ; la Grande Fée, au fond, donne l'avancement. Les Exploits rassemblent les trophées (bronze, "
                 "argent, or : victoires, boss, collections...) et les statistiques. Dans les Options, la Sauvegarde "
                 "exporte toute la progression sous forme de code texte, à recoller sur un autre ordinateur ou dans "
                 "le navigateur.",
@@ -232,6 +254,9 @@ T = {
             "Chaque partie, gagnée ou perdue, reçoit un score :",
             "**10 points** par ennemi vaincu, **10 points** par seconde de survie, **1 000 points** par boss et "
             "**5 000 points** pour une victoire, le tout multiplié par la **difficulté** et les **Sceaux de Ganon** actifs.",
+            "Un ennemi vaut autant de fois plus qu'il a de vie : x0,7 en Facile, x1,4 en Difficile, x2 en Héros, x1,5 avec "
+            "le Sceau de puissance. Les rubis gagnés suivent la même règle : jouer en Facile ne rapporte jamais plus "
+            "qu'en Normal, et chaque Sceau rapporte plus.",
             "Les cinq meilleures parties de chaque stage sont gardées pour chaque joueur. Les parties quittées et "
             "celles de moins de 30 secondes ne comptent pas.",
         ],
@@ -239,6 +264,7 @@ T = {
         boards=[
             ("ui.scores_mine", "Vos cinq meilleures parties sur le stage choisi. Validez une partie pour la publier."),
             ("ui.scores_players", "Le meilleur score de chaque joueur de cet ordinateur : qui est le meilleur de la maison ?"),
+            ("ui.score_mode", "Solo, ou coop à 2, 3 ou 4 joueurs : chaque nombre de joueurs a ses propres classements."),
             ("ui.scores_world", "Le top 100 mondial du stage, pour la dernière version du jeu (Gauche/Droite sur « Version » "
                                 "pour voir les anciennes)."),
         ],
@@ -249,6 +275,8 @@ T = {
             "Seuls le pseudo et la partie sont envoyés (stage, version, score, temps, ennemis, niveau, personnage, "
             "difficulté). Aucune donnée personnelle n'est demandée. Le classement n'est contacté que quand vous "
             "ouvrez l'onglet Monde ou publiez un score.",
+            "Une partie en coop se publie sous les pseudos de toute l'équipe ; n'importe quel joueur de l'équipe peut "
+            "l'envoyer, une seule fois.",
             "Les classements des versions 0.x seront remis à zéro à la sortie de la version 1.0.",
         ],
         # 10. Bestiaire
@@ -266,7 +294,7 @@ T = {
             "Le dash rend invulnérable un court instant : gardez-le pour sortir d'un encerclement.",
             "Cherchez les fusions en rose : une arme évoluée change une partie.",
             "Les élites lâchent des coffres : ne les laissez pas filer.",
-            "Quand le Boo voleur apparaît, suivez la flèche : tous vos rubis au sol sont en jeu.",
+            "Quand le Boo voleur apparaît, suivez la flèche : chaque seconde il vous vole des rubis.",
             "Un mauvais départ ? Les rubis mis en banque ne sont jamais perdus : chaque partie vous rend plus fort.",
             "Les Sceaux de Ganon multiplient le score : idéal pour grimper au classement mondial.",
         ],
@@ -332,9 +360,11 @@ T = {
         title_txt="Under the storm, by the lake of Hyrule, the title screen offers:",
         menu=[
             ("ui.play", "Choose a character, then a stage, and set off."),
+            ("ui.coop", "Play online together (2 to 4): create a room or join one with its code."),
             ("ui.player_item", "The active player (name and avatar). Opens the players screen."),
             ("ui.shop", "Spend your red rupees: Kakariko upgrades, Great Fairy blessings, characters, outfits, music."),
             ("ui.collection", "Bestiary, weapons, items and fusions found by the active player."),
+            ("ui.gallery", "The collection room: Link walks among trophies, weapons, items, figurines and statues."),
             ("ui.exploits", "Trophies (bronze, silver, gold) and statistics of the active player."),
             ("ui.scores", "The best scores of every stage: yours, the other players', the world's."),
             ("ui.options", "Sound, video, retro filters, language, controls, updates and save."),
@@ -343,8 +373,10 @@ T = {
         players_h="The players screen",
         players=[
             "Up to **five players** can share the game on the same computer. Each one has a name, an avatar "
-            "(twenty characters and monsters from A Link to the Past) and their own progress: stages won, banked "
+            "(thirty characters and monsters from A Link to the Past) and their own progress: stages won, banked "
             "rupees, purchases, relics, bestiary and best scores.",
+            "On the very first launch, the game asks for a **name**, then a **portrait**: the player is only saved "
+            "once both are chosen.",
             "Pick an empty slot to **create** a player, or another player to **play as them**. On the active player, "
             "confirm to **rename** and use Left/Right to change the **avatar**.",
             "**Delete** erases the active player and all their progress, after a second confirmation. Careful: "
@@ -437,9 +469,23 @@ T = {
         encounters_h="Encounters",
         champion="**Wandering champions**: a stronger enemy waits somewhere; an arrow shows the way. Beat it for a reward "
                  "of your choice: a blessing, a special weapon upgrade, or a relic you keep if you win the stage.",
-        thief="**Thief Boo**: two or three times per run, a Boo shows up and gobbles the rupees left on the ground. "
-              "It darts away when you get close and leaves after 45 seconds. Catch it and defeat it: it gives "
-              "back **every rupee** still on the ground!",
+        thief="**Thief Boo**: two or three times per run, a Boo shows up and steals your rupees bit by bit (up to 30%). "
+              "It darts away when you get close and leaves with its loot after 45 seconds. Catch it and defeat it: it "
+              "**gives back what it stole** and pulls in every rupee still on the ground!",
+        coop_h="Playing together: online co-op",
+        coop=[
+            "From **2 to 4 players**, each on their own computer, phone or browser, with the same game version. In "
+            "**Online co-op**, one player creates a room and shares its **4-letter code**; the others type it to join. "
+            "Everyone picks a character and a color; the host chooses the stage and starts the run with **their** "
+            "settings (difficulty, Seals).",
+            "Enemies get more health and come in larger numbers with each player. A fallen player can be "
+            "**revived**: stay next to them for three seconds.",
+            "When you level up or open a chest, **the run goes on** for the others. While you choose, your character "
+            "doesn't attack, but enemies ignore you for **10 seconds** (countdown at the top of the screen); after "
+            "that, choose fast!",
+            "In co-op there is no thief Boo, no wandering champion and no one to meet; the Bob-omb is still there. "
+            "The team score counts the enemies defeated by everyone.",
+        ],
         ch_gear="5. Weapons and Items",
         gear_intro="You start with your character's weapon. The others come as you level up. Six weapons and six items at "
                    "most: every choice matters.",
@@ -453,7 +499,8 @@ T = {
         chars_intro="Each character has strengths, weaknesses and a starting weapon. The others unlock as you play. "
                     "Here is the hand-made cast; more than 300 others, from the A Link to the Past Randomizer sprites, "
                     "are sorted by universe (left / right on the universe name, above the grid): some unlock through "
-                    "feats, the rest are bought in the shop (Characters tab).",
+                    "feats, the rest are bought in the shop (Characters tab), like the *Clair Obscur: Expedition 33* "
+                    "party.",
         unlocked="Available from the start.",
         ch_stages="7. Stages",
         stages_intro="Stages open one after the other: win one to open the next. Each has its own weather, music, mid-boss "
@@ -480,7 +527,10 @@ T = {
         profile_h="Collection, achievements and save",
         profile="The Collection shows the active player's bestiary, weapons, items and fusions. In the bestiary, confirm (or "
                 "click) an enemy you have defeated to open its card: its animated sprite at its real size and its "
-                "statistics; Left/Right moves to the next one. Achievements gather the trophies (bronze, silver, gold: "
+                "statistics; Left/Right moves to the next one. Weapons, fusions and items have their card too (level 1 "
+                "and max level, effects, fusions). In the **Gallery**, Link walks among the trophies, weapons, items, "
+                "figurines (bought with red rupees) and the statues of unlocked characters: confirm in front of a "
+                "plinth to open its card; the Great Fairy, at the back, shows your progress. Achievements gather the trophies (bronze, silver, gold: "
                 "wins, bosses, collections...) and the statistics. In the Options, Save exports all progress "
                 "as a text code, to paste on another computer or in the browser.",
         ch_scores="9. Score and Leaderboards",
@@ -489,6 +539,9 @@ T = {
             "Every run, won or lost, gets a score:",
             "**10 points** per enemy defeated, **10 points** per second survived, **1,000 points** per boss and "
             "**5,000 points** for a victory, all multiplied by the **difficulty** and the active **Ganon's Seals**.",
+            "An enemy is worth as many times more as it has health: x0.7 on Easy, x1.4 on Hard, x2 on Hero, x1.5 with "
+            "the Seal of Might. Banked rupees follow the same rule: Easy never pays more than Normal, and every Seal "
+            "pays more.",
             "Each player keeps their five best runs on every stage. Runs you quit and runs shorter than 30 seconds "
             "don't count.",
         ],
@@ -496,6 +549,7 @@ T = {
         boards=[
             ("ui.scores_mine", "Your five best runs on the chosen stage. Confirm a run to publish it."),
             ("ui.scores_players", "The best score of each player on this computer: who's the best in the house?"),
+            ("ui.score_mode", "Solo, or co-op with 2, 3 or 4 players: each number of players has its own leaderboards."),
             ("ui.scores_world", "The world top 100 of the stage, for the latest version of the game (Left/Right on "
                                 "“Version” to see older ones)."),
         ],
@@ -506,6 +560,7 @@ T = {
             "Only the name and the run are sent (stage, version, score, time, enemies, level, character, difficulty). "
             "No personal data is asked for. The leaderboard is only contacted when you open the World tab or publish "
             "a score.",
+            "A co-op run is published under the names of the whole team; any player of the team can send it, once.",
             "The leaderboards of versions 0.x will be reset when version 1.0 comes out.",
         ],
         ch_bestiary="10. Bestiary of Hyrule",
@@ -521,7 +576,7 @@ T = {
             "The dash makes you invulnerable for a moment: keep it to escape when surrounded.",
             "Look for pink fusions: an evolved weapon changes a run.",
             "Elites drop chests: don't let them slip away.",
-            "When the thief Boo appears, follow the arrow: all your rupees on the ground are at stake.",
+            "When the thief Boo appears, follow the arrow: every second it steals more rupees.",
             "Bad start? Banked rupees are never lost: every run makes you stronger.",
             "Ganon's Seals multiply the score: ideal for climbing the world leaderboard.",
         ],

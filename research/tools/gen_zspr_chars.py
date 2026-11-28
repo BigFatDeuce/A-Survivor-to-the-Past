@@ -77,6 +77,8 @@ Deadpool (SirCzah)|Deadpool (Mythic)|Dipper|Gruncle Stan|Finn Merten|Princess Bu
 Hello Kitty|Homer Simpson|Ned Flanders|Steamed Ham|Ignignokt|Meatwad|Kenny McCormick|Luffy|Rick|Rocko|Sailor Moon|
 Saitama|SpongeBob SquarePants|TMNT|Power Ranger|Bob Ross|Angry Video Game Nerd|Marvin the Cat|Katsura|Stan|Pete|
 Dark Panda|Ketchup|Hotdog|Goose|The Pug|Eggplant|Broccoli"""
+# noms affiches differents du nom du sprite d'origine
+SHOWN_NAME = {"Pride Link": "Gay Link", "Power Up with Pride Mushroom": "Power Up with Gay Mushroom"}
 GROUP_OF = {}
 for g, names in zip(GROUPS, [ZELDA, NINTENDO, RPG, GAMES, SCREEN]):
     for n in names.replace("\n", "").split("|"):
@@ -351,9 +353,9 @@ def main():
             sk.append((sprite, "dark"))
             manifest += [f'                "{sprite}": {{'] + anim_lines(rects, len(keys), True) + ["                },"]
         manifest += ["            },", "        ),"]
-        names[cid], authors[cid], skins_of[cid] = name, (info.get("author") or z["author"]).strip(), sk
+        names[cid], authors[cid], skins_of[cid] = SHOWN_NAME.get(name, name), (info.get("author") or z["author"]).strip(), sk
         groups[cid] = GROUP_OF.get(name, "community")
-        chars[cid] = name
+        chars[cid] = SHOWN_NAME.get(name, name)
     manifest += ["    ],", ")", ""]
     (ROOT / "data" / "sprites" / "zspr.ron").write_text("\n".join(manifest), encoding="utf-8")
 

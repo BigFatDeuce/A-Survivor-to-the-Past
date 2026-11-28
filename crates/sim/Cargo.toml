@@ -4,6 +4,8 @@ version.workspace = true
 edition.workspace = true
 
 # Regles du jeu, sans rendu ni plateforme : deterministe, testable, compilable en WASM.
+# Trigonometrie par `libm` (aussi dans glam) : memes resultats sur toutes les plateformes (coop en ligne).
 [dependencies]
-glam.workspace = true
+glam = { workspace = true, features = ["libm"] }
+libm = "0.2.16"
 serde.workspace = true

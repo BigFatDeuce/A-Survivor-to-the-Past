@@ -1,0 +1,18 @@
+// Maelle (Clair Obscur) : escrimeuse : fente de rapiere (grappin), rapide et chanceuse, fragile.
+// Sprite : research/tools/gen_clair_obscur.py. A acheter a la boutique.
+(
+    name: "Maelle",
+    sprite: "co_maelle",
+    max_hp: 40.0,
+    speed: 92.0,
+    radius: 5.0,
+    magnet: 32.0,
+    dash: (speed: 330.0, duration: 0.15, cooldown: 1.6),
+    weapon: "hookshot",
+    weapon_sprite: "sword1",
+    side_faces_left: true,
+    stats: [(MoveSpeed, 0.1), (Luck, 0.2), (MaxHp, -10.0)],
+    order: 1000,
+    group: "rpg",
+    unlock: Some(Shop(2000)),
+)

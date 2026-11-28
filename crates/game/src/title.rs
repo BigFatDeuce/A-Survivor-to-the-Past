@@ -24,11 +24,15 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TitleItem {
     Play,
+    /// Coop en ligne : salle a creer ou a rejoindre.
+    Coop,
     /// Joueur actif (nom et avatar) : ouvre l'ecran Joueurs.
     Players,
     Shop,
     /// Recueil : bestiaire, armes, objets, fusions.
     Collection,
+    /// Galerie : la salle de la collection (aussi un onglet du Recueil).
+    Gallery,
     /// Exploits : trophees et statistiques.
     Exploits,
     /// Classements (meilleurs scores locaux et mondiaux).

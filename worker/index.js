@@ -1,8 +1,12 @@
 // Classement en ligne d'A Survivor to the Past (Cloudflare Worker + base D1).
 //
-//   GET  /api/scores?map=<stage>&version=<x.y.z|vide>  -> top 100 du stage pour cette version
-//                                                         (vide : la derniere version du jeu)
-//   POST /api/scores  (JSON)                            -> publie un score, renvoie son rang
+//   GET  /api/scores?map=<stage>&version=<x.y.z|vide>&players=<1-4>
+//                                                       -> top 100 du stage pour cette version
+//                                                         (vide : la derniere version du jeu) ;
+//                                                         players : solo (1, par defaut) ou coop (2 a 4)
+//   POST /api/scores  (JSON)                            -> publie un score, renvoie son rang ; coop :
+//                                                         players, team (pseudos), character (liste)
+//   GET  /api/coop/new | /api/coop/<code>  (WebSocket)  -> salle de coop en ligne (worker/room.js)
 //
 // Le reste du site est servi tel quel (fichiers statiques de site/). Aucune donnee personnelle :
 // le pseudo choisi par le joueur, sa partie, et une empreinte salee de l'adresse IP (limite
@@ -12,6 +16,7 @@
 // impossibles (temps, ennemis vaincus, niveau, boss, multiplicateur) sont refusees.
 // Suppression manuelle d'un score :
 //   npx wrangler d1 execute astp-scores --remote --command "DELETE FROM scores WHERE id = 123"
+import { coop } from "./room.js";
 
 const JSON_HEADERS = {
   "Content-Type": "application/json; charset=utf-8",
@@ -40,8 +45,21 @@ const BLOCKED = [
 // Limites d'envoi par adresse.
 const PER_HOUR = 12;
 const PER_DAY = 40;
-// Parties gardees par pseudo et par classement.
+// Parties gardees par pseudo (coop : par equipe) et par classement.
 const KEEP_PER_NAME = 3;
+// Coop : joueurs par partie au plus (comme le jeu), et separateur des pseudos d'une equipe.
+const MAX_PLAYERS = 4;
+const TEAM_SEP = " + ";
+
+/// Joueurs de la partie : 1 (solo, champ absent des versions sans coop) a MAX_PLAYERS.
+function playersOf(s) {
+  return s.players === undefined ? 1 : s.players;
+}
+
+/// Nom affiche et garde : le pseudo (solo) ou les pseudos de l'equipe, dans l'ordre du jeu.
+function shownName(s) {
+  return playersOf(s) > 1 ? s.team.map((n) => n.trim()).join(TEAM_SEP) : s.name.trim();
+}
 
 function json(body, status = 200, extra = {}) {
   return new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...extra } });
@@ -89,10 +107,61 @@ async function ipHash(request, env) {
   return [...new Uint8Array(digest).slice(0, 12)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/// Score de la partie, calcule comme dans le jeu (profile::score).
+/// Multiplicateur possible pour cette difficulte : rubis de la difficulte x (1 + somme d'un ensemble de
+/// Sceaux), comme Meta::score_mult. DIFF_MULTS et SEAL_BONUSES viennent de data/meta.ron (make_site.py) ;
+/// sans eux, seul le maximum global est controle.
+function multAllowed(mult, difficulty, env) {
+  const list = (v) => (v || "").split(",").filter((x) => x.trim() !== "").map(Number);
+  const diffs = list(env.DIFF_MULTS);
+  if (!diffs.length) return true;
+  const d = diffs[difficulty];
+  if (d === undefined) return false;
+  const seals = list(env.SEAL_BONUSES);
+  for (let set = 0; set < 1 << seals.length; set++) {
+    let sum = 0;
+    seals.forEach((b, i) => { if (set & (1 << i)) sum += b; });
+    if (Math.abs(mult - d * (1 + sum)) <= 1e-4) return true;
+  }
+  return false;
+}
+
+/// Score de la partie, calcule comme dans le jeu (profile::score) : chaque ennemi vaut 10 x son poids de vie
+/// (en centiemes, calcul entier ; poids 1 pour les versions qui ne l'envoient pas).
 function expectedScore(s) {
-  const base = s.kills * 10 + Math.floor(Math.max(0, s.time)) * 10 + s.bosses * 1000 + (s.won ? 5000 : 0);
+  const kwc = s.kw === undefined ? 100 : Math.round(Math.max(0, s.kw) * 100);
+  const base = Math.floor((s.kills * kwc) / 10) + Math.floor(Math.max(0, s.time)) * 10 + s.bosses * 1000 + (s.won ? 5000 : 0);
   return Math.round(base * Math.max(0, s.mult));
+}
+
+/// Poids de vie (0.9) obligatoire apres cette version : avant, les parties n'en avaient pas.
+const KW_AFTER = "0.8.0";
+
+/// Multiplicateur et poids de vie expliques par la meme combinaison de Sceaux ? DIFF_HP et SEAL_HP (vie des
+/// ennemis par difficulte, par Sceau, meme ordre que SEAL_BONUSES) viennent de data/meta.ron (make_site.py).
+function runAllowed(s, env) {
+  const list = (v) => (v || "").split(",").filter((x) => x.trim() !== "").map(Number);
+  const diffs = list(env.DIFF_MULTS);
+  const hps = list(env.DIFF_HP);
+  if (!diffs.length || !hps.length) return s.kw === undefined || (s.kw >= 0.5 && s.kw <= 4);
+  const d = diffs[s.difficulty];
+  const h = hps[s.difficulty];
+  if (d === undefined || h === undefined) return false;
+  const seals = list(env.SEAL_BONUSES);
+  const sealHp = list(env.SEAL_HP);
+  for (let set = 0; set < 1 << seals.length; set++) {
+    let sum = 0;
+    let hp = h;
+    seals.forEach((b, i) => {
+      if (set & (1 << i)) {
+        sum += b;
+        hp *= sealHp[i] ?? 1;
+      }
+    });
+    const multOk = Math.abs(s.mult - d * (1 + sum)) <= 1e-4;
+    const kwOk = s.kw === undefined || Math.abs(s.kw - hp) <= 1e-4;
+    if (multOk && kwOk) return true;
+  }
+  return false;
 }
 
 /// Partie vraisemblable ? Renvoie un code d'erreur, ou null.
@@ -106,24 +175,34 @@ function check(s, env) {
   if (typeof s.version !== "string" || !VERSION_RE.test(s.version)) return "bad_request";
   if (cmpVersion(s.version, env.LATEST) > 0) return "bad_request";
   if (!versionAllowed(s.version, env.LATEST)) return "old_version";
-  if (typeof s.name !== "string") return "bad_name";
-  const name = s.name.trim();
-  if (!NAME_RE.test(name) || blockedName(name)) return "bad_name";
-  if (typeof s.character !== "string" || !ID_RE.test(s.character)) return "bad_request";
+  const players = playersOf(s);
+  if (!int(players) || players < 1 || players > MAX_PLAYERS) return "bad_request";
+  // coop : un pseudo et un personnage par joueur
+  const names = players > 1 ? s.team : [s.name];
+  if (!Array.isArray(names) || names.length !== players) return "bad_name";
+  for (const n of names) {
+    if (typeof n !== "string" || !NAME_RE.test(n.trim()) || blockedName(n.trim())) return "bad_name";
+  }
+  if (typeof s.character !== "string") return "bad_request";
+  const chars = s.character.split(",");
+  if (chars.length !== players || !chars.every((c) => ID_RE.test(c))) return "bad_request";
   if (!int(s.difficulty) || s.difficulty < 0 || s.difficulty > 3) return "bad_request";
   if (!num(s.time) || !int(s.kills) || !int(s.level) || !int(s.bosses) || !int(s.score) || !num(s.mult)) return "bad_request";
   if (typeof s.won !== "boolean") return "bad_request";
   // 0.6.3 : titre offert a la Grande Fee (absent des versions precedentes)
   if (s.title !== undefined && (!int(s.title) || s.title < 0 || s.title > 3)) return "bad_request";
+  if (s.kw !== undefined && !num(s.kw)) return "bad_request";
+  if (s.kw === undefined && cmpVersion(s.version, KW_AFTER) > 0) return "bad_request";
   // limites larges : une partie dure au plus 2 h ; 60 ennemis par seconde en moyenne au plus
   if (s.time < 1 || s.time > 7200) return "implausible";
-  if (s.kills < 0 || s.kills > s.time * 60) return "implausible";
+  if (s.kills < 0 || s.kills > s.time * 60 * players) return "implausible";
   if (s.level < 1 || s.level > 5 + s.time / 2) return "implausible";
   if (s.bosses < 0 || s.bosses > 20 || s.bosses > 1 + s.time / 60) return "implausible";
   if (s.won && (s.bosses < 1 || s.time < 300)) return "implausible";
   // difficulte x (1 + Sceaux) : MAX_MULT est recalcule depuis data/meta.ron a chaque mise en ligne
   const maxMult = Number(env.MAX_MULT) || 6;
   if (s.mult < 0.5 || s.mult > maxMult * 1.0001) return "implausible";
+  if (!multAllowed(s.mult, s.difficulty, env) || !runAllowed(s, env)) return "implausible";
   const want = expectedScore(s);
   if (Math.abs(s.score - want) > Math.max(2, want * 1e-6)) return "implausible";
   return null;
@@ -132,7 +211,9 @@ function check(s, env) {
 async function board(request, env, url) {
   const map = url.searchParams.get("map") || "";
   let version = url.searchParams.get("version") || "";
+  const players = Number(url.searchParams.get("players") || "1");
   if (!ID_RE.test(map)) return refuse("bad_request");
+  if (!Number.isInteger(players) || players < 1 || players > MAX_PLAYERS) return refuse("bad_request");
   // stages du jeu seulement : sinon chaque nom invente contourne le cache et interroge la base
   const known = stages(env);
   if (known.length && !known.includes(map)) return refuse("bad_request");
@@ -141,15 +222,15 @@ async function board(request, env, url) {
   if (!versionAllowed(version, latest)) return refuse("bad_request");
   // lecture mise en cache une minute (dans chaque centre de donnees)
   const cache = caches.default;
-  const key = new Request(`https://cache.local/scores?map=${map}&version=${version}&latest=${latest}`);
+  const key = new Request(`https://cache.local/scores?map=${map}&version=${version}&players=${players}&latest=${latest}`);
   const hit = await cache.match(key);
   if (hit) return hit;
   const rows = await env.DB.prepare(
     `SELECT name, score, character, time, kills, won, difficulty, title FROM (
        SELECT *, ROW_NUMBER() OVER (PARTITION BY lower(name) ORDER BY score DESC, created ASC) AS rn
-       FROM scores WHERE map = ?1 AND version = ?2
+       FROM scores WHERE map = ?1 AND version = ?2 AND players = ?3
      ) WHERE rn = 1 ORDER BY score DESC, created ASC LIMIT 100`
-  ).bind(map, version).all();
+  ).bind(map, version, players).all();
   const vers = await env.DB.prepare(`SELECT DISTINCT version FROM scores WHERE map = ?1`).bind(map).all();
   const versions = [...new Set([latest, ...vers.results.map((r) => r.version)])]
     .filter((v) => versionAllowed(v, latest))
@@ -165,7 +246,7 @@ async function board(request, env, url) {
     difficulty: r.difficulty,
     title: r.title || 0,
   }));
-  const res = json({ map, version, versions, scores }, 200, { "Cache-Control": "public, max-age=60" });
+  const res = json({ map, version, players, versions, scores }, 200, { "Cache-Control": "public, max-age=60" });
   await cache.put(key, res.clone());
   return res;
 }
@@ -182,62 +263,78 @@ async function submit(request, env) {
   }
   const err = check(s, env);
   if (err) return refuse(err, err === "old_version" ? 409 : 400);
-  const name = s.name.trim();
+  const name = shownName(s);
+  const players = playersOf(s);
   const ip = await ipHash(request, env);
   const now = Math.floor(Date.now() / 1000);
   const db = env.DB;
+  // limite d'envois : chaque envoi valide compte (journal a part : les parties remplacees ou non gardees
+  // disparaissent de `scores`, elles n'y seraient pas comptees)
   const recent = await db
-    .prepare(`SELECT SUM(created > ?2) AS hour, COUNT(*) AS day FROM scores WHERE ip = ?1 AND created > ?3`)
+    .prepare(`SELECT SUM(created > ?2) AS hour, COUNT(*) AS day FROM submits WHERE ip = ?1 AND created > ?3`)
     .bind(ip, now - 3600, now - 86400)
     .first();
   if ((recent?.hour || 0) >= PER_HOUR || (recent?.day || 0) >= PER_DAY) return refuse("rate_limited", 429);
+  await db.batch([
+    db.prepare(`INSERT INTO submits (ip, created) VALUES (?1, ?2)`).bind(ip, now),
+    db.prepare(`DELETE FROM submits WHERE created < ?1`).bind(now - 86400),
+  ]);
   const dup = await db
-    .prepare(`SELECT id FROM scores WHERE map = ?1 AND version = ?2 AND lower(name) = lower(?3) AND score = ?4 AND kills = ?5 AND abs(time - ?6) < 0.01`)
-    .bind(s.map, s.version, name, s.score, s.kills, s.time)
+    .prepare(`SELECT id FROM scores WHERE map = ?1 AND version = ?2 AND lower(name) = lower(?3) AND score = ?4 AND kills = ?5 AND abs(time - ?6) < 0.01 AND players = ?7`)
+    .bind(s.map, s.version, name, s.score, s.kills, s.time, players)
     .first();
   if (dup) return refuse("duplicate", 409);
   // Partie qui ne resterait pas (le pseudo a deja KEEP_PER_NAME parties au moins aussi bonnes) :
   // rien n'est ecrit. Avant, elle etait inseree puis effacee aussitot, donc jamais comptee par la
   // limite d'envois : des envois sans fin de parties faibles faisaient autant d'ecritures en base.
   const kept = await db
-    .prepare(`SELECT COUNT(*) AS n FROM scores WHERE map = ?1 AND version = ?2 AND lower(name) = lower(?3) AND score >= ?4`)
-    .bind(s.map, s.version, name, s.score)
+    .prepare(`SELECT COUNT(*) AS n FROM scores WHERE map = ?1 AND version = ?2 AND lower(name) = lower(?3) AND score >= ?4 AND players = ?5`)
+    .bind(s.map, s.version, name, s.score, players)
     .first();
   if ((kept?.n || 0) < KEEP_PER_NAME) await db.batch([
     db
       .prepare(
-        `INSERT INTO scores (map, version, name, score, time, kills, level, bosses, won, character, difficulty, mult, ip, created, title)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)`
+        `INSERT INTO scores (map, version, name, score, time, kills, level, bosses, won, character, difficulty, mult, ip, created, title, players)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)`
       )
-      .bind(s.map, s.version, name, s.score, s.time, s.kills, s.level, s.bosses, s.won ? 1 : 0, s.character, s.difficulty, s.mult, ip, now, s.title || 0),
+      .bind(s.map, s.version, name, s.score, s.time, s.kills, s.level, s.bosses, s.won ? 1 : 0, s.character, s.difficulty, s.mult, ip, now, s.title || 0, players),
     // seules les meilleures parties de chaque pseudo restent
     db
       .prepare(
         `DELETE FROM scores WHERE id IN (
            SELECT id FROM (
              SELECT id, ROW_NUMBER() OVER (ORDER BY score DESC, created ASC) AS rn
-             FROM scores WHERE map = ?1 AND version = ?2 AND lower(name) = lower(?3)
+             FROM scores WHERE map = ?1 AND version = ?2 AND lower(name) = lower(?3) AND players = ?5
            ) WHERE rn > ?4)`
       )
-      .bind(s.map, s.version, name, KEEP_PER_NAME),
+      .bind(s.map, s.version, name, KEEP_PER_NAME, players),
     // empreintes d'adresse effacees au bout de 30 jours
     db.prepare(`UPDATE scores SET ip = '' WHERE ip != '' AND created < ?1`).bind(now - 30 * 86400),
   ]);
+  // place du pseudo dans le classement, dans le meme ordre que `board` (meilleure partie, puis la plus ancienne)
   const better = await db
     .prepare(
-      `SELECT COUNT(*) AS n FROM (
-         SELECT lower(name) AS k, MAX(score) AS best FROM scores WHERE map = ?1 AND version = ?2 GROUP BY lower(name)
-       ) WHERE best > ?3`
+      `WITH best AS (
+         SELECT k, score, created FROM (
+           SELECT lower(name) AS k, score, created,
+                  ROW_NUMBER() OVER (PARTITION BY lower(name) ORDER BY score DESC, created ASC) AS rn
+           FROM scores WHERE map = ?1 AND version = ?2 AND players = ?4
+         ) WHERE rn = 1
+       )
+       SELECT COUNT(*) AS n FROM best, (SELECT score AS s, created AS c FROM best WHERE k = lower(?3)) AS me
+       WHERE best.score > me.s OR (best.score = me.s AND best.created < me.c)`
     )
-    .bind(s.map, s.version, s.score)
+    .bind(s.map, s.version, name, players)
     .first();
-  await caches.default.delete(new Request(`https://cache.local/scores?map=${s.map}&version=${s.version}&latest=${env.LATEST}`));
+  await caches.default.delete(new Request(`https://cache.local/scores?map=${s.map}&version=${s.version}&players=${players}&latest=${env.LATEST}`));
   return json({ ok: true, rank: (better?.n || 0) + 1 });
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    // coop en ligne : salles (worker/room.js)
+    if (url.pathname.startsWith("/api/coop/")) return coop(request, env, url);
     if (url.pathname !== "/api/scores") {
       if (url.pathname.startsWith("/api/")) return refuse("not_found", 404);
       return env.ASSETS.fetch(request);
@@ -253,5 +350,7 @@ export default {
   },
 };
 
+export { Room } from "./room.js";
+
 // Pour les essais (node --test).
-export { check, expectedScore, versionAllowed, blockedName, cmpVersion };
+export { check, multAllowed, runAllowed, expectedScore, versionAllowed, blockedName, cmpVersion };

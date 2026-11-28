@@ -12,6 +12,8 @@ use sim::defs::{Content, MapDef};
 use sim::World;
 
 const SOFT: Color = rgb(210, 210, 236);
+/// Rubis verts (ecrans de fin : ceux ramasses en partie).
+pub const GREEN_RUPEE: Color = rgb(120, 230, 120);
 const DIMMED: Color = rgb(120, 116, 140);
 const WIN: Color = rgb(250, 214, 90);
 
@@ -385,10 +387,12 @@ pub fn draw_victory(
         (lang.get("ui.time_win"), fmt_time(world.time)),
         (lang.get("ui.level_reached"), p.level.to_string()),
         (lang.get("ui.enemies_defeated"), p.kills.to_string()),
+        // rubis verts de la partie, puis ce qu'ils deviennent en banque
+        (lang.get("ui.rupees_collected"), p.rupees.to_string()),
         (lang.get("ui.rupees_banked"), format!("+{banked}")),
         (lang.get("ui.score"), score.map(|s| crate::scores::fmt_score(s.0)).unwrap_or_default()),
     ];
-    let rows = &rows[..if score.is_some() { 5 } else { 4 }];
+    let rows = &rows[..if score.is_some() { 6 } else { 5 }];
     let w = 300.0f32.min(view.x - 40.0);
     let x0 = ((view.x - w) * 0.5).round();
     let ry = (view.y * 0.16).round() + 62.0;
@@ -396,8 +400,9 @@ pub fn draw_victory(
         let y = ry + k as f32 * 16.0;
         text(list, main, l, Vec2::new(x0, y), 1.0, with_alpha(SOFT, a), Align::Left);
         let vc = match k {
-            3 => WIN,
-            4 => GOLD,
+            3 => GREEN_RUPEE,
+            4 => WIN,
+            5 => GOLD,
             _ => WHITE,
         };
         text(list, main, v, Vec2::new(x0 + w, y), 1.0, with_alpha(vc, a), Align::Right);
@@ -470,6 +475,15 @@ mod tests {
         let mobs: Vec<f32> = w.map.waves.iter().filter_map(|v| w.content.enemy_index(&v.enemy)).map(|k| w.content.enemies[k as usize].hp).collect();
         let want = 3.0 * mobs.iter().sum::<f32>() / mobs.len() as f32 * w.map.power;
         assert!((w.horde.max_hp[i] / want - 1.0).abs() < 0.05, "vie du voleur {} pour {want}", w.horde.max_hp[i]);
+        // il vole les rubis de la partie tant qu'il est la
+        w.player.rupees = 1000;
+        w.thief.as_mut().unwrap().bag = 1000;
+        for _ in 0..600 {
+            w.tick(&input);
+        }
+        let stolen = w.thief.as_ref().expect("voleur encore la").stolen;
+        assert!(stolen >= 20, "rubis voles : {stolen}");
+        let i = w.horde.uid.iter().position(|&u| u == w.thief.unwrap().uid).unwrap();
         let before = w.player.rupees;
         w.damage_enemy(i, 1.0e6, false, Vec2::X, 0.0, 0);
         let mut looted = None;
@@ -481,8 +495,8 @@ mod tests {
                 }
             }
         }
-        assert!(looted.unwrap_or(0) >= 6, "rubis comptes : {looted:?}");
-        assert!(w.player.rupees >= before + 120, "rubis ramasses : {} -> {}", before, w.player.rupees);
+        assert_eq!(looted, Some(stolen), "rubis rendus");
+        assert!(w.player.rupees >= before + stolen + 120, "rubis ramasses : {} -> {}", before, w.player.rupees);
         assert!(w.thief.is_none());
     }
 

@@ -46,12 +46,19 @@ pub struct ScoreRecord {
     /// Multiplicateur de score (difficulte et Sceaux).
     #[serde(default)]
     pub mult: f32,
+    /// Poids de vie des ennemis (`Meta::kill_weight`) ; absent avant la 0.9 (poids 1).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kw: Option<f32>,
     /// Version du jeu de la partie.
     #[serde(default)]
     pub version: String,
     /// Deja publie dans le classement en ligne.
     #[serde(default)]
     pub published: bool,
+    /// Coop : pseudos de l'equipe dans l'ordre de la partie (vide : partie solo) ; `character` liste alors
+    /// les personnages, separes par des virgules.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub team: Vec<String>,
 }
 
 /// Index des profils : emplacement du joueur actif.
@@ -171,6 +178,9 @@ pub struct Profile {
     /// Meilleures parties par stage (du meilleur score au moins bon).
     #[serde(default)]
     pub scores: BTreeMap<String, Vec<ScoreRecord>>,
+    /// 0.9 : meilleures parties de coop, par stage et par nombre de joueurs (`coop_key`).
+    #[serde(default)]
+    pub coop_scores: BTreeMap<String, Vec<ScoreRecord>>,
     /// 0.6.3 : tenues achetees (sprites), musiques du juke-box et celle de l'ecran titre (vide : par
     /// defaut), offrandes a la Grande Fee (nombre de titres), figurines du bestiaire (ennemis).
     #[serde(default)]
@@ -210,10 +220,12 @@ impl Profile {
                     if p.name.is_empty() {
                         p.name = DEFAULT_NAME.to_string();
                     }
-                    p.save(root);
-                    // l'ancien fichier reste en copie de securite sous un autre nom
-                    let _ = storage::write(root, "profile.old.ron", &t);
-                    storage::remove(root, LEGACY);
+                    // l'ancien fichier n'est retire qu'une fois le nouveau et sa copie de securite ecrits
+                    let saved = p.try_save(root).and_then(|_| storage::write(root, "profile.old.ron", &t));
+                    match saved {
+                        Ok(()) => storage::remove(root, LEGACY),
+                        Err(e) => log::warn!("ancien profil garde tel quel : {e}"),
+                    }
                     return p;
                 }
             }
@@ -278,11 +290,11 @@ impl Profile {
                 self.figurines.insert("boo".to_string());
             }
         }
-        if self.version < 5 {
-            // 0.8 : la couleur rouge de Bowsette a son propre sprite (elle reprenait celui de Bowsette Red)
-            if self.wardrobe.remove("zspr_bowsette_red") {
-                self.wardrobe.insert("zspr_bowsette_red_skin".to_string());
-            }
+        // 0.8 : la couleur rouge de Bowsette a son propre sprite (elle reprenait celui de Bowsette Red).
+        // Sans condition de version : un code importe en 0.8.0 etait marque v5 sans cette migration, et
+        // l'ancien nom n'est jamais une tenue valide (c'est le sprite de base d'un autre personnage).
+        if self.wardrobe.remove("zspr_bowsette_red") {
+            self.wardrobe.insert("zspr_bowsette_red_skin".to_string());
         }
         self.version = VERSION;
     }
@@ -291,9 +303,13 @@ impl Profile {
         Profile { version: VERSION, difficulty: d_difficulty(), ..Default::default() }
     }
 
-    /// Ajoute une partie aux meilleurs scores du stage ; renvoie sa place (0 = record) si elle est gardee.
+    /// Ajoute une partie aux meilleurs scores du stage (coop : a ceux de son nombre de joueurs) ; renvoie
+    /// sa place (0 = record) si elle est gardee.
     pub fn add_score(&mut self, map: &str, rec: ScoreRecord) -> Option<usize> {
-        let list = self.scores.entry(map.to_string()).or_default();
+        let list = match rec.team.len() {
+            0 | 1 => self.scores.entry(map.to_string()).or_default(),
+            n => self.coop_scores.entry(coop_key(map, n)).or_default(),
+        };
         let k = list.iter().position(|r| rec.score > r.score).unwrap_or(list.len());
         if k >= KEEP_SCORES {
             return None;
@@ -301,6 +317,20 @@ impl Profile {
         list.insert(k, rec);
         list.truncate(KEEP_SCORES);
         Some(k)
+    }
+
+    /// Meilleures parties d'un stage : solo (`players` 1) ou coop a `players`.
+    pub fn score_list(&self, map: &str, players: usize) -> &[ScoreRecord] {
+        let l = if players > 1 { self.coop_scores.get(&coop_key(map, players)) } else { self.scores.get(map) };
+        l.map_or(&[], |v| v.as_slice())
+    }
+
+    pub fn score_list_mut(&mut self, map: &str, players: usize) -> Option<&mut Vec<ScoreRecord>> {
+        if players > 1 {
+            self.coop_scores.get_mut(&coop_key(map, players))
+        } else {
+            self.scores.get_mut(map)
+        }
     }
 
     /// Meilleur score sur un stage.
@@ -315,9 +345,13 @@ impl Profile {
     }
 
     pub fn save(&self, root: &Path) {
-        if let Err(e) = storage::write(root, &slot_file(self.slot), &self.to_text()) {
+        if let Err(e) = self.try_save(root) {
             log::warn!("enregistrement du profil impossible : {e}");
         }
+    }
+
+    pub fn try_save(&self, root: &Path) -> Result<(), String> {
+        storage::write(root, &slot_file(self.slot), &self.to_text())
     }
 
     pub fn won(&self, stage: &str) -> bool {
@@ -339,7 +373,8 @@ impl Profile {
         let bytes = b64::decode(body)?;
         let text = String::from_utf8(bytes).ok()?;
         let mut p: Profile = ron::from_str(&text).ok()?;
-        p.version = VERSION;
+        // code d'une version precedente : memes migrations qu'un profil lu sur le disque
+        p.migrate();
         if p.name.is_empty() {
             p.name = DEFAULT_NAME.to_string();
         }
@@ -370,11 +405,18 @@ pub fn all_slots(root: &Path) -> Vec<Option<Profile>> {
     (0..SLOTS).map(|k| Profile::load_slot(root, k)).collect()
 }
 
-/// Score d'une partie : ennemis x10 + secondes x10 + boss x1000 + victoire 5000, puis le multiplicateur
-/// (difficulte et Sceaux de Ganon).
-pub fn score(kills: u32, time: f32, bosses: u32, won: bool, mult: f32) -> u64 {
-    let base = kills as u64 * 10 + (time.max(0.0) as u64) * 10 + bosses as u64 * 1000 + if won { 5000 } else { 0 };
+/// Score d'une partie : ennemis x10 x poids de vie + secondes x10 + boss x1000 + victoire 5000, puis le
+/// multiplicateur (difficulte et Sceaux de Ganon). Poids en centiemes, calcul entier : le serveur refait
+/// exactement le meme (worker/index.js, expectedScore).
+pub fn score(kills: u32, time: f32, bosses: u32, won: bool, mult: f32, kw: Option<f32>) -> u64 {
+    let kwc = kw.map_or(100, |w| (w.max(0.0) * 100.0).round() as u64);
+    let base = kills as u64 * kwc / 10 + (time.max(0.0) as u64) * 10 + bosses as u64 * 1000 + if won { 5000 } else { 0 };
     (base as f64 * mult.max(0.0) as f64).round() as u64
+}
+
+/// Cle des parties de coop : stage et nombre de joueurs.
+pub fn coop_key(map: &str, players: usize) -> String {
+    format!("{map}/{players}")
 }
 
 /// Base64 standard (sans dependance).
@@ -433,9 +475,13 @@ mod tests {
 
     #[test]
     fn score_formula() {
-        assert_eq!(score(100, 600.9, 2, true, 1.0), 1000 + 6000 + 2000 + 5000);
-        assert_eq!(score(100, 600.0, 2, true, 1.5), 21000);
-        assert_eq!(score(0, 0.0, 0, false, 2.0), 0);
+        assert_eq!(score(100, 600.9, 2, true, 1.0, None), 1000 + 6000 + 2000 + 5000);
+        assert_eq!(score(100, 600.0, 2, true, 1.5, None), 21000);
+        assert_eq!(score(0, 0.0, 0, false, 2.0, None), 0);
+        // poids de vie : Facile 0,7 ; Heros + Sceau de la Force 2 x 1,5 (f32 : 2,9999998)
+        assert_eq!(score(100, 0.0, 0, false, 1.0, Some(0.7)), 700);
+        assert_eq!(score(101, 0.0, 0, false, 1.0, Some(2.0f32 * 1.5f32)), 3030);
+        assert_eq!(score(3, 0.0, 0, false, 1.0, Some(1.4f32 * 1.5f32)), 63);
     }
 
     #[test]
@@ -469,6 +515,24 @@ mod tests {
         p.evolutions.insert("master_sword".into());
         p.migrate();
         assert!(p.evolutions.contains("master_sword"));
+    }
+
+    /// Code exporte par une version precedente : migre comme un profil sur le disque.
+    #[test]
+    fn old_export_code_is_migrated() {
+        let mut old = Profile { version: 4, ..Default::default() };
+        old.wardrobe.insert("zspr_bowsette_red".into());
+        old.bestiary.insert("pikit".into(), 3);
+        let code = format!("ASTP1:{}", b64::encode(old.to_text().replace("version: 4", "version: 2").as_bytes()));
+        let p = Profile::import_code(&code).expect("code valide");
+        assert_eq!(p.version, VERSION);
+        assert!(p.wardrobe.contains("zspr_bowsette_red_skin") && !p.wardrobe.contains("zspr_bowsette_red"));
+        assert_eq!(p.bestiary.get("boo"), Some(&3));
+        // deja importe en 0.8.0 (marque v5 sans migration) : corrige au chargement suivant
+        let mut bad = Profile { version: VERSION, ..Default::default() };
+        bad.wardrobe.insert("zspr_bowsette_red".into());
+        bad.migrate();
+        assert!(bad.wardrobe.contains("zspr_bowsette_red_skin"));
     }
 
     #[test]

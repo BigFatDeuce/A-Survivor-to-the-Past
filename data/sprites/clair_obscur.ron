@@ -1,0 +1,103 @@
+// Personnages de Clair Obscur : genere par research/tools/gen_clair_obscur.py (ne pas modifier a la main).
+(
+    sheets: [
+        // Gustave
+        (
+            source: "clair_obscur/co_gustave.png",
+            sprites: {
+                "co_gustave": {
+                    "idle_down": (frames: [(0, 1, 19, 28)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(20, 1, 19, 28), (0, 1, 19, 28), (40, 1, 19, 28), (0, 1, 19, 28)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(60, 0, 18, 29)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(79, 0, 18, 29), (60, 0, 18, 29), (98, 0, 18, 29), (60, 0, 18, 29)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(117, 1, 28, 28)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(146, 1, 28, 28), (117, 1, 28, 28), (175, 1, 28, 28), (117, 1, 28, 28)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        // Maelle
+        (
+            source: "clair_obscur/co_maelle.png",
+            sprites: {
+                "co_maelle": {
+                    "idle_down": (frames: [(0, 0, 21, 26)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(22, 0, 21, 26), (0, 0, 21, 26), (44, 0, 21, 26), (0, 0, 21, 26)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(66, 1, 19, 25)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(86, 1, 19, 25), (66, 1, 19, 25), (106, 1, 19, 25), (66, 1, 19, 25)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(126, 2, 26, 24)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(153, 2, 26, 24), (126, 2, 26, 24), (180, 2, 26, 24), (126, 2, 26, 24)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        // Lune
+        (
+            source: "clair_obscur/co_lune.png",
+            sprites: {
+                "co_lune": {
+                    "idle_down": (frames: [(0, 0, 18, 27)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(19, 0, 18, 27), (0, 0, 18, 27), (38, 0, 18, 27), (0, 0, 18, 27)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(57, 1, 17, 26)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(75, 1, 17, 26), (57, 1, 17, 26), (93, 1, 17, 26), (57, 1, 17, 26)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(111, 0, 18, 27)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(130, 0, 18, 27), (111, 0, 18, 27), (149, 0, 18, 27), (111, 0, 18, 27)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        // Sciel
+        (
+            source: "clair_obscur/co_sciel.png",
+            sprites: {
+                "co_sciel": {
+                    "idle_down": (frames: [(0, 4, 29, 27)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(30, 4, 29, 27), (0, 4, 29, 27), (60, 4, 29, 27), (0, 4, 29, 27)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(90, 5, 23, 26)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(114, 5, 23, 26), (90, 5, 23, 26), (138, 5, 23, 26), (90, 5, 23, 26)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(162, 0, 24, 31)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(187, 0, 24, 31), (162, 0, 24, 31), (212, 0, 24, 31), (162, 0, 24, 31)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        // Monoco
+        (
+            source: "clair_obscur/co_monoco.png",
+            sprites: {
+                "co_monoco": {
+                    "idle_down": (frames: [(0, 7, 35, 28)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(36, 7, 35, 28), (0, 7, 35, 28), (72, 7, 35, 28), (0, 7, 35, 28)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(108, 7, 32, 28)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(141, 7, 32, 28), (108, 7, 32, 28), (174, 7, 32, 28), (108, 7, 32, 28)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(207, 0, 37, 35)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(245, 0, 37, 35), (207, 0, 37, 35), (283, 0, 37, 35), (207, 0, 37, 35)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        // Verso
+        (
+            source: "clair_obscur/co_verso.png",
+            sprites: {
+                "co_verso": {
+                    "idle_down": (frames: [(0, 0, 25, 28)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(26, 0, 25, 28), (0, 0, 25, 28), (52, 0, 25, 28), (0, 0, 25, 28)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(78, 0, 23, 28)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(102, 0, 23, 28), (78, 0, 23, 28), (126, 0, 23, 28), (78, 0, 23, 28)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(150, 0, 30, 28)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(181, 0, 30, 28), (150, 0, 30, 28), (212, 0, 30, 28), (150, 0, 30, 28)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+        // Esquie
+        (
+            source: "clair_obscur/co_esquie.png",
+            sprites: {
+                "co_esquie": {
+                    "idle_down": (frames: [(0, 0, 35, 34)], pivot: (0, -1), align: Bottom),
+                    "walk_down": (frames: [(36, 0, 35, 34), (0, 0, 35, 34), (72, 0, 35, 34), (0, 0, 35, 34)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_up": (frames: [(108, 1, 34, 33)], pivot: (0, -1), align: Bottom),
+                    "walk_up": (frames: [(143, 1, 34, 33), (108, 1, 34, 33), (178, 1, 34, 33), (108, 1, 34, 33)], fps: 8, pivot: (0, -1), align: Bottom),
+                    "idle_side": (frames: [(213, 0, 40, 34)], pivot: (0, -1), align: Bottom),
+                    "walk_side": (frames: [(254, 0, 40, 34), (213, 0, 40, 34), (295, 0, 40, 34), (213, 0, 40, 34)], fps: 8, pivot: (0, -1), align: Bottom),
+                },
+            },
+        ),
+    ],
+)

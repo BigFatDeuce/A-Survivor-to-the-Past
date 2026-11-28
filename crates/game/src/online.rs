@@ -6,13 +6,13 @@ use std::sync::{Arc, Mutex};
 
 /// Adresse du service (le site du jeu) ; `ASTP_SERVER` la remplace pour les essais (serveur local).
 #[cfg(not(target_arch = "wasm32"))]
-fn base() -> String {
+pub fn base() -> String {
     std::env::var("ASTP_SERVER").unwrap_or_else(|_| "https://a-survivor-to-the-past.holy-c.men".to_string())
 }
 
 /// Dans le navigateur, le jeu est servi par le meme domaine que le classement.
 #[cfg(target_arch = "wasm32")]
-fn base() -> String {
+pub fn base() -> String {
     String::new()
 }
 
@@ -60,8 +60,21 @@ pub struct Submission {
     pub character: String,
     pub difficulty: usize,
     pub mult: f32,
+    /// Poids de vie des ennemis (0.9) : absent pour les parties des versions precedentes.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kw: Option<f32>,
     /// 0.6.3 : titre offert a la Grande Fee (0 : aucun).
     pub title: u32,
+    /// 0.9, coop : joueurs de la partie et leurs pseudos (dans l'ordre de la partie) ; `character` liste
+    /// alors leurs personnages, separes par des virgules. Solo : absents.
+    #[serde(skip_serializing_if = "is_solo")]
+    pub players: usize,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub team: Vec<String>,
+}
+
+fn is_solo(n: &usize) -> bool {
+    *n <= 1
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -82,8 +95,10 @@ pub enum Status<T> {
     Failed(String),
 }
 
-/// Dernier classement demande : (stage, version demandee) et son etat.
-type BoardSlot = Mutex<((String, String), Status<Board>)>;
+/// Classement demande : stage, version (vide : la plus recente), joueurs (1 : solo, 2 a 4 : coop).
+pub type BoardKey = (String, String, usize);
+/// Dernier classement demande et son etat.
+type BoardSlot = Mutex<(BoardKey, Status<Board>)>;
 
 #[derive(Clone)]
 pub struct Online {
@@ -93,7 +108,7 @@ pub struct Online {
 
 impl Default for Online {
     fn default() -> Self {
-        Online { board: Arc::new(Mutex::new(((String::new(), String::new()), Status::Idle))), submit: Arc::new(Mutex::new(Status::Idle)) }
+        Online { board: Arc::new(Mutex::new(((String::new(), String::new(), 1), Status::Idle))), submit: Arc::new(Mutex::new(Status::Idle)) }
     }
 }
 
@@ -105,20 +120,21 @@ fn enc(s: &str) -> String {
 
 impl Online {
     /// Classement demande et son etat.
-    pub fn board(&self) -> ((String, String), Status<Board>) {
-        self.board.lock().map(|g| g.clone()).unwrap_or(((String::new(), String::new()), Status::Idle))
+    pub fn board(&self) -> (BoardKey, Status<Board>) {
+        self.board.lock().map(|g| g.clone()).unwrap_or(((String::new(), String::new(), 1), Status::Idle))
     }
 
-    /// Demande le classement d'un stage (version vide : la plus recente du serveur).
-    pub fn fetch(&self, map: &str, version: &str) {
-        let key = (map.to_string(), version.to_string());
+    /// Demande le classement d'un stage (version vide : la plus recente du serveur ; `players` : 1 solo,
+    /// 2 a 4 coop).
+    pub fn fetch(&self, map: &str, version: &str, players: usize) {
+        let key = (map.to_string(), version.to_string(), players);
         if let Ok(mut g) = self.board.lock() {
             if g.0 == key && matches!(g.1, Status::Busy | Status::Done(_)) {
                 return;
             }
             *g = (key.clone(), Status::Busy);
         }
-        let url = format!("{}/api/scores?map={}&version={}", base(), enc(map), enc(version));
+        let url = format!("{}/api/scores?map={}&version={}&players={players}", base(), enc(map), enc(version));
         let slot = self.board.clone();
         get_json::<Board>(url, move |r| {
             if let Ok(mut g) = slot.lock() {
@@ -133,9 +149,9 @@ impl Online {
     }
 
     /// Essais de l'interface : classement fictif.
-    pub fn force(&self, map: &str, version: &str, status: Status<Board>) {
+    pub fn force(&self, map: &str, version: &str, players: usize, status: Status<Board>) {
         if let Ok(mut g) = self.board.lock() {
-            *g = ((map.to_string(), version.to_string()), status);
+            *g = ((map.to_string(), version.to_string(), players), status);
         }
     }
 
@@ -272,7 +288,7 @@ mod tests {
             map: "lost_woods".into(),
             version: std::env::var("ASTP_VERSION").unwrap_or_else(|_| env!("CARGO_PKG_VERSION").into()),
             name: "Essai".into(),
-            score: crate::profile::score(1200, 420.25, 1, false, 1.0),
+            score: crate::profile::score(1200, 420.25, 1, false, 1.0, Some(1.0)),
             time: 420.25,
             kills: 1200,
             level: 30,
@@ -281,7 +297,10 @@ mod tests {
             character: "link".into(),
             difficulty: 1,
             mult: 1.0,
+            kw: Some(1.0),
             title: 0,
+            players: 1,
+            team: Vec::new(),
         };
         o.submit(s);
         let wait = |f: &dyn Fn() -> bool| {
@@ -296,7 +315,7 @@ mod tests {
         wait(&|| !matches!(o.submit_status(), Status::Busy | Status::Idle));
         let st = o.submit_status();
         assert!(matches!(&st, Status::Done(r) if r.rank.is_some()), "{st:?}");
-        o.fetch("lost_woods", "");
+        o.fetch("lost_woods", "", 1);
         wait(&|| !matches!(o.board().1, Status::Busy | Status::Idle));
         let (_, b) = o.board();
         let Status::Done(b) = b else { panic!("{b:?}") };

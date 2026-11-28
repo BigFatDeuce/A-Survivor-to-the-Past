@@ -109,6 +109,14 @@ pub struct WeaponSlot {
     pub phase: f32,
 }
 
+impl WeaponSlot {
+    /// Positions des objets en orbite de cette arme (angle `phase`).
+    pub fn orbit_points(&self, center: glam::Vec2, phase: f32) -> Vec<glam::Vec2> {
+        let n = self.stats.amount.max(1);
+        (0..n).map(|k| center + glam::Vec2::from_angle(phase + k as f32 * std::f32::consts::TAU / n as f32) * self.stats.area).collect()
+    }
+}
+
 /// Objet passif possede.
 #[derive(Clone, Copy, Debug)]
 pub struct PassiveSlot {
@@ -120,7 +128,7 @@ pub struct PassiveSlot {
 pub const EVOLVE_WEIGHT: f32 = 0.35;
 
 /// Une proposition de niveau.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Offer {
     NewWeapon(u16),
     UpgradeWeapon(u16),
@@ -135,7 +143,7 @@ pub enum Offer {
 }
 
 /// Contenu d'un coffre ouvert.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct ChestReward {
     /// (arme d'origine, arme evoluee)
     pub evolution: Option<(u16, u16)>,
@@ -295,7 +303,7 @@ impl World {
         let mut out = Vec::new();
         while out.len() < n && !pool.is_empty() {
             let total: f32 = pool.iter().map(|p| p.1).sum();
-            let mut r = self.rng.f() * total;
+            let mut r = self.menu_rng().f() * total;
             let mut pick = pool.len() - 1;
             for (k, p) in pool.iter().enumerate() {
                 if r < p.1 {
@@ -310,6 +318,16 @@ impl World {
     }
 
     /// Propositions pour un niveau gagne.
+    /// Hasard des choix (niveaux, coffres) : celui de la partie en solo, celui du joueur en coop (rejoue
+    /// a l'identique dans chaque jeu sans toucher au hasard commun).
+    pub fn menu_rng(&mut self) -> &mut crate::rng::Rng {
+        if self.others.is_empty() {
+            &mut self.rng
+        } else {
+            &mut self.player.menu_rng
+        }
+    }
+
     pub fn roll_offers(&mut self) -> Vec<Offer> {
         let n = self.content.rules.choices;
         let mut out = self.draw_offers(n, false);
@@ -456,7 +474,7 @@ impl World {
             0
         } else {
             // 1 le plus souvent, parfois plus
-            let roll = self.rng.f();
+            let roll = self.menu_rng().f();
             let k = if roll < 0.7 {
                 lo
             } else if roll < 0.93 {
@@ -482,5 +500,29 @@ impl World {
         }
         self.recompute_stats();
         r
+    }
+
+    /// Coop : contenu d'un coffre tire sans l'ouvrir (seul le hasard des choix avance) ; il s'ouvre plus
+    /// tard, au meme pas dans tous les jeux, avec `apply_chest`.
+    pub fn roll_chest(&mut self, big: bool, pick: Option<usize>) -> ChestReward {
+        let keep = (self.player.clone(), self.weapons.clone(), self.passives.clone(), self.used_partners.clone());
+        let r = self.open_chest_choice(big, pick);
+        let rng = self.player.menu_rng.clone();
+        (self.player, self.weapons, self.passives, self.used_partners) = keep;
+        self.player.menu_rng = rng;
+        r
+    }
+
+    /// Coop : rejoue un coffre ouvert par un autre joueur (joueur au premier plan), d'apres son contenu.
+    pub fn apply_chest(&mut self, r: &ChestReward) {
+        if let Some((from, into)) = r.evolution {
+            if let Some(slot) = self.weapons.iter().position(|w| w.id == from) {
+                self.evolve_slot(slot, into);
+            }
+        }
+        for &o in &r.upgrades {
+            self.apply_offer(o);
+        }
+        self.recompute_stats();
     }
 }

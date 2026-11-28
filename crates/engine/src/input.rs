@@ -59,6 +59,8 @@ pub struct Input {
     pub mouse_inside: bool,
     pad_buttons: HashSet<Button>,
     pad_pressed: [HashSet<Button>; 2],
+    /// Codes de boutons / axes inconnus deja notes dans le journal (une fois chacun).
+    pad_logged: HashSet<u32>,
     /// 0 = lecture par image (menus), 1 = lecture par pas de simulation.
     phase: usize,
     gilrs: Option<Gilrs>,
@@ -73,7 +75,8 @@ pub struct Input {
     wheel: [f32; 2],
     /// Doigts poses, et ceux poses depuis la derniere lecture (par phase).
     pub touches: Vec<TouchPt>,
-    touch_started: [Vec<u64>; 2],
+    /// (doigt, point de depart) : garde meme si le doigt est deja leve (appui tres bref entre deux images).
+    touch_started: [Vec<(u64, Vec2)>; 2],
     tap: Option<Tap>,
 }
 
@@ -81,6 +84,28 @@ impl Default for Input {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Gachette portee par un axe que gilrs ne range pas en bouton (manette absente de la base SDL,
+/// Linux) : ABS_Z / ABS_RZ (deja nommes LeftZ / RightZ) ou ABS_BRAKE / ABS_GAS (Xbox en Bluetooth).
+/// `code` : code evdev empaquete par gilrs, (type << 16) | code.
+fn trigger_axis(axis: Axis, code: u32) -> Option<Button> {
+    const ABS_GAS: u32 = 3 << 16 | 0x09;
+    const ABS_BRAKE: u32 = 3 << 16 | 0x0a;
+    match (axis, code) {
+        (Axis::LeftZ, _) => Some(Button::LeftTrigger2),
+        (Axis::RightZ, _) => Some(Button::RightTrigger2),
+        (Axis::Unknown, ABS_BRAKE) if cfg!(target_os = "linux") => Some(Button::LeftTrigger2),
+        (Axis::Unknown, ABS_GAS) if cfg!(target_os = "linux") => Some(Button::RightTrigger2),
+        _ => None,
+    }
+}
+
+/// Nom, source de la correspondance des boutons (base SDL, pilote ou aucune) et identifiant SDL :
+/// de quoi ajouter une manette mal reconnue dans SDL_GAMECONTROLLERCONFIG.
+fn log_pad(p: gilrs::Gamepad<'_>) {
+    let uuid: String = p.uuid().iter().map(|b| format!("{b:02x}")).collect();
+    log::info!("manette : {} ({:?}, {uuid})", p.name(), p.mapping_source());
 }
 
 impl Input {
@@ -94,7 +119,7 @@ impl Input {
         };
         let pad = gilrs.as_ref().and_then(|g| g.gamepads().next().map(|(id, _)| id));
         for (_, p) in gilrs.iter().flat_map(|g| g.gamepads()) {
-            log::info!("manette : {}", p.name());
+            log_pad(p);
         }
         Input {
             keys: HashSet::new(),
@@ -105,6 +130,7 @@ impl Input {
             mouse_inside: false,
             pad_buttons: HashSet::new(),
             pad_pressed: Default::default(),
+            pad_logged: HashSet::new(),
             phase: 0,
             gilrs,
             pad,
@@ -170,7 +196,7 @@ impl Input {
             TouchPhase::Start => {
                 self.touches.retain(|t| t.id != id);
                 self.touches.push(TouchPt { id, start: p, pos: p });
-                self.touch_started.iter_mut().for_each(|s| s.push(id));
+                self.touch_started.iter_mut().for_each(|s| s.push((id, p)));
                 if self.tap.is_none() {
                     self.tap = Some(Tap { id, last: p, drag: false });
                     self.mouse_px = p;
@@ -208,7 +234,7 @@ impl Input {
     }
 
     /// Doigts poses depuis la derniere lecture.
-    pub fn touch_started(&self) -> &[u64] {
+    pub fn touch_started(&self) -> &[(u64, Vec2)] {
         &self.touch_started[self.phase]
     }
 
@@ -224,9 +250,22 @@ impl Input {
     pub(crate) fn poll_gamepad(&mut self) {
         let Some(g) = self.gilrs.as_mut() else { return };
         while let Some(ev) = g.next_event() {
-            match ev.event {
+            // manette absente de la base SDL (Linux) : ses gachettes arrivent en axes, traites en boutons
+            let event = match ev.event {
+                EventType::AxisChanged(a, v, c) => match trigger_axis(a, c.into_u32()) {
+                    Some(b) => EventType::ButtonChanged(b, v, c),
+                    None => {
+                        if a == Axis::Unknown && v.abs() > 0.5 && self.pad_logged.insert(c.into_u32()) {
+                            log::info!("axe de manette sans correspondance : {c}");
+                        }
+                        ev.event
+                    }
+                },
+                e => e,
+            };
+            match event {
                 EventType::Connected => {
-                    log::info!("manette : {}", g.gamepad(ev.id).name());
+                    log_pad(g.gamepad(ev.id));
                     if self.pad.is_none() {
                         self.pad = Some(ev.id);
                     }
@@ -237,7 +276,10 @@ impl Input {
                         self.pad_buttons.clear();
                     }
                 }
-                EventType::ButtonPressed(b, _) => {
+                EventType::ButtonPressed(b, code) => {
+                    if b == Button::Unknown && self.pad_logged.insert(code.into_u32()) {
+                        log::info!("bouton de manette sans correspondance : {code}");
+                    }
                     self.pad = Some(ev.id);
                     self.pad_buttons.insert(b);
                     self.pad_pressed.iter_mut().for_each(|s| {
@@ -250,7 +292,7 @@ impl Input {
                         self.pad_buttons.remove(&b);
                     }
                 }
-                // gachettes analogiques : certains pilotes n'envoient que des valeurs, pas d'appui
+                // gachettes (tout ou rien) : certains pilotes n'envoient que des valeurs, pas d'appui
                 EventType::ButtonChanged(b @ (Button::LeftTrigger2 | Button::RightTrigger2), v, _) => {
                     if v > 0.5 && !self.pad_buttons.contains(&b) {
                         self.pad = Some(ev.id);
@@ -364,17 +406,6 @@ impl Input {
         }
     }
 
-    /// Gachettes analogiques (0..1).
-    pub fn trigger(&self, right: bool) -> f32 {
-        let b = if right { Button::RightTrigger2 } else { Button::LeftTrigger2 };
-        match (&self.gilrs, self.pad) {
-            (Some(g), Some(id)) => g
-                .connected_gamepad(id)
-                .and_then(|p| p.button_data(b).map(|d| d.value()))
-                .unwrap_or(0.0),
-            _ => 0.0,
-        }
-    }
 }
 
 /// Une touche, un bouton de souris ou de manette associe a une action.
@@ -402,8 +433,6 @@ impl Input {
         match *b {
             Binding::Key(k) => self.key(k),
             Binding::Mouse(m) => self.mouse(m),
-            Binding::Pad(Button::LeftTrigger2) => self.trigger(false) > 0.35 || self.pad(Button::LeftTrigger2),
-            Binding::Pad(Button::RightTrigger2) => self.trigger(true) > 0.35 || self.pad(Button::RightTrigger2),
             Binding::Pad(p) => self.pad(p),
         }
     }
@@ -421,5 +450,21 @@ impl Input {
     /// Action enfoncee depuis la derniere lecture.
     pub fn action_pressed(&self, b: &Bindings, action: &str) -> bool {
         b.list(action).iter().any(|x| self.binding_pressed(x))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn trigger_axes_become_buttons() {
+        assert_eq!(trigger_axis(Axis::LeftZ, 0), Some(Button::LeftTrigger2));
+        assert_eq!(trigger_axis(Axis::RightZ, 0), Some(Button::RightTrigger2));
+        assert_eq!(trigger_axis(Axis::LeftStickX, 3 << 16), None);
+        let linux = cfg!(target_os = "linux");
+        assert_eq!(trigger_axis(Axis::Unknown, 3 << 16 | 0x0a), linux.then_some(Button::LeftTrigger2));
+        assert_eq!(trigger_axis(Axis::Unknown, 3 << 16 | 0x09), linux.then_some(Button::RightTrigger2));
+        assert_eq!(trigger_axis(Axis::Unknown, 3 << 16 | 0x10), None);
     }
 }

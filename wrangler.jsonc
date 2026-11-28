@@ -12,13 +12,20 @@
     "not_found_handling": "none",
     "run_worker_first": ["/api/*"]
   },
+  // coop en ligne : une salle (objet durable) par code
+  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
   "d1_databases": [
     { "binding": "DB", "database_name": "astp-scores", "database_id": "c0bf6b92-8290-451b-8abe-daa81d5be966" }
   ],
   "vars": {
     "LATEST": "0.8.0",
     "STAGES": "hyrule_field,desert,death_mountain,hyrule_castle,dark_palace,swamp,lost_woods,thieves_town,ice_lake,pyramid",
-    "MAX_MULT": "4.05"
+    "MAX_MULT": "4.05",
+    "SEAL_BONUSES": "0.25,0.25,0.25,0.2,0.3",
+    "DIFF_MULTS": "0.75,1.0,1.35,1.8",
+    "DIFF_HP": "0.7,1.0,1.4,2.0",
+    "SEAL_HP": "1.5,1,1,1,1"
   },
   "routes": [
     { "pattern": "a-survivor-to-the-past.holy-c.men", "custom_domain": true }

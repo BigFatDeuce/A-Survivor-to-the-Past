@@ -79,6 +79,7 @@ impl Game {
                             self.fortune_played[0] = true;
                             let root = ctx.root.clone();
                             self.profile.save(&root);
+                            self.checkpoint_at = 0.0;
                             self.sfx(ctx, "confirm");
                             State::Fortune { phase: Phase::Chests { stake }, sel: 1, t: 0.0 }
                         }
@@ -105,6 +106,7 @@ impl Game {
                         self.profile.rupees += stake * m as u64;
                         let root = ctx.root.clone();
                         self.profile.save(&root);
+                        self.checkpoint_at = 0.0;
                         self.sfx(ctx, "chest_open");
                         match m {
                             0 => self.sfx(ctx, "error"),

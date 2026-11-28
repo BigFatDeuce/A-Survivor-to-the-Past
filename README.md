@@ -1,7 +1,7 @@
 <p align="center"><img src="media/icon.png" width="128" height="128" alt="A Survivor to the Past"></p>
 <h1 align="center">A Survivor to the Past</h1>
 <p align="center"><i>A survivors-like in the world of <b>A Link to the Past</b>: hold out against hordes of Hyrule's monsters.</i></p>
-<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.8.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
+<p align="center"><a href="https://discord.gg/N8f62M2eaK"><img alt="Discord" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white"></a> <a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases"><img alt="version" src="https://img.shields.io/badge/alpha-0.9.0-e0a030"></a> <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/code-GPL--3.0-3a7bd5"></a> <img alt="Rust" src="https://img.shields.io/badge/Rust-wgpu-b7410e?logo=rust&logoColor=white"></p>
 <p align="center"><a href="https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest"><b>⬇ Download</b></a> · <a href="https://a-survivor-to-the-past.holy-c.men/play/"><b>▶ Play in your browser</b></a></p>
 <p align="center"><b>English</b> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a> · <a href="README.it.md">Italiano</a> · <a href="README.pt.md">Português</a> · <a href="README.ja.md">日本語</a></p>
 
@@ -16,22 +16,23 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
 ## Features
 
 - **10 stages** in the order of the original game — Hyrule Field, Desert of Mystery, Death Mountain, Hyrule Castle, Palace of Darkness, Swamp, Lost Woods, Thieves' Town, Frozen Lake and the Pyramid of Power — each with its own weather, music, mid-boss and final boss, up to Agahnim and Ganon
-- **350 playable characters** in six universes — the hand-made cast (Link, Minish Link, Sonic, Zelda, Mario, Vivi, Ganondorf, the very last one...) and more than 300 sprites from the *A Link to the Past Randomizer* community, each with its authors credited and up to four colors (blue mail, red mail, bunny). Some are unlocked by feats (enemies, bosses, levels, stages), others are bought with red rupees — each with strengths, weaknesses and a starting weapon
+- **357 playable characters** in six universes — the hand-made cast (Link, Minish Link, Sonic, Zelda, Mario, Vivi, the *Clair Obscur: Expedition 33* party, Ganondorf, the very last one...) and more than 300 sprites from the *A Link to the Past Randomizer* community, each with its authors credited and up to four colors (blue mail, red mail, bunny). Some are unlocked by feats (enemies, bosses, levels, stages), others are bought with red rupees — each with strengths, weaknesses and a starting weapon
 - A rare **Bob-omb** that blows away every enemy on screen, and **breakable scenery** hiding rupees, hearts, fairies or the Ether medallion
 - Random **encounters**: a wandering champion waits somewhere, an arrow shows the way — beat it for a blessing, a special weapon upgrade or a relic you keep if you win
-- A **thief Boo** that gobbles the rupees left on the ground — catch it to get them all back
+- A **thief Boo** that steals your rupees bit by bit — catch it to get them back
 - The **Fortune Teller** after the final boss (chest game, double or nothing) and a **Witch** who sells potions for the whole run
 - **18 weapons** (six of them won from mid-bosses) and the **Master Sword** for beating Ganon, each with its **fusion**, and **12 passive items** — 6 weapon slots and 6 item slots, so every choice matters
 - **More than 30 enemy types** from Hyrule, **12 bosses** (a different one on every stage) and **elites** that drop chests
 - **Progression between runs**: the Kakariko shop (permanent upgrades), the Great Fairy's blessings, a **relic** won on each stage, 4 **difficulties** and Ganon's **seals** to earn more rupees
-- **Collection** (bestiary with animated cards, weapons, items, fusions) and **Achievements** (59 bronze, silver and gold trophies, statistics); save export / import as a text code; red rupees also buy outfits, jukebox tracks and leaderboard titles
-- **5 players** on the same computer, each with a name, an avatar and their own progress; a **score** for every run and **leaderboards**: best scores per stage, between the players at home and a **world top 100** per game version
+- **Collection** (bestiary with animated cards, detailed cards for weapons, items and fusions) and a **Gallery** where Link walks among his trophies, weapons, figurines and the statues of unlocked characters; **Achievements** (59 bronze, silver and gold trophies, statistics); save export / import as a text code; red rupees also buy outfits, jukebox tracks and leaderboard titles
+- **5 players** on the same computer, each with a name, an avatar and their own progress; a **score** for every run and **leaderboards**: best scores per stage, between the players at home and a **world top 100** per game version, solo and co-op
+- **Online co-op for 2 to 4 players** (computer, Android and browser): create a room and share its 4-letter code; everyone plays their own character and color, picks upgrades without pausing the others (protected for 10 seconds) and can revive fallen allies; enemies get tougher and more numerous with each player
 - An **instruction booklet** in the style of the original one (PDF, English and French)
 - Automatic attacks, or **manual aiming** at any time — keyboard, mouse or gamepad, and **every key can be remapped**
 - Original SNES **graphics, music and sounds** of A Link to the Past
 - **Retro video filters**: SNES, CRT, Scanlines, Game Boy Advance, Game Boy, plus a **4:3** mode — and matching **audio filters**
 - **7 languages**: English, Français, Deutsch, Español, Italiano, Português, 日本語
-- Home-made **Rust engine** (wgpu): thousands of enemies on screen, on Windows, Linux, macOS and **in the browser**
+- Home-made **Rust engine** (wgpu): thousands of enemies on screen, on Windows, Linux, macOS, **Android** and **in the browser**
 
 ## Weapons and evolutions
 
@@ -85,9 +86,9 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
 
 ## Play
 
-The game is in **early alpha** (version 0.8.0). **Windows**: download the latest version from the [Releases page](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), extract the whole zip and launch `A Survivor to the Past.exe`. Windows may warn that the game is not signed: click *More info* → *Run anyway*. **Linux, macOS and handhelds** (PortMaster, experimental): same page, take the zip for your system and follow its `README.txt`. **Android** (phones and tablets, touch controls): same page, download the `.apk` and open it (allow installs from your browser); it does not update itself. The game then **updates itself**: at launch it checks GitHub for a new version, downloads it in the background and installs it at the next launch (Options → Updates: Automatic / Ask me / Off). Your settings are kept and no personal data is sent: updates only contact GitHub, and the world leaderboard only contacts the game's website when you open it or publish a score (nickname and score).
+The game is in **early alpha** (version 0.9.0). **Windows**: download the latest version from the [Releases page](https://github.com/BigFatDeuce/A-Survivor-to-the-Past/releases/latest), extract the whole zip and launch `A Survivor to the Past.exe`. Windows may warn that the game is not signed: click *More info* → *Run anyway*. **Linux, macOS and handhelds** (PortMaster, experimental): same page, take the zip for your system and follow its `README.txt`. **Android** (phones and tablets, touch controls): same page, download the `.apk` and open it (allow installs from your browser); it does not update itself. The game then **updates itself**: at launch it checks GitHub for a new version, downloads it in the background and installs it at the next launch (Options → Updates: Automatic / Ask me / Off). Your settings are kept and no personal data is sent: updates only contact GitHub, and the world leaderboard only contacts the game's website when you open it or publish a score (nickname and score).
 
-**Browser**: [play directly on the website](https://a-survivor-to-the-past.holy-c.men/play/), nothing to install. It works best on a computer, in Chrome, Edge or Firefox, and your progress is saved in the browser. Linux, macOS and Android versions will come later. Meanwhile you can build the game from source with [Rust](https://rustup.rs) (stable):
+**Browser**: [play directly on the website](https://a-survivor-to-the-past.holy-c.men/play/), nothing to install. It works best on a computer, in Chrome, Edge or Firefox, and your progress is saved in the browser. You can also build the game from source with [Rust](https://rustup.rs) (stable):
 
 ```sh
 git clone https://github.com/BigFatDeuce/A-Survivor-to-the-Past.git
@@ -129,6 +130,6 @@ Website: [a-survivor-to-the-past.holy-c.men](https://a-survivor-to-the-past.holy
 
 The [GPL-3.0 license](LICENSE) only covers the source code written for this project; it grants no rights over Nintendo's assets. Sprite sheets come from the rips shared by the community of *The Spriters Resource* — thanks to their authors.
 
-The name of every sprite ripper and artist (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny and many more) is listed in **[CREDITS.md](CREDITS.md)**. Mario and Shy Guy also belong to Nintendo; *Sonic the Hedgehog* is a trademark of **SEGA**, *Among Us* of **Innersloth**, Simon Belmont (*Castlevania*) of **Konami**, and Vivi (*Final Fantasy IX*) of **Square Enix**.
+The name of every sprite ripper and artist (Barack Obama, Mister Man, Nemau, Aztec Warrior, Deathbringer, Barubary, Vaati, Mister Mike, Ragnarockerbunny and many more) is listed in **[CREDITS.md](CREDITS.md)**. Mario and Shy Guy also belong to Nintendo; *Sonic the Hedgehog* is a trademark of **SEGA**, *Among Us* of **Innersloth**, Simon Belmont (*Castlevania*) of **Konami**, Vivi (*Final Fantasy IX*) of **Square Enix**, and the *Clair Obscur: Expedition 33* characters of **Sandfall Interactive**.
 
 Rights holders: to have content removed, open an issue or contact us on [Discord](https://discord.gg/N8f62M2eaK).

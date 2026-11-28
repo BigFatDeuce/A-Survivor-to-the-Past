@@ -1,0 +1,18 @@
+// Verso (Clair Obscur) : epeiste : degats +20 %, chance +10 %, dash plus long a recharger.
+// Sprite : research/tools/gen_clair_obscur.py. A acheter a la boutique.
+(
+    name: "Verso",
+    sprite: "co_verso",
+    max_hp: 60.0,
+    speed: 86.0,
+    radius: 5.0,
+    magnet: 34.0,
+    dash: (speed: 330.0, duration: 0.15, cooldown: 1.6),
+    weapon: "sword",
+    weapon_sprite: "sword1",
+    side_faces_left: true,
+    stats: [(Might, 0.2), (Luck, 0.1), (DashCooldown, 0.15)],
+    order: 1000,
+    group: "rpg",
+    unlock: Some(Shop(6500)),
+)

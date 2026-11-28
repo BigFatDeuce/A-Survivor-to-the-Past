@@ -103,7 +103,7 @@ pub struct EnemyShot {
 /// Angle (radians) d'un vecteur.
 #[inline]
 fn ang(v: Vec2) -> f32 {
-    v.y.atan2(v.x)
+    libm::atan2f(v.y, v.x)
 }
 
 impl World {
@@ -163,8 +163,10 @@ impl World {
     }
 
     pub(crate) fn update_weapons(&mut self, input: &PlayerInput) {
-        if !self.player.alive {
+        // a terre, ou en plein choix (coop) : aucune attaque, orbites rangees
+        if !self.player.alive || self.player.choosing() {
             self.player.swing = None;
+            self.weapons.iter_mut().for_each(|w| w.active = 0.0);
             return;
         }
         self.update_swing();
@@ -703,12 +705,6 @@ impl World {
         true
     }
 
-    /// Positions des objets en orbite d'une arme (angle `phase`).
-    pub fn orbit_points(&self, slot: usize, center: Vec2, phase: f32) -> Vec<Vec2> {
-        let w = &self.weapons[slot];
-        let n = w.stats.amount.max(1);
-        (0..n).map(|k| center + Vec2::from_angle(phase + k as f32 * TAU / n as f32) * w.stats.area).collect()
-    }
 
     fn update_orbits(&mut self) {
         for slot in 0..self.weapons.len() {
@@ -719,7 +715,7 @@ impl World {
             }
             let status = def.status;
             let center = self.player.pos - Vec2::new(0.0, 6.0);
-            let pts = self.orbit_points(slot, center, w.phase);
+            let pts = w.orbit_points(center, w.phase);
             let hit_r = 7.0 * self.player.stats.area.sqrt();
             for pt in pts {
                 for i in self.enemies_in(pt, hit_r) {
@@ -789,7 +785,7 @@ impl World {
                 }
                 ProjKind::Tornado => {
                     // ondule autour de sa direction et tourne sur elle-meme
-                    let a = (p.age * 1.7 + p.flight).sin() * 1.4 * DT;
+                    let a = libm::sinf(p.age * 1.7 + p.flight) * 1.4 * DT;
                     p.vel = Vec2::from_angle(ang(p.vel) + a) * p.vel.length();
                     p.pos += p.vel * DT;
                     p.rot += 9.0 * DT;
@@ -804,7 +800,7 @@ impl World {
                         Some(&i) => (self.horde.pos[i] - Vec2::new(0.0, 6.0) - p.pos).normalize_or(fwd),
                         None => fwd,
                     };
-                    let wob = Vec2::from_angle(ang(want) + (p.age * 9.0 + p.target.x).sin() * 0.8);
+                    let wob = Vec2::from_angle(ang(want) + libm::sinf(p.age * 9.0 + p.target.x) * 0.8);
                     p.vel += (wob * p.flight - p.vel) * (6.0 * DT);
                     p.pos += p.vel * DT;
                     p.rot = ang(p.vel);

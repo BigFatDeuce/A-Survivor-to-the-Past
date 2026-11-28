@@ -169,6 +169,8 @@ pub struct GridLayout {
     pub tabs: (Vec2, Vec2),
     pub panel: (Vec2, Vec2),
     pub cols: usize,
+    /// Lignes visibles.
+    pub fit: usize,
     /// Echelle des personnages dans les cases.
     pub scale: f32,
 }
@@ -176,7 +178,8 @@ pub struct GridLayout {
 // sous le titre et le choix de l'univers
 const GRID_TOP: f32 = 54.0;
 
-pub fn grid_layout(view: Vec2, n: usize, sel: usize) -> GridLayout {
+/// `top` : premiere ligne visible (voir `follow`).
+pub fn grid_layout(view: Vec2, n: usize, top: usize) -> GridLayout {
     let m = 14.0;
     let gap = 4.0;
     let pw = (view.x * 0.42).clamp(190.0, 300.0).round();
@@ -197,9 +200,7 @@ pub fn grid_layout(view: Vec2, n: usize, sel: usize) -> GridLayout {
     let cols = cols.min(n.max(1));
     let rows = n.div_ceil(cols).max(1);
     let fit = (((room + gap) / (cell.y + gap)).floor() as usize).clamp(1, rows);
-    // la ligne choisie reste visible, au milieu quand c'est possible
-    let row = if sel < n { sel / cols } else if sel == n { rows - 1 } else { 0 };
-    let top = row.saturating_sub((fit - 1) / 2).min(rows - fit);
+    let top = top.min(rows - fit);
     let first = top * cols;
     let used = cols as f32 * (cell.x + gap) - gap;
     let x0 = (m + (gw - used) * 0.5).round();
@@ -216,14 +217,35 @@ pub fn grid_layout(view: Vec2, n: usize, sel: usize) -> GridLayout {
     let tabs = (Vec2::new((m + (gw - tw) * 0.5).round(), GRID_TOP - 18.0), Vec2::new(tw, 15.0));
     let px = m + gw + 10.0;
     let panel = (Vec2::new(px, GRID_TOP - 6.0), Vec2::new(view.x - px - m, view.y - GRID_TOP - 4.0));
-    GridLayout { cells, first, back, tabs, panel, cols, scale }
+    GridLayout { cells, first, back, tabs, panel, cols, fit, scale }
+}
+
+/// Premiere ligne visible : celle d'avant, decalee juste assez pour montrer le personnage choisi
+/// (fleches, manette, molette). Le survol de la souris choisit une case deja visible : il ne fait
+/// jamais defiler la grille ; « Retour » et le choix de l'univers non plus.
+pub fn follow(view: Vec2, n: usize, sel: usize, top: usize) -> usize {
+    let l = grid_layout(view, n, top);
+    let top = l.first / l.cols.max(1);
+    if sel >= n {
+        return top;
+    }
+    let row = sel / l.cols.max(1);
+    if row < top {
+        row
+    } else if row >= top + l.fit {
+        row + 1 - l.fit
+    } else {
+        top
+    }
 }
 
 /// Fleches : deplacement dans la grille (« Retour » sous la derniere ligne, choix de l'univers au-dessus
 /// de la premiere : `n + 1`, gauche / droite y changent de page) ; souris : survol et clic.
+/// `top` : premiere ligne visible (molette : la grille defile d'une ligne, le choix avec elle).
 /// Rend (case choisie, curseur deplace, changement de page -1 / 0 / 1).
-pub fn input_select(nav: &NavIn, view: Vec2, n: usize, sel: &mut usize) -> (Option<usize>, bool, i32) {
-    let cols = grid_layout(view, n, *sel).cols;
+pub fn input_select(nav: &NavIn, view: Vec2, n: usize, sel: &mut usize, top: &mut usize) -> (Option<usize>, bool, i32) {
+    *top = follow(view, n, *sel, *top);
+    let cols = grid_layout(view, n, *top).cols;
     let before = *sel;
     let (back, tabs) = (n, n + 1);
     let mut page = 0;
@@ -260,10 +282,12 @@ pub fn input_select(nav: &NavIn, view: Vec2, n: usize, sel: &mut usize) -> (Opti
             };
         }
         if nav.wheel != 0 {
+            *top = (*top as i64 + nav.wheel as i64).max(0) as usize;
             *sel = (*sel as i64 + nav.wheel as i64 * cols as i64).clamp(0, n as i64 - 1) as usize;
         }
     }
-    let l = grid_layout(view, n, *sel);
+    *top = follow(view, n, *sel, *top);
+    let l = grid_layout(view, n, *top);
     let rects: Vec<(usize, (Vec2, Vec2))> = (0..l.cells.len()).map(|k| (l.first + k, l.cells[k])).chain([(back, l.back), (tabs, l.tabs)]).collect();
     let inside = |m: Vec2, (p, s): (Vec2, Vec2)| m.x >= p.x && m.y >= p.y && m.x < p.x + s.x && m.y < p.y + s.y;
     if let Some(m) = nav.hover {
@@ -317,6 +341,18 @@ fn portrait_box(l: &GridLayout) -> (Vec2, Vec2, f32) {
     (Vec2::new((pp.x + (ps.x - bw) * 0.5).round(), pp.y + 32.0), Vec2::new(bw, bh), sc)
 }
 
+/// Choix de la couleur (personnage valide une premiere fois) : case de la grille sous la souris, ou
+/// `sel` si la souris est sur le portrait (valider). None : ailleurs.
+pub fn lock_click(view: Vec2, n: usize, top: usize, sel: usize, m: Vec2) -> Option<usize> {
+    let l = grid_layout(view, n, top);
+    let inside = |(p, s): (Vec2, Vec2)| m.x >= p.x && m.y >= p.y && m.x < p.x + s.x && m.y < p.y + s.y;
+    let (bp, bs, _) = portrait_box(&l);
+    if inside((bp, bs)) {
+        return Some(sel);
+    }
+    l.cells.iter().position(|&r| inside(r)).map(|k| l.first + k)
+}
+
 /// Prix d'une couleur pas encore achetee (rubis rouges) ; None : deja a soi (ou gratuite).
 pub fn skin_price(meta: &crate::meta::Meta, profile: &Profile, sprite: &str) -> Option<u64> {
     meta.skin_locked(profile, sprite).then(|| meta.wardrobe.iter().find(|w| w.sprite == sprite).map_or(0, |w| w.cost))
@@ -334,7 +370,8 @@ pub fn skin_button(ctx: &Ctx, content: &Content, profile: &Profile, ids: &[Strin
     if def.skins.len() < 2 || !unlocked(content, def, profile) {
         return None;
     }
-    let l = grid_layout(ctx.view, ids.len(), sel);
+    // le portrait ne depend pas du defilement de la grille
+    let l = grid_layout(ctx.view, ids.len(), 0);
     let (bp, bs, _) = portrait_box(&l);
     Some((Vec2::new(bp.x, bp.y + bs.y + 4.0), Vec2::new(bs.x, 18.0)))
 }
@@ -349,7 +386,8 @@ fn arrow(list: &mut DrawList, white: &assetkit::meta::Frame, tip: Vec2, dir: f32
 
 #[allow(clippy::too_many_arguments)]
 /// `browse` : couleur regardee du personnage selectionne (pas encore achetee : grisee, avec son prix).
-pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Content, meta: &crate::meta::Meta, profile: &Profile, page: usize, sel: usize, t: f32, browse: Option<usize>) {
+/// `top` : premiere ligne visible de la grille ; `lock` : personnage valide, choix de sa couleur.
+pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Content, meta: &crate::meta::Meta, profile: &Profile, (page, sel, top, lock): (usize, usize, usize, bool), t: f32, browse: Option<usize>) {
     let ids = &page_roster(content, page);
     let view = ctx.view;
     let atlas = &ctx.atlas;
@@ -358,7 +396,7 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
     list.set(Space::Ui, Blend::Alpha);
     list.probe_layer();
     list.rect(white, Vec2::ZERO, view, [0.01, 0.01, 0.05, 0.55]);
-    let l = grid_layout(view, ids.len(), sel);
+    let l = grid_layout(view, ids.len(), follow(view, ids.len(), sel, top));
     text(list, main, lang.get("ui.characters"), Vec2::new(view.x * 0.5, 8.0), 2.0, WHITE, Align::Center);
     let rt = ctx.real_time as f32;
     // univers : fleches aux deux bouts, nom et personnages debloques de la page
@@ -498,6 +536,10 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
         list.rect(white, cp, cs, fill);
         list.rect(white, cp + Vec2::ONE, cs - Vec2::splat(2.0), [0.0, 0.0, 0.0, 0.35]);
         frame_rect(list, white, cp, cs, with_alpha(WHITE, 0.6 + 0.3 * breath));
+        if lock {
+            // choix de la couleur en cours : cadre dore qui pulse autour du bouton
+            frame_rect(list, white, cp - Vec2::splat(2.0), cs + Vec2::splat(4.0), with_alpha(GOLD, 0.55 + 0.45 * (rt * 5.0).sin().abs()));
+        }
         list.probe_panel(cp, cs, "couleur");
         let mid = (cp.y + cs.y * 0.5).floor();
         arrow(list, white, Vec2::new(cp.x + 5.0, mid), -1.0, WHITE);
@@ -511,6 +553,9 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
                 let key = if p <= profile.rupees { "ui.skin_buy_hint" } else { "ui.skin_buy_short" };
                 lang.get(key).replace("{n}", &p.to_string())
             }
+            // personnage valide : couleur avec les fleches (ou le bouton), validation au clavier ou au clic
+            None if lock && ctx.input.last_device == engine::input::Device::Mouse => lang.get("ui.skin_pick_mouse").to_string(),
+            None if lock => lang.get("ui.skin_pick").to_string(),
             None => lang.get("ui.skin_keys").to_string(),
         };
         let hc = match price {
@@ -580,8 +625,39 @@ pub fn draw_select(list: &mut DrawList, ctx: &Ctx, lang: &Lang, content: &Conten
 
 #[cfg(test)]
 mod tests {
+    use super::{follow, grid_layout, input_select};
+    use crate::menus::NavIn;
     use crate::profile::Profile;
+    use engine::Vec2;
     use sim::pickups::PickupKind;
+
+    /// La souris choisit une case visible sans faire defiler la grille ; fleches et molette la font
+    /// defiler d'une ligne a la fois.
+    #[test]
+    fn grid_scrolls_with_cursor_not_mouse() {
+        let view = Vec2::new(480.0, 270.0);
+        let n = 60;
+        let l = grid_layout(view, n, 0);
+        assert!(l.fit < n.div_ceil(l.cols), "la grille defile a cette taille");
+        let low = (l.fit - 1) * l.cols;
+        assert_eq!(follow(view, n, low, 0), 0);
+        assert_eq!(follow(view, n, low + l.cols, 0), 1);
+        assert_eq!(follow(view, n, n, 3), 3, "Retour ne fait pas defiler");
+        // survol de la derniere ligne visible : choisie, grille immobile
+        let (p, s) = l.cells[low];
+        let (mut sel, mut top) = (0, 0);
+        let nav = NavIn { hover: Some(p + s * 0.5), mouse: p + s * 0.5, ..Default::default() };
+        input_select(&nav, view, n, &mut sel, &mut top);
+        assert_eq!((sel, top), (low, 0));
+        // fleche bas : une ligne plus bas, la grille suit d'une ligne
+        let nav = NavIn { down: true, ..Default::default() };
+        input_select(&nav, view, n, &mut sel, &mut top);
+        assert_eq!((sel, top), (low + l.cols, 1));
+        // molette : la grille et le choix descendent ensemble
+        let nav = NavIn { wheel: 1, ..Default::default() };
+        input_select(&nav, view, n, &mut sel, &mut top);
+        assert_eq!((sel, top), (low + 2 * l.cols, 2));
+    }
     use sim::{Event, World};
     use std::path::Path;
 

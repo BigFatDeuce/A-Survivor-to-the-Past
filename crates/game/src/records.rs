@@ -7,14 +7,16 @@ use crate::visuals::Vis;
 use sim::defs::Content;
 use sim::horde::FACE_DOWN;
 
-pub const TABS: [&str; 7] = ["ui.tab.bestiary", "ui.tab.weapons", "ui.tab.items", "ui.tab.fusions", "ui.tab.trophies", "ui.tab.stats", "ui.tab.save"];
+pub const TABS: [&str; 8] = ["ui.tab.bestiary", "ui.tab.weapons", "ui.tab.items", "ui.tab.fusions", "ui.tab.gallery", "ui.tab.trophies", "ui.tab.stats", "ui.tab.save"];
 pub const TAB_BESTIARY: usize = 0;
 pub const TAB_WEAPONS: usize = 1;
 pub const TAB_ITEMS: usize = 2;
 pub const TAB_FUSIONS: usize = 3;
-pub const TAB_TROPHIES: usize = 4;
-pub const TAB_STATS: usize = 5;
-pub const TAB_SAVE: usize = 6;
+/// Galerie : une ligne par aile, A y fait entrer Link (voir `gallery`).
+pub const TAB_GALLERY: usize = 4;
+pub const TAB_TROPHIES: usize = 5;
+pub const TAB_STATS: usize = 6;
+pub const TAB_SAVE: usize = 7;
 
 /// Ecran d'un onglet : ses onglets voisins et son titre (0.6.4 : l'ancien Profil est partage en deux).
 pub fn book(tab: usize) -> (std::ops::Range<usize>, &'static str) {
@@ -67,6 +69,29 @@ pub fn armory_weapons(content: &Content, fusions: bool) -> Vec<usize> {
     out
 }
 
+/// Elements de l'onglet (armes, fusions ou objets) dans l'ordre des lignes, et ceux deja decouverts
+/// (seuls ceux-la ont une fiche).
+pub fn card_items(content: &Content, meta: &crate::meta::Meta, p: &Profile, tab: usize) -> (Vec<usize>, Vec<usize>) {
+    if tab == TAB_TROPHIES {
+        let all: Vec<usize> = (0..crate::trophies::families(content, meta, p).len()).collect();
+        return (all.clone(), all);
+    }
+    let all: Vec<usize> = if tab == TAB_ITEMS { (0..content.passives.len()).collect() } else { armory_weapons(content, tab == TAB_FUSIONS) };
+    let known = all
+        .iter()
+        .copied()
+        .filter(|&k| {
+            if tab == TAB_ITEMS {
+                p.armory.get(&content.passive_ids[k]).copied().unwrap_or(0) > 0
+            } else {
+                let id = &content.weapon_ids[k];
+                p.armory.get(id).copied().unwrap_or(0) > 0 || p.evolutions.contains(id)
+            }
+        })
+        .collect();
+    (all, known)
+}
+
 /// « Fusion : arme + objet » pour une arme evoluee.
 pub fn fusion_recipe(content: &Content, lang: &Lang, evolved: usize) -> Option<String> {
     let into = &content.weapon_ids[evolved];
@@ -115,6 +140,7 @@ pub fn rows(content: &Content, meta: &crate::meta::Meta, atlas: &engine::assets:
     let mut details = Vec::new();
     match tab {
         TAB_TROPHIES => return crate::trophies::rows(content, meta, atlas, p, lang),
+        TAB_GALLERY => return crate::gallery::rows(content, meta, vis, atlas, p, lang),
         TAB_BESTIARY => {
             let figs = content.enemy_ids.iter().filter(|id| p.figurines.contains(*id)).count();
             let figs = lang.get("ui.figurines_count").replace("{a}", &figs.to_string()).replace("{b}", &bestiary_order(content, p).len().to_string());
@@ -169,7 +195,7 @@ pub fn rows(content: &Content, meta: &crate::meta::Meta, atlas: &engine::assets:
                     // fusion : recette toujours affichee (arme + objet), le resultat seulement une fois obtenu
                     let recipe = fusion_recipe(content, lang, k).unwrap_or_default();
                     if known {
-                        format!("{}\n{recipe}", lang.get(&format!("weapon.{id}.desc")))
+                        format!("{}\n{recipe} {}", lang.get(&format!("weapon.{id}.desc")), lang.get("ui.beast_open"))
                     } else {
                         format!("{}\n{recipe}", lang.get("ui.unknown_evolution"))
                     }
@@ -184,7 +210,7 @@ pub fn rows(content: &Content, meta: &crate::meta::Meta, atlas: &engine::assets:
                             d = format!("{d} {}", lang.get("ui.evolves_into").replace("{a}", &partner).replace("{b}", &into));
                         }
                     }
-                    d
+                    format!("{d}\n{}", lang.get("ui.beast_open"))
                 } else if let Some(e) = w.unlock.as_ref().filter(|_| !p.weapons.contains(id)) {
                     let boss = crate::hud::hl(lang.get(&format!("enemy.{e}")));
                     format!("{}\n{}", lang.get("ui.unknown_item"), lang.get("ui.weapon_locked_hint").replace("{a}", &boss))
@@ -206,7 +232,7 @@ pub fn rows(content: &Content, meta: &crate::meta::Meta, atlas: &engine::assets:
                     dim: n == 0,
                     mark: false,
                 });
-                details.push(if n > 0 { lang.get(&format!("passive.{id}.desc")).to_string() } else { lang.get("ui.unknown_item").to_string() });
+                details.push(if n > 0 { format!("{}\n{}", lang.get(&format!("passive.{id}.desc")), lang.get("ui.beast_open")) } else { lang.get("ui.unknown_item").to_string() });
             }
         }
         TAB_STATS => {

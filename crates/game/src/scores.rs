@@ -16,21 +16,42 @@ pub const TABS: [&str; 3] = ["ui.scores_mine", "ui.scores_players", "ui.scores_w
 pub const MINE: usize = 0;
 pub const PLAYERS: usize = 1;
 pub const WORLD: usize = 2;
-/// Premiere ligne : choix du stage ; onglet Monde, deuxieme ligne : choix de la version.
+/// Premiere ligne : choix du stage ; onglets Mes parties et Monde, deuxieme ligne : solo ou coop (un
+/// classement par nombre de joueurs) ; onglet Monde, troisieme ligne : choix de la version.
 pub const STAGE_ROW: usize = 0;
-pub const VERSION_ROW: usize = 1;
+pub const MODE_ROW: usize = 1;
+pub const VERSION_ROW: usize = 2;
+/// Joueurs par partie : 1 (solo) a 4 (coop).
+pub const MAX_PLAYERS: usize = 4;
 
 const SILVER: Color = rgb(200, 214, 230);
 const BRONZE: Color = rgb(222, 150, 96);
 
 /// Lignes de reglage en tete de liste.
 pub fn head(tab: usize) -> usize {
-    if tab == WORLD {
-        2
-    } else {
-        1
+    match tab {
+        WORLD => 3,
+        MINE => 2,
+        _ => 1,
     }
 }
+
+/// Le choix solo / coop existe dans cet onglet.
+pub fn has_mode(tab: usize) -> bool {
+    tab != PLAYERS
+}
+
+/// Equipe courte pour une ligne (« Zelda +2 ») ; le detail donne les pseudos de tous.
+fn team_label(name: &str) -> String {
+    let names: Vec<&str> = name.split(TEAM_SEP).collect();
+    match names.len() {
+        0 | 1 => name.to_string(),
+        n => format!("{} +{}", names[0], n - 1),
+    }
+}
+
+/// Separateur des pseudos d'une equipe (comme le serveur).
+pub const TEAM_SEP: &str = " + ";
 
 /// Score lisible : chiffres groupes par trois (« 12 345 »).
 pub fn fmt_score(n: u64) -> String {
@@ -66,22 +87,35 @@ pub struct View<'a> {
     pub difficulties: &'a [String],
     /// Titres offerts a la Grande Fee (dans l'ordre de `meta.ron`).
     pub titles: &'a [String],
-    pub board: &'a ((String, String), Status<Board>),
+    pub board: &'a (crate::online::BoardKey, Status<Board>),
     /// Version demandee (vide : la plus recente du serveur).
     pub version: &'a str,
+    /// Joueurs : 1 (solo) ou 2 a 4 (coop).
+    pub players: usize,
 }
 
 impl View<'_> {
+    /// Personnage (coop : le premier de la liste).
     fn char_icon(&self, id: &str) -> Option<AnimId> {
-        let def = self.content.characters.get(id)?;
+        let def = self.content.characters.get(id.split(',').next()?)?;
         self.atlas.find(&def.sprite, "idle_down")
     }
 
+    /// Personnage (coop : tous, separes par des virgules).
     fn char_name(&self, id: &str) -> String {
         if id.is_empty() {
             "?".into()
         } else {
-            crate::chars::name(self.lang, id)
+            id.split(',').map(|c| crate::chars::name(self.lang, c)).collect::<Vec<_>>().join(", ")
+        }
+    }
+
+    /// Detail precede de l'equipe (coop).
+    fn with_team(&self, team: &str, d: String) -> String {
+        if team.contains(TEAM_SEP) {
+            format!("{} - {d}", self.lang.get("ui.score_team").replace("{s}", team))
+        } else {
+            d
         }
     }
 
@@ -111,11 +145,12 @@ impl View<'_> {
     }
 
     fn record_detail(&self, r: &ScoreRecord) -> String {
-        self.detail(&r.character, r.time, r.kills, Some(r.level), r.difficulty, r.won, &r.version)
+        let d = self.detail(&r.character, r.time, r.kills, Some(r.level), r.difficulty, r.won, &r.version);
+        self.with_team(&r.team.join(TEAM_SEP), d)
     }
 
     fn entry_detail(&self, e: &Entry, version: &str) -> String {
-        let d = self.detail(&e.character, e.time, e.kills, None, e.difficulty, e.won, version);
+        let d = self.with_team(&e.name, self.detail(&e.character, e.time, e.kills, None, e.difficulty, e.won, version));
         match self.titles.get((e.title as usize).wrapping_sub(1)) {
             Some(t) => format!("{} - {d}", crate::shop::titled_name(e.title, t)),
             None => d,
@@ -125,7 +160,7 @@ impl View<'_> {
     /// Classement en ligne du stage choisi, s'il correspond a la demande.
     pub fn board(&self) -> Option<&Status<Board>> {
         let (key, status) = self.board;
-        (key.0 == self.stage && key.1 == self.version).then_some(status)
+        (key.0 == self.stage && key.1 == self.version && key.2 == self.players).then_some(status)
     }
 
     /// Version affichee dans l'onglet Monde.
@@ -154,9 +189,14 @@ pub fn rows(v: &View, tab: usize) -> (Vec<Row>, Vec<String>) {
         rows.push(Row { label: l.get(key).to_string(), dim: true, ..Default::default() });
         details.push(String::new());
     };
+    if has_mode(tab) {
+        let mode = if v.players > 1 { l.get("ui.score_coop").replace("{n}", &v.players.to_string()) } else { l.get("ui.score_solo").to_string() };
+        rows.push(Row { label: l.get("ui.score_mode").to_string(), value: format!("◀ {mode} ▶"), value_color: Some(GOLD), ..Default::default() });
+        details.push(l.get("ui.score_mode_hint").to_string());
+    }
     match tab {
         MINE => {
-            let list = v.profile.scores.get(v.stage).map(|s| s.as_slice()).unwrap_or(&[]);
+            let list = v.profile.score_list(v.stage, v.players);
             if list.is_empty() {
                 empty(&mut rows, &mut details, "ui.no_scores");
             }
@@ -214,7 +254,7 @@ pub fn rows(v: &View, tab: usize) -> (Vec<Row>, Vec<String>) {
                     for e in &b.scores {
                         rows.push(Row {
                             icon: v.char_icon(&e.character),
-                            label: format!("{}. {}", e.rank, crate::shop::titled_name(e.title, &e.name)),
+                            label: format!("{}. {}", e.rank, crate::shop::titled_name(e.title, &team_label(&e.name))),
                             value: fmt_score(e.score),
                             value_color: rank_color(e.rank as usize),
                             label_color: Some(if e.won { WON } else { LOST }),
@@ -233,6 +273,12 @@ pub fn rows(v: &View, tab: usize) -> (Vec<Row>, Vec<String>) {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn team_label_is_short() {
+        assert_eq!(super::team_label("Zelda"), "Zelda");
+        assert_eq!(super::team_label("Zelda + Link + Impa"), "Zelda +2");
+    }
+
     #[test]
     fn score_grouping() {
         assert_eq!(super::fmt_score(0), "0");

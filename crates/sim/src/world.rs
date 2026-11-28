@@ -4,7 +4,7 @@
 use crate::arsenal::{EnemyShot, Projectile, Zone};
 use crate::defs::{CharacterDef, Content, DashDef, DropDef, MapDef, Pattern, Stat, StatusDef, WeaponKind};
 use crate::grid::Grid;
-use crate::horde::{face_from, Horde, FACE_DOWN, HIT_SLOTS};
+use crate::horde::{face_from, Horde, FACE_DOWN, HIT_SLOTS, MAX_HEROES};
 use crate::pickups::{PickupKind, Pickups};
 use crate::rng::Rng;
 use crate::upgrades::{PassiveSlot, Stats, WeaponSlot};
@@ -37,10 +37,10 @@ pub enum Event {
     Dash { pos: Vec2, dir: Vec2 },
     EnemyHit { pos: Vec2, kind: u16, damage: f32, crit: bool, dir: Vec2, weapon: u16 },
     EnemyKilled { pos: Vec2, kind: u16, dir: Vec2, elite: bool },
-    PlayerHurt { pos: Vec2, damage: f32 },
-    PlayerDied { pos: Vec2 },
+    PlayerHurt { pos: Vec2, damage: f32, slot: u8 },
+    PlayerDied { pos: Vec2, slot: u8 },
     Pickup { pos: Vec2, kind: PickupKind, value: u32 },
-    LevelUp { level: u32, pos: Vec2 },
+    LevelUp { level: u32, pos: Vec2, slot: u8 },
     AutoToggled { auto: bool },
     Explosion { pos: Vec2, radius: f32, weapon: u16 },
     Slam { pos: Vec2, radius: f32, weapon: u16 },
@@ -60,8 +60,8 @@ pub enum Event {
     /// `last` : boss final de la carte.
     BossSpawned { pos: Vec2, kind: u16, last: bool },
     BossDied { pos: Vec2, kind: u16, last: bool },
-    /// Une fee releve Link.
-    Revived { pos: Vec2 },
+    /// Une fee (ou un allie, en coop) releve le joueur.
+    Revived { pos: Vec2, slot: u8 },
     /// La porte de sortie apparait.
     PortalOpened { pos: Vec2 },
     /// Le joueur a franchi la porte : stage gagne.
@@ -123,6 +123,7 @@ impl Swing {
     }
 }
 
+#[derive(Clone)]
 pub struct Player {
     pub pos: Vec2,
     pub prev: Vec2,
@@ -167,6 +168,17 @@ pub struct Player {
     pub jump: f32,
     pub jump_dur: f32,
     pub(crate) jump_slot: u8,
+    /// Place dans la partie (coop : 0 = hote ; solo : 0).
+    pub slot: u8,
+    /// Tirages des choix de ce joueur (niveaux, coffres) en coop : chaque jeu rejoue les choix des autres
+    /// avec le meme generateur, sans toucher au hasard commun de la partie.
+    pub menu_rng: Rng,
+    /// Coop : temps passe a etre releve par un allie (a terre), voir `REVIVE_TIME`.
+    pub revive: f32,
+    /// Coop : joueur parti (deconnecte) ; il ne se releve plus.
+    pub gone: bool,
+    /// Coop : secondes depuis le debut de ses choix en attente (niveau, coffre) ; 0 sans choix.
+    pub choose_t: f32,
 }
 
 impl Player {
@@ -209,7 +221,22 @@ impl Player {
             jump: 0.0,
             jump_dur: 0.0,
             jump_slot: 0,
+            slot: 0,
+            menu_rng: Rng::new(0),
+            revive: 0.0,
+            gone: false,
+            choose_t: 0.0,
         }
+    }
+
+    /// Coop : choix en cours (la partie continue pour les autres) : il n'attaque pas.
+    pub fn choosing(&self) -> bool {
+        self.choose_t > 0.0
+    }
+
+    /// Coop : ennemis et tirs l'ignorent pendant les `CHOICE_SHIELD` premieres secondes de son choix.
+    pub fn shielded(&self) -> bool {
+        self.choosing() && self.choose_t <= CHOICE_SHIELD
     }
 
     pub fn dashing(&self) -> bool {
@@ -221,6 +248,36 @@ impl Player {
         self.dash.cooldown * self.stats.dash_cd
     }
 }
+
+/// Un autre joueur de la partie (coop) : son personnage et tout ce qui lui est propre. Le joueur local
+/// est toujours dans `World::player` et les champs voisins ; les autres attendent ici. Le pas de
+/// simulation fait passer chaque joueur au premier plan, dans l'ordre des places : tous les jeux
+/// calculent la meme chose, quel que soit le joueur local.
+pub struct Hero {
+    pub player: Player,
+    pub weapons: Vec<WeaponSlot>,
+    pub passives: Vec<PassiveSlot>,
+    pub projectiles: Vec<Projectile>,
+    pub zones: Vec<Zone>,
+    pub char_stats: Vec<(Stat, f32)>,
+    pub mods: crate::mods::RunMods,
+    pub pending_levels: u32,
+    pub pending_chests: Vec<bool>,
+    pub used_partners: Vec<u16>,
+    pub locked_weapons: Vec<u16>,
+}
+
+/// Coop : secondes aupres d'un allie a terre pour le relever, et distance maximale entre deux joueurs.
+pub const REVIVE_TIME: f32 = 3.0;
+pub const REVIVE_RANGE: f32 = 26.0;
+pub const LEASH: f32 = 260.0;
+/// Coop : secondes de protection d'un joueur qui choisit (niveau, coffre).
+pub const CHOICE_SHIELD: f32 = 10.0;
+/// Coups des joueurs sur le decor pendant un pas : (avant les evenements, apres), (centre, rayon).
+type PropHits = (Vec<(Vec2, f32)>, Vec<(Vec2, f32)>);
+/// Coop : vie et flux d'apparition des ennemis en plus, par joueur au-dela du premier.
+pub const COOP_HP: f32 = 0.5;
+pub const COOP_SPAWN: f32 = 0.3;
 
 pub struct World {
     pub content: Content,
@@ -304,6 +361,11 @@ pub struct World {
     elites_done: Vec<bool>,
     boss_done: bool,
     pub(crate) accel: Vec<Vec2>,
+    /// Coop : les autres joueurs (vide en solo) et la place du joueur local.
+    pub others: Vec<Hero>,
+    pub local: u8,
+    /// Coop : rubis ramasses pendant le pas, partages entre tous les joueurs a la fin du pas.
+    shared_xp: u32,
 }
 
 impl World {
@@ -379,6 +441,9 @@ impl World {
             witch_at: None,
             ev0: 0,
             accel: Vec::new(),
+            others: Vec::new(),
+            local: 0,
+            shared_xp: 0,
             content,
         };
         w.breakables = w.map.props.iter().any(|p| p.breakable);
@@ -464,15 +529,27 @@ impl World {
         let h = self.view_half + Vec2::splat(24.0);
         let d = match bias {
             Some(b) if b.length_squared() > 0.01 && self.rng.chance(0.7) => {
-                let a = b.y.atan2(b.x) + self.rng.range(-0.9, 0.9);
-                Vec2::new(a.cos(), a.sin())
+                let a = libm::atan2f(b.y, b.x) + self.rng.range(-0.9, 0.9);
+                Vec2::new(libm::cosf(a), libm::sinf(a))
             }
             _ => self.rng.dir(),
         };
         // projection du rayon sur le bord du rectangle
         let tx = if d.x.abs() > 1e-4 { h.x / d.x.abs() } else { f32::MAX };
         let ty = if d.y.abs() > 1e-4 { h.y / d.y.abs() } else { f32::MAX };
-        self.player.pos + d * tx.min(ty) + self.rng.dir() * self.rng.range(0.0, 12.0)
+        self.spawn_center() + d * tx.min(ty) + self.rng.dir() * self.rng.range(0.0, 12.0)
+    }
+
+    /// Centre des apparitions : le joueur (solo) ou un joueur debout tire au sort (coop).
+    fn spawn_center(&mut self) -> Vec2 {
+        if self.others.is_empty() {
+            return self.player.pos;
+        }
+        let alive: Vec<Vec2> = self.heroes().into_iter().filter(|h| h.2).map(|h| h.1).collect();
+        if alive.is_empty() {
+            return self.player.pos;
+        }
+        alive[self.rng.below(alive.len() as u32) as usize]
     }
 
     /// Fait apparaitre `n` ennemis selon un motif.
@@ -483,7 +560,7 @@ impl World {
                 let a0 = self.rng.f() * std::f32::consts::TAU;
                 for i in 0..n {
                     let a = a0 + i as f32 / n as f32 * std::f32::consts::TAU;
-                    let p = self.player.pos + Vec2::new(a.cos(), a.sin()) * (r + self.rng.range(0.0, 10.0));
+                    let p = self.hero_center() + Vec2::new(libm::cosf(a), libm::sinf(a)) * (r + self.rng.range(0.0, 10.0));
                     self.spawn_enemy(kind, p);
                 }
             }
@@ -499,15 +576,25 @@ impl World {
     }
 
     pub fn tick(&mut self, input: &PlayerInput) {
+        self.tick_all(std::slice::from_ref(input));
+    }
+
+    /// Pas de simulation de tous les joueurs : `inputs[place]` (coop : memes commandes dans tous les jeux).
+    pub fn tick_all(&mut self, inputs: &[PlayerInput]) {
+        let n = self.hero_count();
         self.time += DT;
         self.ticks += 1;
         self.ev0 = self.events.len();
-        self.player.prev = self.player.pos;
+        for s in 0..n {
+            self.front(s as u8);
+            self.player.prev = self.player.pos;
+            for p in &mut self.projectiles {
+                p.prev = p.pos;
+            }
+        }
+        self.front(0);
         self.horde.prev.copy_from_slice(&self.horde.pos);
         self.pickups.prev.copy_from_slice(&self.pickups.pos);
-        for p in &mut self.projectiles {
-            p.prev = p.pos;
-        }
         for s in &mut self.shots {
             s.prev = s.pos;
         }
@@ -517,27 +604,258 @@ impl World {
             }
         }
 
-        self.grid.rebuild(self.player.pos, &self.horde.pos);
-        self.update_player(input);
-        self.update_weapons(input);
-        self.update_projectiles();
-        self.update_zones();
+        let center = self.hero_center();
+        self.grid.rebuild(center, &self.horde.pos);
+        let mut hits = (Vec::new(), Vec::new());
+        for s in 0..n {
+            self.front(s as u8);
+            if n > 1 {
+                let busy = self.pending_levels > 0 || !self.pending_chests.is_empty();
+                self.player.choose_t = if busy { self.player.choose_t + DT } else { 0.0 };
+            }
+            let input = inputs.get(s).copied().unwrap_or_default();
+            self.update_player(&input);
+            self.leash();
+            self.update_weapons(&input);
+            self.update_projectiles();
+            self.update_zones();
+            if self.breakables {
+                self.hero_prop_hits(&mut hits);
+            }
+        }
+        self.front(0);
         if self.breakables {
-            self.update_props();
+            self.update_props(hits);
         }
         self.update_horde();
         self.update_statuses();
         self.update_shots();
         self.update_pickups();
-        if self.spawning && self.player.alive {
+        let coop = n > 1;
+        if self.spawning && self.any_alive() {
             self.update_spawner();
-            self.update_encounter();
-            self.update_thief();
+            // rencontres, voleur et visiteurs ouvrent des menus : solo seulement
+            if !coop {
+                self.update_encounter();
+                self.update_thief();
+            }
         }
-        self.update_npcs();
+        if !coop {
+            self.update_npcs();
+        }
+        if coop {
+            self.share_xp();
+            self.update_revives();
+            self.front(0);
+        }
         self.update_portal();
         self.recycle_far();
         self.remove_dead();
+        self.front(self.local);
+    }
+
+    /// Joueurs de la partie (1 en solo).
+    pub fn hero_count(&self) -> usize {
+        1 + self.others.len()
+    }
+
+    /// Partie a plusieurs.
+    pub fn coop(&self) -> bool {
+        !self.others.is_empty()
+    }
+
+    /// Au moins un joueur debout (coop : la partie continue tant qu'un joueur tient).
+    pub fn any_alive(&self) -> bool {
+        self.player.alive || self.others.iter().any(|h| h.player.alive)
+    }
+
+    /// Joueurs dans l'ordre des places : (place, position, debout).
+    pub fn heroes(&self) -> Vec<(u8, Vec2, bool)> {
+        let mut v: Vec<(u8, Vec2, bool)> = std::iter::once(&self.player).chain(self.others.iter().map(|h| &h.player)).map(|p| (p.slot, p.pos, p.alive)).collect();
+        v.sort_by_key(|h| h.0);
+        v
+    }
+
+    /// Centre des joueurs debout (solo : le joueur).
+    fn hero_center(&self) -> Vec2 {
+        if self.others.is_empty() {
+            return self.player.pos;
+        }
+        let alive: Vec<Vec2> = self.heroes().into_iter().filter(|h| h.2).map(|h| h.1).collect();
+        if alive.is_empty() {
+            return self.player.pos;
+        }
+        alive.iter().copied().sum::<Vec2>() / alive.len() as f32
+    }
+
+    /// Met le joueur de cette place au premier plan (`player`, armes, objets...). Sans effet en solo.
+    pub fn front(&mut self, slot: u8) {
+        if self.player.slot == slot {
+            return;
+        }
+        let Some(k) = self.others.iter().position(|h| h.player.slot == slot) else { return };
+        let h = &mut self.others[k];
+        std::mem::swap(&mut self.player, &mut h.player);
+        std::mem::swap(&mut self.weapons, &mut h.weapons);
+        std::mem::swap(&mut self.passives, &mut h.passives);
+        std::mem::swap(&mut self.projectiles, &mut h.projectiles);
+        std::mem::swap(&mut self.zones, &mut h.zones);
+        std::mem::swap(&mut self.char_stats, &mut h.char_stats);
+        std::mem::swap(&mut self.mods, &mut h.mods);
+        std::mem::swap(&mut self.pending_levels, &mut h.pending_levels);
+        std::mem::swap(&mut self.pending_chests, &mut h.pending_chests);
+        std::mem::swap(&mut self.used_partners, &mut h.used_partners);
+        std::mem::swap(&mut self.locked_weapons, &mut h.locked_weapons);
+    }
+
+    /// Coop : ajoute un joueur (place, personnage, modificateurs de sa progression). Les ennemis gardent les
+    /// reglages de la partie (`mods` de l'hote) ; le joueur arrive a cote des autres.
+    pub fn add_hero(&mut self, slot: u8, character: &str, mods: crate::mods::RunMods, seed: u64) {
+        let c = self.content.characters.get(character).or_else(|| self.content.characters.get("link")).cloned();
+        let Some(c) = c else { return };
+        let mut player = Player::new(&c);
+        player.slot = slot;
+        player.xp_next = self.content.rules.xp_first;
+        player.menu_rng = Rng::new(seed ^ (slot as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15));
+        player.pos = Vec2::new(20.0 * slot as f32, 0.0);
+        player.prev = player.pos;
+        let mut m = mods;
+        // la partie (difficulte, Sceaux) est celle de l'hote
+        m.enemy_hp = self.mods.enemy_hp;
+        m.enemy_damage = self.mods.enemy_damage;
+        m.enemy_speed = self.mods.enemy_speed;
+        m.boss_hp = self.mods.boss_hp;
+        m.spawn_rate = self.mods.spawn_rate;
+        m.heal = self.mods.heal;
+        m.witch = false;
+        self.others.push(Hero {
+            player,
+            weapons: Vec::new(),
+            passives: Vec::new(),
+            projectiles: Vec::new(),
+            zones: Vec::new(),
+            char_stats: c.stats.clone(),
+            mods: m,
+            pending_levels: 0,
+            pending_chests: Vec::new(),
+            used_partners: Vec::new(),
+            locked_weapons: Vec::new(),
+        });
+        let back = self.player.slot;
+        self.front(slot);
+        self.recompute_stats();
+        self.player.hp = self.player.max_hp;
+        if let Some(id) = self.content.weapon_index(&c.weapon) {
+            self.add_weapon(id);
+        }
+        self.front(back);
+    }
+
+    /// Coop : le joueur au premier plan ne s'eloigne pas a plus de `LEASH` du centre des autres.
+    fn leash(&mut self) {
+        if self.others.is_empty() || !self.player.alive {
+            return;
+        }
+        let others: Vec<Vec2> = self.others.iter().filter(|h| h.player.alive).map(|h| h.player.pos).collect();
+        if others.is_empty() {
+            return;
+        }
+        let c = others.iter().copied().sum::<Vec2>() / others.len() as f32;
+        let d = self.player.pos - c;
+        if d.length() > LEASH {
+            self.player.pos = c + d.normalize() * LEASH;
+        }
+    }
+
+    /// Coop : chaque joueur gagne les rubis ramasses par tous (son bonus d'experience compris).
+    fn share_xp(&mut self) {
+        let v = std::mem::take(&mut self.shared_xp);
+        if v == 0 {
+            return;
+        }
+        for s in 0..self.hero_count() {
+            self.front(s as u8);
+            self.gain_xp(v);
+        }
+    }
+
+    /// Coop : un joueur a terre se releve (moitie de sa vie) si un allie debout reste pres de lui.
+    fn update_revives(&mut self) {
+        let heroes = self.heroes();
+        for &(s, pos, alive) in &heroes {
+            if alive || self.gone(s) {
+                continue;
+            }
+            let helped = heroes.iter().any(|h| h.2 && h.0 != s && (h.1 - pos).length() < REVIVE_RANGE);
+            self.front(s);
+            let p = &mut self.player;
+            p.revive = if helped { p.revive + DT } else { (p.revive - DT * 2.0).max(0.0) };
+            if p.revive >= REVIVE_TIME {
+                p.revive = 0.0;
+                p.alive = true;
+                p.hp = p.max_hp * 0.5;
+                p.invuln = 2.5;
+                self.events.push(Event::Revived { pos, slot: s });
+            }
+        }
+    }
+
+    fn gone(&self, slot: u8) -> bool {
+        std::iter::once(&self.player).chain(self.others.iter().map(|h| &h.player)).any(|p| p.slot == slot && p.gone)
+    }
+
+    /// Coop : un joueur quitte la partie (meme pas dans tous les jeux) : il tombe pour de bon et ses
+    /// choix en attente sont abandonnes.
+    pub fn retire(&mut self, slot: u8) {
+        let back = self.player.slot;
+        self.front(slot);
+        if self.player.slot == slot {
+            let p = &mut self.player;
+            p.gone = true;
+            p.alive = false;
+            p.swing = None;
+            self.pending_levels = 0;
+            self.pending_chests.clear();
+        }
+        self.front(back);
+    }
+
+    /// Coop : plus de joueurs, des ennemis plus resistants et plus nombreux (`COOP_HP`, `COOP_SPAWN` par
+    /// joueur en plus). A appeler une fois tous les joueurs ajoutes.
+    pub fn coop_scale(&mut self) {
+        let extra = (self.hero_count() - 1) as f32;
+        let (hp, spawn) = (1.0 + COOP_HP * extra, 1.0 + COOP_SPAWN * extra);
+        for m in std::iter::once(&mut self.mods).chain(self.others.iter_mut().map(|h| &mut h.mods)) {
+            m.enemy_hp *= hp;
+            m.spawn_rate *= spawn;
+        }
+    }
+
+    /// Empreinte de l'etat commun de la partie (coop : comparee entre les jeux pour reperer une
+    /// desynchronisation). Les tirages prives des menus n'en font pas partie.
+    pub fn checksum(&self) -> u64 {
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        let mut mix = |v: u64| {
+            h ^= v;
+            h = h.wrapping_mul(0x0100_0000_01b3);
+        };
+        mix(self.ticks);
+        mix(self.time.to_bits() as u64);
+        mix(self.horde.len() as u64);
+        for i in 0..self.horde.len() {
+            mix(self.horde.pos[i].x.to_bits() as u64 | (self.horde.pos[i].y.to_bits() as u64) << 32);
+            mix(self.horde.hp[i].to_bits() as u64);
+        }
+        mix(self.pickups.len() as u64);
+        let mut heroes: Vec<&Player> = std::iter::once(&self.player).chain(self.others.iter().map(|h| &h.player)).collect();
+        heroes.sort_by_key(|p| p.slot);
+        for p in heroes {
+            mix(p.pos.x.to_bits() as u64 | (p.pos.y.to_bits() as u64) << 32);
+            mix(p.hp.to_bits() as u64);
+            mix(p.level as u64);
+            mix(p.xp.to_bits() as u64);
+        }
+        h
     }
 
     /// Porte de sortie : apparait a la mort du boss final (ou a la fin du temps s'il n'y en a pas) ;
@@ -558,10 +876,13 @@ impl World {
         }
         let Some(at) = self.portal else { return };
         self.portal_t += DT;
-        let p = &self.player;
-        if p.alive && self.portal_t > 1.2 && (p.pos - at).length() < 14.0 {
+        let reached = self.heroes().iter().any(|h| h.2 && (h.1 - at).length() < 14.0);
+        if reached && self.portal_t > 1.2 {
             self.won = true;
             self.player.invuln = f32::MAX;
+            for h in &mut self.others {
+                h.player.invuln = f32::MAX;
+            }
             self.events.push(Event::Victory { pos: at });
         }
     }
@@ -640,10 +961,12 @@ impl World {
         interval: f32,
         status: Option<StatusDef>,
     ) -> bool {
-        if self.horde.hp[i] <= 0.0 || self.horde.hit_cd[i][slot.min(HIT_SLOTS - 1)] > 0 {
+        // chaque joueur a ses propres delais de touche (sinon les armes d'un allie bloqueraient les siennes)
+        let cd = slot.min(HIT_SLOTS - 1) + (self.player.slot as usize % MAX_HEROES) * HIT_SLOTS;
+        if self.horde.hp[i] <= 0.0 || self.horde.hit_cd[i][cd] > 0 {
             return false;
         }
-        self.horde.hit_cd[i][slot.min(HIT_SLOTS - 1)] = (interval / DT).round().clamp(1.0, 255.0) as u8;
+        self.horde.hit_cd[i][cd] = (interval / DT).round().clamp(1.0, 255.0) as u8;
         // la chance ajoute des points de critique aux armes qui peuvent en faire
         let luck = ((self.player.stats.luck - 1.0) * self.content.rules.luck_crit).max(0.0);
         let chance = if crit.1 > 1.0 { crit.0 + luck } else { 0.0 };
@@ -766,10 +1089,14 @@ impl World {
         }
     }
 
-    /// Souffle de la Bob-omb : tous les ennemis visibles meurent (sauf les boss).
+    /// Souffle de la Bob-omb : tous les ennemis visibles meurent (sauf les boss) ; en coop, visibles
+    /// par au moins un joueur debout.
     pub fn screen_clear(&mut self, at: Vec2) {
         let lim = self.view_half + Vec2::splat(16.0);
-        let pp = self.player.pos;
+        let mut eyes: Vec<Vec2> = self.heroes().into_iter().filter(|h| h.2).map(|h| h.1).collect();
+        if eyes.is_empty() {
+            eyes.push(self.player.pos);
+        }
         let mut count = 0;
         for j in 0..self.horde.len() {
             if self.horde.hp[j] <= 0.0 {
@@ -779,8 +1106,8 @@ impl World {
             if self.content.enemies[k as usize].boss || Some(k) == self.bomb_kind || self.is_champion(j) {
                 continue;
             }
-            let d = (self.horde.pos[j] - pp).abs();
-            if d.x > lim.x || d.y > lim.y {
+            let e = self.horde.pos[j];
+            if !eyes.iter().any(|&p| (e - p).x.abs() <= lim.x && (e - p).y.abs() <= lim.y) {
                 continue;
             }
             self.horde.hp[j] = 0.0;
@@ -807,21 +1134,38 @@ impl World {
     }
 
     /// Decor cassable : touche par l'epee, les projectiles, les explosions, les orbites et le dash.
-    fn update_props(&mut self) {
-        let mut hits: Vec<(Vec2, f32)> = Vec::new();
+    /// Coups du joueur au premier plan qui cassent le decor : (epee, dash, projectiles), (armes en orbite
+    /// et auras). Ordre du solo garde : premiers coups, explosions, puis orbites.
+    fn hero_prop_hits(&self, hits: &mut PropHits) {
         let pp = self.player.pos;
         if let Some(sw) = self.player.swing {
             let d = Vec2::from_angle(sw.angle_at(sw.t));
-            hits.push((pp + d * sw.radius * 0.6, sw.radius * 0.45));
+            hits.0.push((pp + d * sw.radius * 0.6, sw.radius * 0.45));
         }
         if self.player.dashing() {
-            hits.push((pp, self.player.radius + 4.0));
+            hits.0.push((pp, self.player.radius + 4.0));
         }
         for p in &self.projectiles {
             if p.radius > 0.0 && p.z < 4.0 {
-                hits.push((p.pos + Vec2::new(0.0, 6.0), p.radius));
+                hits.0.push((p.pos + Vec2::new(0.0, 6.0), p.radius));
             }
         }
+        for slot in 0..self.weapons.len() {
+            let w = self.weapons[slot];
+            match self.content.weapons[w.id as usize].kind {
+                WeaponKind::Orbit if w.active > 0.0 => {
+                    for pt in w.orbit_points(pp - Vec2::new(0.0, 6.0), w.phase) {
+                        hits.1.push((pt, 8.0));
+                    }
+                }
+                WeaponKind::Aura => hits.1.push((pp, w.stats.area * 0.8)),
+                _ => {}
+            }
+        }
+    }
+
+    fn update_props(&mut self, (first, last): PropHits) {
+        let mut hits = first;
         for e in &self.events[self.ev0..] {
             match *e {
                 Event::Explosion { pos, radius, .. } | Event::Slam { pos, radius, .. } | Event::Pillar { pos, radius, .. } => {
@@ -830,18 +1174,7 @@ impl World {
                 _ => {}
             }
         }
-        for slot in 0..self.weapons.len() {
-            let w = self.weapons[slot];
-            match self.content.weapons[w.id as usize].kind {
-                WeaponKind::Orbit if w.active > 0.0 => {
-                    for pt in self.orbit_points(slot, pp - Vec2::new(0.0, 6.0), w.phase) {
-                        hits.push((pt, 8.0));
-                    }
-                }
-                WeaponKind::Aura => hits.push((pp, w.stats.area * 0.8)),
-                _ => {}
-            }
-        }
+        hits.extend(last);
         for (at, r) in hits {
             self.hit_props(at, r.min(120.0));
         }
@@ -941,7 +1274,8 @@ impl World {
         p.invuln = self.content.rules.hurt_iframes;
         p.hurt_t = 0.0;
         let pos = p.pos;
-        self.events.push(Event::PlayerHurt { pos, damage: dmg });
+        let slot = p.slot;
+        self.events.push(Event::PlayerHurt { pos, damage: dmg, slot });
         // repousse les ennemis proches pour laisser respirer
         for i in 0..self.horde.len() {
             let d = self.horde.pos[i] - pos;
@@ -955,7 +1289,7 @@ impl World {
             self.mods.revives -= 1;
             p.hp = p.max_hp * 0.5;
             p.invuln = 2.5;
-            self.events.push(Event::Revived { pos });
+            self.events.push(Event::Revived { pos, slot });
             for i in 0..self.horde.len() {
                 let d = self.horde.pos[i] - pos;
                 let l = d.length();
@@ -966,16 +1300,27 @@ impl World {
         } else if p.hp <= 0.0 {
             p.alive = false;
             p.swing = None;
-            self.events.push(Event::PlayerDied { pos });
+            self.events.push(Event::PlayerDied { pos, slot });
         }
     }
 
     fn update_pickups(&mut self) {
-        let pp = self.player.pos;
-        let magnet = self.player.magnet;
-        let alive = self.player.alive;
+        // joueurs : (place, position, aimant, debout) ; chaque objet va au plus proche (solo : le joueur)
+        let mut heroes: Vec<(u8, Vec2, f32, bool)> = std::iter::once(&self.player)
+            .chain(self.others.iter().map(|h| &h.player))
+            .map(|p| (p.slot, p.pos, p.magnet, p.alive))
+            .collect();
+        heroes.sort_by_key(|h| h.0);
         let mut i = 0;
         while i < self.pickups.len() {
+            let at = self.pickups.pos[i];
+            let near = heroes
+                .iter()
+                .filter(|h| h.3)
+                .min_by(|a, b| (a.1 - at).length_squared().total_cmp(&(b.1 - at).length_squared()))
+                .or(heroes.first())
+                .copied();
+            let Some((slot, pp, magnet, alive)) = near else { break };
             let pk = &mut self.pickups;
             pk.age[i] += DT;
             // petit rebond
@@ -996,6 +1341,7 @@ impl World {
                 if alive && dist < 12.0 && pk.age[i] > 0.4 {
                     let (kind, value, pos) = (pk.kind[i], pk.value[i], pk.pos[i]);
                     pk.remove(i);
+                    self.front(slot);
                     self.collect(kind, value, pos);
                     continue;
                 }
@@ -1019,11 +1365,13 @@ impl World {
             if alive && pk.pull[i] >= 0.0 && (pp - pk.pos[i]).length() < 6.0 {
                 let (kind, value, pos) = (pk.kind[i], pk.value[i], pk.pos[i]);
                 pk.remove(i);
+                self.front(slot);
                 self.collect(kind, value, pos);
                 continue;
             }
             i += 1;
         }
+        self.front(0);
     }
 
     /// Attire tous les rubis vers le joueur (fin de boss).
@@ -1050,6 +1398,8 @@ impl World {
                 p.hp = p.max_hp;
             }
             PickupKind::Medallion => self.medallion(pos),
+            // coop : tous les joueurs en profitent, a la fin du pas (`share_xp`)
+            _ if self.coop() => self.shared_xp += value,
             _ => self.gain_xp(value),
         }
     }
@@ -1072,7 +1422,7 @@ impl World {
         let p = &mut self.player;
         p.invuln = p.invuln.max(0.6);
         let pos = p.pos;
-        self.events.push(Event::LevelUp { level: p.level, pos });
+        self.events.push(Event::LevelUp { level: p.level, pos, slot: p.slot });
         let rad = r.levelup_wave_radius;
         for i in 0..self.horde.len() {
             let d = self.horde.pos[i] - pos;
@@ -1201,8 +1551,11 @@ impl World {
     fn recycle_far(&mut self) {
         let lim = self.view_half + Vec2::splat(140.0);
         let pp = self.player.pos;
+        let heroes: Vec<Vec2> = self.heroes().into_iter().map(|h| h.1).collect();
+        // ecart au joueur le plus proche, axe par axe (solo : au joueur)
+        let gap = |p: Vec2| heroes.iter().map(|&h| (p - h).abs()).fold(Vec2::splat(f32::MAX), |m, d| if d.x.max(d.y) < m.x.max(m.y) { d } else { m });
         for i in 0..self.horde.len() {
-            let d = (self.horde.pos[i] - pp).abs();
+            let d = gap(self.horde.pos[i]);
             if d.x > lim.x || d.y > lim.y {
                 if self.content.enemies[self.horde.kind[i] as usize].boss || self.is_champion(i) || Some(self.horde.kind[i]) == self.thief_kind {
                     continue;
@@ -1217,8 +1570,9 @@ impl World {
         // objets trop loin : oublies (sauf coffres)
         let lim2 = lim * 2.5;
         let mut i = 0;
+        let _ = pp;
         while i < self.pickups.len() {
-            let d = (self.pickups.pos[i] - pp).abs();
+            let d = gap(self.pickups.pos[i]);
             if (d.x > lim2.x || d.y > lim2.y) && !self.pickups.kind[i].is_chest() && !self.pickups.kind[i].is_special() {
                 self.pickups.remove(i);
             } else {

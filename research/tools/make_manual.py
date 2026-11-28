@@ -623,6 +623,9 @@ def build(lang, atlas):
     b.para(t["champion"])
     b.figure("thief")
     b.item(b.sprite("boo", max_mm=9), ename("boo"), t["thief"])
+    b.bar(t["coop_h"])
+    for s in t["coop"]:
+        b.para(s)
 
     # 5. armes et objets
     b.chapter("gear", t["ch_gear"])
@@ -660,7 +663,7 @@ def build(lang, atlas):
         else:
             kind, arg = u
             key = {"Win": "ui.unlock_win", "Kills": "ui.unlock_kills", "Bosses": "ui.unlock_bosses",
-                   "Level": "ui.unlock_level", "Slain": "ui.unlock_slain"}[kind]
+                   "Level": "ui.unlock_level", "Slain": "ui.unlock_slain", "Shop": "ui.unlock_shop"}[kind]
             val = sname(arg) if kind == "Win" else (ename(arg) if kind == "Slain" else arg)
             hint = b.get(key).replace("{s}", val).replace("{n}", val)
         start = f'<p class="muted">{html.escape(wname.get(c["weapon"], ""))} - {md(hint)}</p>'

@@ -1,6 +1,6 @@
 # Credits
 
-**A Survivor to the Past** is an unofficial fan game. All graphics, music and sound effects from *The Legend of Zelda* series (and Mario and Shy Guy, from the *Mario* series) belong to **Nintendo**. *Sonic the Hedgehog* belongs to **SEGA**, *Among Us* to **Innersloth**, Simon Belmont (*Castlevania*) to **Konami**, and Vivi (*Final Fantasy IX*) to **Square Enix**. This project is not affiliated with, sponsored or endorsed by any of these companies.
+**A Survivor to the Past** is an unofficial fan game. All graphics, music and sound effects from *The Legend of Zelda* series (and Mario and Shy Guy, from the *Mario* series) belong to **Nintendo**. *Sonic the Hedgehog* belongs to **SEGA**, *Among Us* to **Innersloth**, Simon Belmont (*Castlevania*) to **Konami**, Vivi (*Final Fantasy IX*) to **Square Enix**, and the *Clair Obscur: Expedition 33* characters to **Sandfall Interactive**. This project is not affiliated with, sponsored or endorsed by any of these companies.
 
 The sprite sheets used by the game were found on [The Spriters Resource](https://www.spriters-resource.com/). Many thanks to the people who ripped, edited or drew them. The names below are the ones written on each sheet; a sheet with no name on it is marked "not stated".
 
@@ -70,6 +70,7 @@ If you are the author of one of these sheets and want a credit corrected, added 
 | Skull Kid (A Link to the Past-style) | Skull Kid | Bad Ass Bill |
 | Ganondorf (Wind Waker costume, Minish Cap-style) | Ganondorf | bucketboy (edited from his *King of Hyrule* rip) |
 | Boo Buddy (A Link to the Past-style) | Boo, the rupee thief | JulioTanaka |
+| Clair Obscur: Expedition 33 party (pixel art sheets) | Gustave, Maelle, Lune, Sciel, Monoco, Verso, Esquie (reduced to the game's size) | the game's author |
 | Items (The Minish Cap-style) | Icons of the slingshot, Roc's Feather and Cape, lantern, Gust Jar, ocarinas, Din's Fire, Lens of Truth, Kinstone; slingshot seed | ChaosMiles07 (the sheet also credits Xfixium, sinkin, Pakkun, Zelda Dungeon, Eternal Light and Dany36 for some of its other items) |
 
 ## Project files
@@ -91,7 +92,7 @@ characters belong to their respective owners. Any author can ask for a sprite to
 <!-- zspr:start -->
 - AAhbxsujd : missingno
 - ABOhiccups : Angry Video Game Nerd
-- Achy : Beau, Boo 2, Cirno, Decidueye, EmoSaru, iBazly, Lucario, Luigi, Marisa Kirisame, Power Up with Pride Mushroom, Roy Koopa, Rumia, Super Meat Boy, The Pug
+- Achy : Beau, Boo 2, Cirno, Decidueye, EmoSaru, iBazly, Lucario, Luigi, Marisa Kirisame, Power Up with Gay Mushroom, Roy Koopa, Rumia, Super Meat Boy, The Pug
 - AFewGoodTaters : Steamed Ham
 - aitchFactor : Vera, Zeckemyro
 - All-in-one Mighty : Terra (Esper)
@@ -203,7 +204,7 @@ characters belong to their respective owners. Any author can ask for a sprite to
 - Plan : Maiden
 - PorgCollector : Porg Knight
 - PrideToRuleEarth : Lest
-- proximitysound : GrandPOOBear, Pride Link
+- proximitysound : GrandPOOBear, Gay Link
 - qeeen : Hello Kitty
 - qwertymodo : Navi
 - Razhagal : Linja

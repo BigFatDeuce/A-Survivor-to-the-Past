@@ -89,7 +89,7 @@ pub struct DashDef {
 }
 
 /// Statistiques du joueur modifiees par les objets passifs.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Stat {
     /// Degats (+0.1 = +10 %).
     Might,
@@ -685,11 +685,13 @@ pub struct ThiefRules {
     pub hp: f32,
     /// Il s'enfuit quand le joueur est plus pres que cette distance (pixels).
     pub flee: f32,
+    /// Part des rubis de la partie volee sur toute sa presence (rendue s'il est vaincu).
+    pub steal: f32,
 }
 
 impl Default for ThiefRules {
     fn default() -> Self {
-        ThiefRules { enemy: String::new(), first: 120.0, every: (150.0, 200.0), life: 45.0, hp: 1.0, flee: 110.0 }
+        ThiefRules { enemy: String::new(), first: 120.0, every: (150.0, 200.0), life: 45.0, hp: 1.0, flee: 110.0, steal: 0.3 }
     }
 }
 

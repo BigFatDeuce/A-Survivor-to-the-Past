@@ -3,6 +3,7 @@ use crate::chars;
 use crate::content::{load_bindings, load_content, AudioConfig};
 use crate::director::{Director, Moment};
 use crate::fairy_tip;
+use crate::gallery;
 use crate::hub;
 use crate::hud::{Hud, GOLD};
 use crate::juice::{Juice, NumKind};
@@ -37,6 +38,7 @@ use sim::{Event, PlayerInput, World, DT};
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, TAU};
 
 // Outil de developpement (--uicheck) : a part, il a acces aux champs prives du jeu.
+mod coop_play;
 mod npcs;
 mod uicheck_screens;
 
@@ -73,6 +75,10 @@ pub struct Options {
 
 /// Niveaux de zoom en partie : la vue la plus large (celle d'avant la 0.8) puis deux plus proches.
 pub const ZOOMS: [f32; 3] = [1.0, 1.25, 1.5];
+
+/// Points de reprise de la partie en cours (profil enregistre comme si elle etait abandonnee) la ou
+/// le jeu peut etre ferme sans prevenir : navigateur, Android.
+const RUN_CHECKPOINTS: bool = cfg!(any(target_arch = "wasm32", target_os = "android"));
 
 enum State {
     /// Ecran titre (hors partie).
@@ -120,8 +126,18 @@ enum State {
     Players { sel: usize, armed: bool },
     /// Saisie d'un nom (nouveau joueur, renommage, pseudo du classement en ligne).
     NameEntry { purpose: NamePurpose, text: String, sel: usize },
+    /// Choix du portrait ; `setup` : creation du profil au premier lancement (rien d'enregistre avant).
+    Avatars { sel: usize, setup: bool },
+    /// Galerie (salle dans `Game::gallery`) ; `wing` : ligne de l'onglet au retour ; `from_title` : ouverte
+    /// depuis l'ecran titre (retour au titre).
+    Gallery { wing: usize, from_title: bool },
+    /// Coop en ligne : creer ou rejoindre une salle.
+    Coop { sel: usize },
+    /// Salon de la coop (salle dans `Game::coop`).
+    Lobby { sel: usize },
     /// Classements : onglet, ligne, stage choisi, version choisie (vide : la plus recente).
-    Scores { tab: usize, sel: usize, stage: usize, version: String },
+    /// `players` : 1 (solo) ou 2 a 4 (classement de la coop).
+    Scores { tab: usize, sel: usize, stage: usize, version: String, players: usize },
 }
 
 /// Ce que valide la saisie d'un nom.
@@ -129,8 +145,12 @@ enum NamePurpose {
     /// Nouveau joueur dans cet emplacement.
     Create(usize),
     Rename,
+    /// Premier lancement : nom du joueur, puis son portrait (obligatoires).
+    Setup,
     /// Publication d'une partie ; retour a la ligne `sel` du stage `stage`.
     Pseudo { rec: ScoreRecord, stage: usize, sel: usize },
+    /// Code d'une salle de coop a rejoindre.
+    Room,
 }
 
 impl State {
@@ -153,12 +173,26 @@ impl State {
                 | State::Records { .. }
                 | State::Players { .. }
                 | State::NameEntry { .. }
+                | State::Avatars { .. }
+                | State::Gallery { .. }
+                | State::Coop { .. }
+                | State::Lobby { .. }
                 | State::Scores { .. }
                 | State::Controls { from_title: true, .. }
                 | State::Options { from_title: true, .. }
                 | State::Fairy { .. }
         )
     }
+}
+
+/// Coop : regles de l'hote pour toute la partie (difficulte, multiplicateurs de la banque et du score,
+/// poids de vie des ennemis).
+#[derive(Clone, Copy)]
+pub(super) struct CoopRules {
+    pub difficulty: usize,
+    pub bank: f32,
+    pub score: f32,
+    pub kw: f32,
 }
 
 pub struct Game {
@@ -275,18 +309,53 @@ pub struct Game {
     slots: Vec<Option<Profile>>,
     /// Partie en cours de publication (stage, partie).
     publishing: Option<(String, ScoreRecord)>,
+    /// Juke-box : derniere musique ecoutee en extrait (ligne, debut en temps reel) ; un second appui
+    /// sur la meme ligne l'achete. `jukebox_playing` : l'extrait passe encore.
+    jukebox_try: Option<(usize, f64)>,
+    jukebox_playing: bool,
+    /// Collection : fiche ouverte (onglet armes / fusions / objets, element, instant d'ouverture).
+    card: Option<(usize, usize, f64)>,
+    /// Salle de la galerie (ouverte depuis la Collection).
+    gallery: Option<gallery::Room>,
+    /// Coop en ligne : salle rejointe (salon ou partie).
+    coop: Option<crate::coop::Session>,
+    /// Personnage et preparatifs choisis dans le salon.
+    coop_ready: bool,
+    /// Partie de coop : difficulte de l'hote et multiplicateur de banque (au lieu de ceux du joueur).
+    coop_rules: Option<CoopRules>,
+    /// Relances utilisees sur l'ecran de niveau en cours (envoyees avec le choix).
+    coop_rerolls: u32,
+    /// Allies : visuels (par heros) et noms.
+    others_vis: Vec<crate::visuals::CharVis>,
+    coop_names: Vec<String>,
+    /// Coop : personnages des heros, separes par des virgules (score de l'equipe).
+    coop_chars: String,
+    /// Pendant le dessin, `world.projectiles` contient ceux du joueur local puis ceux de chaque allie : fin
+    /// de chaque groupe (joueur local, puis allies dans l'ordre de `world.others`).
+    proj_ends: Vec<usize>,
+    /// Choix du personnage : premiere ligne visible de la grille ; personnage valide, choix de sa couleur.
+    char_top: usize,
+    char_lock: bool,
 }
 
+/// Musique de la galerie (fournie pour elle).
+const GALLERY_MUSIC: &str = "great_fairys_fountain";
+
 /// Position des entrees fixes du menu titre (retour depuis un sous-ecran).
-const TITLE_PLAYERS: usize = 1;
-const TITLE_SHOP: usize = 2;
-const TITLE_COLLECTION: usize = 3;
-const TITLE_EXPLOITS: usize = 4;
-const TITLE_SCORES: usize = 5;
-const TITLE_OPTIONS: usize = 6;
-const TITLE_ABOUT: usize = 7;
-/// Entree de mise a jour (apres les 8 entrees fixes).
-const TITLE_UPDATE: usize = 8;
+const TITLE_COOP: usize = 1;
+const TITLE_PLAYERS: usize = 2;
+const TITLE_SHOP: usize = 3;
+const TITLE_COLLECTION: usize = 4;
+const TITLE_GALLERY: usize = 5;
+const TITLE_EXPLOITS: usize = 6;
+const TITLE_SCORES: usize = 7;
+const TITLE_OPTIONS: usize = 8;
+const TITLE_ABOUT: usize = 9;
+/// Entree de mise a jour (apres les 10 entrees fixes).
+const TITLE_UPDATE: usize = 10;
+/// Extrait du juke-box : environ 5 s entendues (depart differe et fondu d'entree compris), puis fondu
+/// de sortie vers la musique du menu.
+const JUKEBOX_PREVIEW: f64 = 5.5;
 /// Fichier de repli de l'export du profil (presse-papiers indisponible).
 const CODE_FILE: &str = "profile_code.txt";
 
@@ -403,6 +472,20 @@ impl Game {
             last_score: None,
             slots: Vec::new(),
             publishing: None,
+            jukebox_try: None,
+            jukebox_playing: false,
+            card: None,
+            gallery: None,
+            coop: None,
+            coop_ready: false,
+            coop_rules: None,
+            coop_rerolls: 0,
+            others_vis: Vec::new(),
+            coop_names: Vec::new(),
+            coop_chars: String::new(),
+            proj_ends: Vec::new(),
+            char_top: 0,
+            char_lock: false,
         };
         g.shot_hit = g
             .vis
@@ -441,7 +524,38 @@ impl Game {
         }
         let o = &g.opts;
         let direct = o.play || o.demo || o.bench.is_some() || o.start_time > 0.0 || !o.give.is_empty();
+        // premier lancement (aucun joueur enregistre) : nom et portrait avant tout le reste
+        let first_run = !direct && g.opts.menu.is_none() && !g.opts.uicheck && !g.opts.scripted && profiles::all_slots(&ctx.root).iter().all(Option::is_none);
         g.state = match g.opts.menu.as_deref() {
+            None if first_run => State::NameEntry { purpose: NamePurpose::Setup, text: String::new(), sel: 0 },
+            Some("setup") => State::NameEntry { purpose: NamePurpose::Setup, text: String::new(), sel: 0 },
+            Some("avatars") => State::Avatars { sel: g.profile.avatar, setup: false },
+            // essais avec --demo : --menu coop_auto cree une salle, coop_auto_<CODE> la rejoint (pret d'office)
+            Some(m) if m.starts_with("coop_auto") => {
+                let room = m.strip_prefix("coop_auto_").unwrap_or("new").to_owned();
+                g.coop_open(&room);
+                g.coop_ready = true;
+                State::Lobby { sel: 0 }
+            }
+            // --menu coop_menu, coop_salon, coop_partie... : ecrans de la coop avec une salle factice
+            Some(m) if m.starts_with("coop_") => {
+                let m = m.to_owned();
+                let st = match m.as_str() {
+                    "coop_menu" => State::Coop { sel: 0 },
+                    m if m.starts_with("coop_partie") => State::Playing,
+                    _ => State::Lobby { sel: 1 },
+                };
+                let _ = g.coop_screen(ctx, &m);
+                st
+            }
+            // --menu gallery (aile des armes), gallery_<aile>, ou gallery_trophy_<n> (fiche du trophee n)
+            Some(m) if m.starts_with("gallery") => {
+                let trophy = m.strip_prefix("gallery_trophy_").and_then(|k| k.parse().ok());
+                let wing = if trophy.is_some() { 0 } else { m.strip_prefix("gallery_").and_then(|k| k.parse().ok()).unwrap_or(1) };
+                g.card = trophy.map(|k| (records::TAB_TROPHIES, k, ctx.real_time - 10.0));
+                g.gallery = Some(gallery::Room::new(&g.content, &g.meta, &g.profile, wing));
+                State::Gallery { wing, from_title: false }
+            }
             Some("title") => State::Title { sel: 0 },
             // logo du champion (captures)
             Some("champion") => State::Title { sel: 0 },
@@ -459,6 +573,24 @@ impl Game {
                 g.char_select()
             }
             Some("victory") => State::Victory { t: 3.0, sel: 0 },
+            // fiche de la Collection (captures) : card_<arme ou objet>, beast_<ennemi>
+            Some(m) if m.starts_with("card_") || m.starts_with("beast_") => {
+                let (kind, id) = m.split_once('_').unwrap_or_default();
+                let c = &g.content;
+                let at = ctx.real_time - 10.0;
+                let tab = if kind == "beast" {
+                    g.beast = c.enemy_index(id).map(|k| (k as usize, at));
+                    records::TAB_BESTIARY
+                } else if let Some(k) = c.weapon_index(id) {
+                    let tab = if c.weapons[k as usize].evolved { records::TAB_FUSIONS } else { records::TAB_WEAPONS };
+                    g.card = Some((tab, k as usize, at));
+                    tab
+                } else {
+                    g.card = c.passive_index(id).map(|k| (records::TAB_ITEMS, k as usize, at));
+                    records::TAB_ITEMS
+                };
+                State::Records { tab, sel: 1, armed: false }
+            }
             Some("levelup") => State::LevelUp { offers: g.world.roll_offers(), sel: 0, t: 1.0 },
             // fusion proposee (et fusion ultime) au milieu de choix ordinaires (captures)
             Some(m @ ("levelup_fusion" | "levelup_ultimate")) => {
@@ -554,8 +686,8 @@ impl Game {
                 State::Records { tab: 0, sel: 0, armed: false }
             }
             Some("players") => State::Players { sel: 0, armed: false },
-            Some("scores") => State::Scores { tab: 0, sel: 0, stage: 0, version: String::new() },
-            Some("scores_world") => State::Scores { tab: scores::WORLD, sel: 0, stage: 0, version: String::new() },
+            Some("scores") => State::Scores { tab: 0, sel: 0, stage: 0, version: String::new(), players: 1 },
+            Some("scores_world") => State::Scores { tab: scores::WORLD, sel: 0, stage: 0, version: String::new(), players: 1 },
             Some("controls") => State::Controls { tab: 0, sel: 0, wait: None, from_title: true },
             // annonce d'arme debloquee et case d'arme evoluee qui brille, en jeu (captures)
             Some("toast") => {
@@ -613,7 +745,8 @@ impl Game {
             .collect();
     }
 
-    /// Navigateur : aucun evenement de fermeture d'onglet n'arrive au jeu. Le profil est donc
+    /// Navigateur et Android : aucun evenement de fermeture n'arrive au jeu (onglet ferme, appli tuee
+    /// en arriere-plan). Le profil est donc
     /// enregistre comme si la partie etait abandonnee maintenant (toutes les 10 s et quand la page
     /// perd le focus), sans toucher au profil en memoire : la vraie fin de partie l'ecrase ensuite.
     fn save_run_checkpoint(&mut self, ctx: &Ctx) {
@@ -663,6 +796,8 @@ impl Game {
         self.sfx(ctx, "weapon_unlock");
         let root = ctx.root.clone();
         self.profile.save(&root);
+        // cet enregistrement n'a pas les gains de la partie en cours : point de reprise a l'image suivante
+        self.checkpoint_at = 0.0;
     }
 
     /// Deblocages de la partie qui vient de finir : personnages puis armes.
@@ -675,15 +810,18 @@ impl Game {
     }
 
     /// Icones des reliques actives (equipees et possedees) pour le HUD de la partie.
+    /// Reliques actives de la partie : celles equipees, puis celles gagnees en cours de partie (actives
+    /// tout de suite). Essais et captures : seulement celles de la partie, pas celles du profil.
     fn relic_icons(&self, atlas: &engine::assets::Atlas) -> Vec<engine::assets::AnimId> {
-        if self.opts.demo || self.opts.bench.is_some() {
-            return Vec::new();
-        }
+        let profile = !(self.opts.demo || self.opts.bench.is_some());
         let p = &self.profile;
+        let equipped = |id: &String| profile && p.equipped.contains(id) && p.relics.contains(id);
+        let won = self.meta.relics.iter().filter(|r| !equipped(&r.id) && self.run_relics.contains(&r.id));
         self.meta
             .relics
             .iter()
-            .filter(|r| p.equipped.contains(&r.id) && p.relics.contains(&r.id))
+            .filter(|r| equipped(&r.id))
+            .chain(won)
             .filter_map(|r| atlas.find(&r.icon, "0"))
             .collect()
     }
@@ -726,10 +864,11 @@ impl Game {
             if rec.best_time <= 0.0 || w.time < rec.best_time {
                 rec.best_time = w.time;
             }
-            rec.best_difficulty = rec.best_difficulty.max(p.difficulty as i32);
+            rec.best_difficulty = rec.best_difficulty.max(self.coop_rules.map_or(p.difficulty, |r| r.difficulty) as i32);
         }
-        // quitte ou double de la diseuse
-        let banked = (bank_amount(w.player.rupees, won, self.meta.bank_mult(p)) as f32 * self.run_bank_mult).round() as u64;
+        // quitte ou double de la diseuse ; coop : multiplicateurs de l'hote
+        let mult = self.coop_rules.map_or_else(|| self.meta.bank_mult(p), |r| r.bank);
+        let banked = (bank_amount(w.player.rupees, won, mult) as f32 * self.run_bank_mult).round() as u64;
         p.rupees += banked;
         let t = &mut p.totals;
         t.runs += 1;
@@ -780,7 +919,7 @@ impl Game {
             }
         }
         // meilleurs scores du stage : ni les parties quittees (le joueur est encore en vie), ni
-        // celles de moins de 30 s (retour 0.6.1)
+        // celles de moins de 30 s (retour 0.6.1) ; coop : score de l'equipe, a part
         let w = &self.world;
         if (!won && w.player.alive) || w.time < crate::profile::MIN_RUN_TIME {
             self.last_chars = chars::newly_unlocked(&self.content, &before, &self.profile);
@@ -788,22 +927,53 @@ impl Game {
             self.profile.save(root);
             return banked;
         }
-        let mult = self.meta.score_mult(&self.profile);
-        let score = profiles::score(w.player.kills, w.time, self.run_bosses, won, mult);
-        let rec = ScoreRecord {
-            score,
-            time: w.time,
-            kills: w.player.kills,
-            level: w.player.level,
-            bosses: self.run_bosses,
-            won,
-            character: self.opts.character.clone(),
-            difficulty: self.profile.difficulty,
-            mult,
-            version: title::VERSION.to_string(),
-            published: false,
+        let rec = match self.coop_rules {
+            None => {
+                let mult = self.meta.score_mult(&self.profile);
+                let kw = Some(self.meta.kill_weight(&self.profile));
+                ScoreRecord {
+                    score: profiles::score(w.player.kills, w.time, self.run_bosses, won, mult, kw),
+                    time: w.time,
+                    kills: w.player.kills,
+                    level: w.player.level,
+                    bosses: self.run_bosses,
+                    won,
+                    character: self.opts.character.clone(),
+                    difficulty: self.profile.difficulty,
+                    mult,
+                    kw,
+                    version: title::VERSION.to_string(),
+                    published: false,
+                    team: Vec::new(),
+                }
+            }
+            // coop : ennemis vaincus par toute l'equipe, regles de l'hote ; la meme partie dans chaque jeu
+            Some(r) => {
+                let heroes: Vec<&sim::world::Player> = {
+                    let mut v: Vec<_> = std::iter::once(&w.player).chain(w.others.iter().map(|h| &h.player)).collect();
+                    v.sort_by_key(|p| p.slot);
+                    v
+                };
+                let kills = heroes.iter().map(|p| p.kills).sum();
+                ScoreRecord {
+                    score: profiles::score(kills, w.time, self.run_bosses, won, r.score, Some(r.kw)),
+                    time: w.time,
+                    kills,
+                    level: heroes.iter().map(|p| p.level).max().unwrap_or(1),
+                    bosses: self.run_bosses,
+                    won,
+                    character: self.coop_chars.clone(),
+                    difficulty: r.difficulty,
+                    mult: r.score,
+                    kw: Some(r.kw),
+                    version: title::VERSION.to_string(),
+                    published: false,
+                    team: self.coop_names.clone(),
+                }
+            }
         };
-        let had = self.profile.best_score(&w.map_id).is_some();
+        let score = rec.score;
+        let had = !self.profile.score_list(&w.map_id, rec.team.len().max(1)).is_empty();
         let place = self.profile.add_score(&w.map_id, rec);
         self.last_score = Some((score, had && place == Some(0)));
         self.last_chars = chars::newly_unlocked(&self.content, &before, &self.profile);
@@ -1197,6 +1367,10 @@ impl Game {
                         self.mass_kill(ctx);
                     }
                 }
+                // coop : un allie touche, seulement les eclats
+                Event::PlayerHurt { pos, slot, .. } if slot != self.world.local => {
+                    self.juice.debris(pos - Vec2::new(0.0, 8.0), Vec2::ZERO, 6, rgb(230, 40, 40), 80.0, false);
+                }
                 Event::PlayerHurt { pos, .. } => {
                     self.sfx(ctx, "hurt");
                     self.juice.add_trauma(0.5, 0.75);
@@ -1205,7 +1379,17 @@ impl Game {
                     self.juice.debris(pos - Vec2::new(0.0, 8.0), Vec2::ZERO, 8, rgb(230, 40, 40), 100.0, false);
                     self.hud.heart_shake = 1.0;
                 }
-                Event::PlayerDied { pos } => {
+                // coop : a terre tant qu'un allie tient debout (un allie proche le releve)
+                Event::PlayerDied { pos, slot } if self.world.coop() && (self.world.any_alive() || !self.run_open) => {
+                    if self.run_open {
+                        let me = slot == self.world.local;
+                        let s = if me { self.lang.get("ui.coop.down").to_string() } else { self.lang.get("ui.coop.ally_down").replace("{s}", &self.hero_name(slot)) };
+                        self.hud.banner(&s, rgb(255, 120, 110), 2.5);
+                        self.sfx(ctx, if me { "die" } else { "hurt" });
+                    }
+                    self.juice.ring(pos - Vec2::new(0.0, 8.0), 2.0, 40.0, 0.5, WHITE);
+                }
+                Event::PlayerDied { pos, .. } => {
                     let root = ctx.root.clone();
                     self.commit_run(&root, false);
                     self.collect_unlocks();
@@ -1252,6 +1436,10 @@ impl Game {
                         self.juice.debris(pos - Vec2::new(0.0, 6.0), Vec2::ZERO, if value >= 5 { 6 } else { 2 }, c, 60.0, true);
                     }
                 },
+                // coop : le niveau d'un allie, seulement l'onde
+                Event::LevelUp { pos, slot, .. } if slot != self.world.local => {
+                    self.juice.ring(pos - Vec2::new(0.0, 8.0), 4.0, self.content.rules.levelup_wave_radius, 0.45, WHITE);
+                }
                 Event::LevelUp { pos, .. } => {
                     self.sfx(ctx, "level_up");
                     self.sfx(ctx, "level_wave");
@@ -1329,9 +1517,13 @@ impl Game {
                     self.juice.add_trauma(0.2, 0.5);
                     self.sfx(ctx, "shot_blast");
                 }
-                Event::Revived { pos } => {
+                Event::Revived { pos, slot } => {
                     self.sfx(ctx, "fairy");
-                    let s = self.lang.get("ui.fairy_revive").to_string();
+                    let s = match self.world.coop() {
+                        true if slot == self.world.local => self.lang.get("ui.coop.revived_me").to_string(),
+                        true => self.lang.get("ui.coop.revived").replace("{s}", &self.hero_name(slot)),
+                        false => self.lang.get("ui.fairy_revive").to_string(),
+                    };
                     self.hud.banner(&s, rgb(255, 170, 230), 2.5);
                     self.juice.flash([1.0, 0.8, 0.95, 0.6], 0.6);
                     self.juice.ring(pos - Vec2::new(0.0, 8.0), 4.0, 90.0, 0.6, rgb(255, 170, 230));
@@ -1620,16 +1812,22 @@ impl Game {
                 let o = reward::roll(&self.world, &self.meta, &self.profile, &self.run_relics, &mut self.rng);
                 if let Some(id) = reward::apply(&mut self.world, &self.meta, o[0]) {
                     self.run_relics.push(id);
+                    self.hud.relics = self.relic_icons(&ctx.atlas);
                 }
             }
+            return false;
+        }
+        // coop : un choix local attend encore son pas (quelques images) avant le suivant
+        if self.coop_queued() {
             return false;
         }
         // tout est au maximum et le bonus de niveau est deja choisi : il s'applique sans ecran
         if let Some(f) = self.fallback {
             let mut given = false;
-            while self.world.pending_levels > 0 && self.world.roll_offers().iter().all(|o| matches!(o, Offer::Heal | Offer::Rupees)) {
-                self.world.pending_levels -= 1;
-                self.world.apply_offer(f);
+            let mut left = self.world.pending_levels;
+            while left > 0 && self.world.roll_offers().iter().all(|o| matches!(o, Offer::Heal | Offer::Rupees)) {
+                left -= 1;
+                self.take_level(Some(f));
                 given = true;
             }
             if given {
@@ -1649,14 +1847,15 @@ impl Game {
             return true;
         }
         if !self.world.pending_chests.is_empty() {
-            let big = self.world.pending_chests.remove(0);
+            // coop : le coffre reste en attente jusqu'a son ouverture, au meme pas dans tous les jeux
+            let big = if self.coop_run() { self.world.pending_chests[0] } else { self.world.pending_chests.remove(0) };
             let options = self.world.evolution_choices();
             if options.len() > 1 {
                 self.state = State::EvoChoice { options, big, sel: 0, t: 0.0 };
                 ctx.audio.duck_music(0.35, 0.2);
                 return true;
             }
-            let reward = self.world.open_chest(big);
+            let reward = self.take_chest(big, None);
             self.state = State::Chest { reward, big, t: 0.0 };
             ctx.audio.duck_music(0.35, 0.2);
             return true;
@@ -1702,9 +1901,11 @@ impl Game {
         let l = &self.lang;
         let mut v = vec![
             (TitleItem::Play, l.get("ui.play").to_string()),
+            (TitleItem::Coop, l.get("ui.coop").to_string()),
             (TitleItem::Players, l.get("ui.player_item").replace("{s}", &self.profile.name)),
             (TitleItem::Shop, l.get("ui.shop").to_string()),
             (TitleItem::Collection, l.get("ui.collection").to_string()),
+            (TitleItem::Gallery, l.get("ui.gallery").to_string()),
             (TitleItem::Exploits, l.get("ui.exploits").to_string()),
             (TitleItem::Scores, l.get("ui.scores").to_string()),
             (TitleItem::Options, l.get("ui.options").to_string()),
@@ -1734,6 +1935,11 @@ impl Game {
     /// Ecran titre sous l'orage : pluie, tonnerre apres chaque eclair, image sans filtre.
     /// En partie (et dans les options, pour juger du rendu), le filtre choisi par le joueur.
     fn title_ambience(&mut self, ctx: &mut Ctx) {
+        // galerie : la musique seule, sans l'orage du titre
+        if matches!(self.state, State::Gallery { .. }) {
+            ctx.audio.stop_ambience(1.2);
+            return;
+        }
         let scene = self.state.in_title();
         if scene {
             if let (Some(id), false) = (self.audio_cfg.menu_ambience.clone(), self.opts.uicheck) {
@@ -1871,7 +2077,9 @@ impl Game {
         match input {
             hub::Input::Back => {
                 self.sfx(ctx, "confirm");
-                return Some(if prep {
+                return Some(if prep && self.coop.as_ref().is_some_and(|s| !s.is_host()) {
+                    self.char_select()
+                } else if prep {
                     State::StageSelect { sel: self.stage_ids.iter().position(|s| *s == self.opts.map).unwrap_or(0) }
                 } else {
                     State::Title { sel: TITLE_SHOP }
@@ -1887,11 +2095,24 @@ impl Game {
                     self.sfx(ctx, "cursor");
                 }
             }
+            hub::Input::Pick(0) if prep && self.coop.is_some() => {
+                self.sfx(ctx, "confirm");
+                self.coop_set_ready(ctx);
+                return Some(State::Lobby { sel: 0 });
+            }
             hub::Input::Pick(0) if prep => {
                 self.sfx(ctx, "confirm");
                 ctx.audio.stop_music(0.6);
                 self.restart(ctx);
                 return None;
+            }
+            // juke-box : une musique pas encore achetee s'ecoute d'abord en extrait ; un second appui l'achete
+            hub::Input::Pick(k)
+                if tab == shop::TAB_JUKEBOX
+                    && self.meta.jukebox.get(k - off).is_some_and(|t| !shop::track_owned(t, &self.profile))
+                    && self.jukebox_try.map(|t| t.0) != Some(k - off) =>
+            {
+                self.preview_track(ctx, k - off);
             }
             hub::Input::Pick(k) => self.shop_act(ctx, tab, k - off, 0),
             _ => {}
@@ -1899,13 +2120,39 @@ impl Game {
         Some(make(tab, sel))
     }
 
+    /// Extrait d'une musique du juke-box (la musique du menu reprend ensuite, voir `tick_preview`).
+    fn preview_track(&mut self, ctx: &mut Ctx, k: usize) {
+        let id = self.meta.jukebox[k].id.clone();
+        if let Some(def) = self.audio_cfg.music_def(&id) {
+            let root = ctx.root.clone();
+            ctx.audio.preview_music(&id, &def, &root);
+        }
+        self.jukebox_try = Some((k, ctx.real_time));
+        self.jukebox_playing = true;
+        self.sfx(ctx, "cursor");
+    }
+
+    /// Fin de l'extrait (duree ecoulee ou juke-box quitte) : la musique du menu revient en fondu.
+    fn tick_preview(&mut self, ctx: &mut Ctx) {
+        let Some((_, t0)) = self.jukebox_try else { return };
+        let here = matches!(self.state, State::Shop { tab: shop::TAB_JUKEBOX, .. });
+        if self.jukebox_playing && (!here || ctx.real_time - t0 >= JUKEBOX_PREVIEW) {
+            self.jukebox_playing = false;
+            let id = self.menu_music();
+            self.play_music(ctx, &id, if here { 1.2 } else { 0.5 });
+        }
+        if !here {
+            self.jukebox_try = None;
+        }
+    }
+
     fn shop_act(&mut self, ctx: &mut Ctx, tab: usize, k: usize, dir: i32) {
-        let outcome = shop::act(&self.meta, &self.content, &mut self.profile, tab, k, dir);
+        let outcome = shop::act(&self.meta, &self.content, &self.lang, &mut self.profile, tab, k, dir);
         if matches!(outcome, shop::Outcome::Done | shop::Outcome::Selected) {
             match tab {
                 // garde-robe : la tenue achetee (ou choisie) est portee tout de suite
                 shop::TAB_WARDROBE => {
-                    let w = shop::wardrobe_items(&self.meta, &self.content, &self.profile).get(k).map(|w| (w.character.clone(), w.sprite.clone()));
+                    let w = shop::wardrobe_items(&self.meta, &self.content, &self.profile, &self.lang).get(k).map(|w| (w.character.clone(), w.sprite.clone()));
                     if let Some((ch, sprite)) = w {
                         if let Some(i) = self.content.characters.get(&ch).and_then(|d| d.skins.iter().position(|s| s.0 == sprite)) {
                             self.profile.skins.insert(ch, i);
@@ -1913,8 +2160,11 @@ impl Game {
                         }
                     }
                 }
-                // juke-box : la musique choisie passe aussitot (et devient celle de l'ecran titre)
+                // juke-box : la musique choisie passe aussitot (et devient celle de l'ecran titre) ;
+                // achetee pendant son extrait, elle continue sans repartir du debut
                 shop::TAB_JUKEBOX => {
+                    self.jukebox_try = None;
+                    self.jukebox_playing = false;
                     let id = self.menu_music();
                     self.play_music(ctx, &id, 0.4);
                 }
@@ -1975,6 +2225,23 @@ impl Game {
             }
             return State::Records { tab, sel, armed };
         }
+        // fiche d'une arme, d'une fusion ou d'un objet : gauche / droite pour le suivant, A, Echap ou un clic ferme
+        if let Some((ct, k, _)) = self.card {
+            if nav.back || nav.confirm || nav.click {
+                self.card = None;
+                self.sfx(ctx, "confirm");
+            } else if nav.left || nav.right || nav.up || nav.down {
+                let (all, known) = records::card_items(&self.content, &self.meta, &self.profile, ct);
+                if let Some(i) = known.iter().position(|&e| e == k) {
+                    let d = if nav.left || nav.up { -1 } else { 1 };
+                    let e = known[(i as i32 + d).rem_euclid(known.len() as i32) as usize];
+                    self.card = Some((ct, e, ctx.real_time));
+                    sel = all.iter().position(|&o| o == e).unwrap_or(sel);
+                    self.sfx(ctx, "cursor");
+                }
+            }
+            return State::Records { tab, sel, armed };
+        }
         // Recueil, Exploits ou Sauvegarde : seulement les onglets de cet ecran
         let (range, _) = records::book(tab);
         let ntabs = range.len();
@@ -2017,6 +2284,22 @@ impl Game {
                     self.sfx(ctx, "confirm");
                 } else {
                     self.sfx(ctx, "error");
+                }
+            }
+            hub::Input::Pick(k) if tab == records::TAB_GALLERY => {
+                self.gallery = Some(gallery::Room::new(&self.content, &self.meta, &self.profile, k));
+                self.sfx(ctx, "confirm");
+                self.play_music(ctx, GALLERY_MUSIC, 0.6);
+                return State::Gallery { wing: k, from_title: false };
+            }
+            hub::Input::Pick(k) if matches!(tab, records::TAB_WEAPONS | records::TAB_FUSIONS | records::TAB_ITEMS) => {
+                let (all, known) = records::card_items(&self.content, &self.meta, &self.profile, tab);
+                match all.get(k).filter(|e| known.contains(e)) {
+                    Some(&e) => {
+                        self.card = Some((tab, e, ctx.real_time));
+                        self.sfx(ctx, "confirm");
+                    }
+                    None => self.sfx(ctx, "error"),
                 }
             }
             hub::Input::Pick(k) if tab == records::TAB_SAVE && k == records::SAVE_EXPORT => {
@@ -2220,19 +2503,30 @@ impl Game {
     }
 
     fn update_name(&mut self, ctx: &mut Ctx, nav: &NavIn, purpose: NamePurpose, mut text: String, mut sel: usize) -> State {
-        match players::name_input(ctx, nav, &mut text, &mut sel) {
+        let act = players::name_input(ctx, nav, &mut text, &mut sel);
+        if matches!(purpose, NamePurpose::Room) {
+            // code de salle : 4 lettres sans ambiguite, en majuscules
+            text = text.to_uppercase().chars().filter(|c| crate::coop::CODE_CHARS.contains(*c)).take(crate::coop::CODE_LEN).collect();
+        }
+        match act {
             players::NameAction::Moved | players::NameAction::Typed => self.sfx(ctx, "cursor"),
             players::NameAction::Cancel => {
                 self.sfx(ctx, "confirm");
                 return match purpose {
                     NamePurpose::Create(k) => State::Players { sel: k, armed: false },
                     NamePurpose::Rename => State::Players { sel: self.profile.slot, armed: false },
-                    NamePurpose::Pseudo { stage, sel, .. } => State::Scores { tab: scores::MINE, sel, stage, version: String::new() },
+                    NamePurpose::Pseudo { stage, sel, .. } => State::Scores { tab: scores::MINE, sel, stage, version: String::new(), players: 1 },
+                    NamePurpose::Room => State::Coop { sel: 1 },
+                    // creation du profil : obligatoire
+                    NamePurpose::Setup => {
+                        self.sfx(ctx, "error");
+                        State::NameEntry { purpose, text, sel }
+                    }
                 };
             }
             players::NameAction::Done => {
                 let name = text.trim().to_string();
-                if name.is_empty() {
+                if name.is_empty() || (matches!(purpose, NamePurpose::Room) && name.chars().count() != crate::coop::CODE_LEN) {
                     self.sfx(ctx, "error");
                 } else {
                     return self.name_done(ctx, purpose, name);
@@ -2241,6 +2535,82 @@ impl Game {
             players::NameAction::None => {}
         }
         State::NameEntry { purpose, text, sel }
+    }
+
+    /// Galerie : Link se promene ; A devant un socle ouvre sa fiche (celles de la Collection), Echap sort.
+    fn update_gallery(&mut self, ctx: &mut Ctx, nav: &NavIn, wing: usize, from_title: bool, dt: f32) -> State {
+        if self.beast.is_some() || self.card.is_some() {
+            // fiche ouverte : memes commandes que dans la Collection (achat de figurine compris)
+            let _ = self.update_records(ctx, nav, records::TAB_GALLERY, wing, false);
+            return State::Gallery { wing, from_title };
+        }
+        if nav.back || self.gallery.is_none() {
+            self.gallery = None;
+            self.sfx(ctx, "confirm");
+            let id = self.menu_music();
+            self.play_music(ctx, &id, 0.6);
+            if from_title {
+                return State::Title { sel: TITLE_GALLERY };
+            }
+            return State::Records { tab: records::TAB_GALLERY, sel: wing, armed: false };
+        }
+        let mv = self.read_input(ctx).move_dir;
+        let Some(room) = self.gallery.as_mut() else { return State::Gallery { wing, from_title } };
+        room.step(mv, dt);
+        let cry = gallery::cry(&self.content, &self.profile, room);
+        let near = room.near();
+        if let Some(s) = cry {
+            self.sfx_p(ctx, s, 0.5, 1.0);
+        }
+        if nav.confirm {
+            match near.and_then(|e| gallery::card_of(&self.content, &self.profile, e)) {
+                Some((records::TAB_BESTIARY, k)) => {
+                    self.beast = Some((k, ctx.real_time));
+                    self.sfx(ctx, "confirm");
+                }
+                Some((tab, k)) => {
+                    self.card = Some((tab, k, ctx.real_time));
+                    self.sfx(ctx, "confirm");
+                }
+                None if near.is_some_and(|e| !matches!(e, gallery::Exhibit::Fairy | gallery::Exhibit::Statue(_))) => self.sfx(ctx, "error"),
+                None => {}
+            }
+        }
+        State::Gallery { wing, from_title }
+    }
+
+    /// Choix du portrait : A l'enregistre (creation du profil : le profil n'existe qu'a partir de la).
+    fn update_avatars(&mut self, ctx: &mut Ctx, nav: &NavIn, mut sel: usize, setup: bool) -> State {
+        match players::avatar_input(nav, ctx.view, &mut sel) {
+            players::AvatarAction::Moved => self.sfx(ctx, "cursor"),
+            players::AvatarAction::Back if setup => {
+                self.sfx(ctx, "confirm");
+                return State::NameEntry { purpose: NamePurpose::Setup, text: self.profile.name.clone(), sel: players::DONE };
+            }
+            players::AvatarAction::Back => {
+                self.sfx(ctx, "confirm");
+                return State::Players { sel: self.profile.slot, armed: false };
+            }
+            players::AvatarAction::Pick => {
+                self.profile.avatar = sel;
+                if self.profile.pseudo.is_empty() {
+                    self.profile.pseudo = self.profile.name.clone();
+                }
+                self.profile.save(&ctx.root);
+                profiles::set_active(&ctx.root, self.profile.slot);
+                self.slots = profiles::all_slots(&ctx.root);
+                if setup {
+                    self.sfx(ctx, "relic");
+                    let s = self.lang.get("ui.player_created").replace("{s}", &self.profile.name);
+                    self.hub_toast = (s, 2.5);
+                    return State::Title { sel: 0 };
+                }
+                self.sfx(ctx, "equip");
+                return State::Players { sel: self.profile.slot, armed: false };
+            }
+            players::AvatarAction::None => {}
+        }
+        State::Avatars { sel, setup }
     }
 
     fn name_done(&mut self, ctx: &mut Ctx, purpose: NamePurpose, name: String) -> State {
@@ -2264,33 +2634,51 @@ impl Game {
                 self.profile.save(&root);
                 self.slots = profiles::all_slots(&root);
                 self.sfx(ctx, "equip");
-                State::Players { sel: self.profile.slot, armed: false }
+                State::Avatars { sel: self.profile.avatar, setup: false }
+            }
+            NamePurpose::Setup => {
+                self.profile.name = name;
+                self.sfx(ctx, "confirm");
+                State::Avatars { sel: self.profile.avatar, setup: true }
+            }
+            NamePurpose::Room => {
+                self.sfx(ctx, "confirm");
+                self.coop_open(&name);
+                State::Lobby { sel: 0 }
             }
             NamePurpose::Pseudo { rec, stage, sel } => {
                 self.profile.pseudo = name.clone();
                 self.profile.save(&root);
                 let map = self.stage_ids.get(stage).cloned().unwrap_or_default();
-                self.online.submit(Submission {
-                    map: map.clone(),
-                    version: rec.version.clone(),
-                    name,
-                    score: rec.score,
-                    time: rec.time,
-                    kills: rec.kills,
-                    level: rec.level,
-                    bosses: rec.bosses,
-                    won: rec.won,
-                    character: rec.character.clone(),
-                    difficulty: rec.difficulty,
-                    mult: rec.mult,
-                    title: self.profile.title,
-                });
-                self.publishing = Some((map, rec));
-                self.sfx(ctx, "confirm");
-                self.hub_toast = (self.lang.get("ui.publishing").to_string(), 30.0);
-                State::Scores { tab: scores::MINE, sel, stage, version: String::new() }
+                self.publish(ctx, map, rec, name);
+                State::Scores { tab: scores::MINE, sel, stage, version: String::new(), players: 1 }
             }
         }
+    }
+
+    /// Publie une partie (`name` : pseudo ; coop : les pseudos de l'equipe sont dans la partie).
+    fn publish(&mut self, ctx: &mut Ctx, map: String, rec: ScoreRecord, name: String) {
+        self.online.submit(Submission {
+            map: map.clone(),
+            version: rec.version.clone(),
+            name,
+            score: rec.score,
+            time: rec.time,
+            kills: rec.kills,
+            level: rec.level,
+            bosses: rec.bosses,
+            won: rec.won,
+            character: rec.character.clone(),
+            difficulty: rec.difficulty,
+            mult: rec.mult,
+            kw: rec.kw,
+            title: if rec.team.is_empty() { self.profile.title } else { 0 },
+            players: rec.team.len().max(1),
+            team: rec.team.clone(),
+        });
+        self.publishing = Some((map, rec));
+        self.sfx(ctx, "confirm");
+        self.hub_toast = (self.lang.get("ui.publishing").to_string(), 30.0);
     }
 
     /// Reponse du serveur a une publication.
@@ -2322,7 +2710,7 @@ impl Game {
         };
         if let Some((map, rec)) = self.publishing.take() {
             if ok {
-                let found = self.profile.scores.get_mut(&map).and_then(|l| l.iter_mut().find(|r| r.score == rec.score && r.time == rec.time && r.kills == rec.kills));
+                let found = self.profile.score_list_mut(&map, rec.team.len().max(1)).and_then(|l| l.iter_mut().find(|r| r.score == rec.score && r.time == rec.time && r.kills == rec.kills));
                 if let Some(r) = found {
                     r.published = true;
                 }
@@ -2336,7 +2724,7 @@ impl Game {
     }
 
     /// Lignes de l'ecran Classements.
-    fn score_rows(&self, ctx: &Ctx, tab: usize, stage: usize, version: &str) -> (Vec<hub::Row>, Vec<String>) {
+    fn score_rows(&self, ctx: &Ctx, tab: usize, stage: usize, version: &str, players: usize) -> (Vec<hub::Row>, Vec<String>) {
         let lang = &self.lang;
         let stage_id = self.stage_ids.get(stage).map(|s| s.as_str()).unwrap_or("");
         let board = self.online.board();
@@ -2353,13 +2741,14 @@ impl Game {
             titles: &titles,
             board: &board,
             version,
+            players: if scores::has_mode(tab) { players } else { 1 },
         };
         scores::rows(&v, tab)
     }
 
     /// Version voisine dans le classement mondial (vide : la plus recente).
     fn step_version(&self, stage_id: &str, version: &str, d: i32) -> String {
-        let ((map, _), st) = self.online.board();
+        let ((map, _, _), st) = self.online.board();
         let NetStatus::Done(b) = st else { return version.to_string() };
         if map != stage_id || b.versions.is_empty() {
             return version.to_string();
@@ -2376,14 +2765,16 @@ impl Game {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn update_scores(&mut self, ctx: &mut Ctx, nav: &NavIn, mut tab: usize, mut sel: usize, mut stage: usize, mut version: String) -> State {
+    fn update_scores(&mut self, ctx: &mut Ctx, nav: &NavIn, (mut tab, mut sel, mut stage): (usize, usize, usize), mut version: String, mut players: usize) -> State {
         let ns = self.stage_ids.len().max(1);
         stage = stage.min(ns - 1);
         let stage_id = self.stage_ids.get(stage).cloned().unwrap_or_default();
         if tab == scores::WORLD {
-            self.online.fetch(&stage_id, &version);
+            self.online.fetch(&stage_id, &version, players);
         }
-        let n = self.score_rows(ctx, tab, stage, &version).0.len();
+        let n = self.score_rows(ctx, tab, stage, &version, players).0.len();
+        // solo, puis coop a 2, 3 ou 4
+        let step_players = |p: usize, d: i32| (p as i32 - 1 + d).rem_euclid(scores::MAX_PLAYERS as i32) as usize + 1;
         let input = hub::input(nav, ctx.view, scores::TABS.len(), tab, n, &mut sel);
         let head = scores::head(tab);
         match input {
@@ -2405,6 +2796,8 @@ impl Game {
                 let d = if matches!(input, hub::Input::Left(_)) { -1 } else { 1 };
                 if k == scores::STAGE_ROW {
                     stage = (stage as i32 + d).rem_euclid(ns as i32) as usize;
+                } else if scores::has_mode(tab) && k == scores::MODE_ROW {
+                    players = step_players(players, d);
                 } else if tab == scores::WORLD && k == scores::VERSION_ROW {
                     version = self.step_version(&stage_id, &version, d);
                 } else {
@@ -2417,12 +2810,16 @@ impl Game {
                 stage = (stage + 1) % ns;
                 self.sfx(ctx, "cursor");
             }
+            hub::Input::Pick(k) if scores::has_mode(tab) && k == scores::MODE_ROW => {
+                players = step_players(players, 1);
+                self.sfx(ctx, "cursor");
+            }
             hub::Input::Pick(k) if tab == scores::WORLD && k == scores::VERSION_ROW => {
                 version = self.step_version(&stage_id, &version, 1);
                 self.sfx(ctx, "cursor");
             }
             hub::Input::Pick(k) if tab == scores::MINE => {
-                let rec = self.profile.scores.get(&stage_id).and_then(|l| l.get(k.wrapping_sub(head))).cloned();
+                let rec = self.profile.score_list(&stage_id, players).get(k.wrapping_sub(head)).cloned();
                 match rec {
                     Some(r) if r.published => {
                         self.sfx(ctx, "error");
@@ -2431,6 +2828,11 @@ impl Game {
                     Some(_) if self.publishing.is_some() => {
                         self.sfx(ctx, "error");
                         self.toast("ui.publishing");
+                    }
+                    // coop : publiee sous les pseudos de l'equipe (ceux de la partie)
+                    Some(r) if !r.team.is_empty() => {
+                        let name = r.team[0].clone();
+                        self.publish(ctx, stage_id.clone(), r, name);
                     }
                     Some(r) => {
                         self.sfx(ctx, "confirm");
@@ -2443,14 +2845,20 @@ impl Game {
             }
             hub::Input::Pick(_) | hub::Input::None => {}
         }
-        State::Scores { tab, sel, stage, version }
+        State::Scores { tab, sel, stage, version, players }
     }
 
     fn draw_hub(&self, ctx: &Ctx, list: &mut DrawList) {
         let lang = &self.lang;
         let (title, tabs, tab, sel, rows, details, corner) = match self.state {
             State::Shop { tab, sel } => {
-                let (r, d) = shop::rows(&self.meta, &self.content, &self.profile, lang, &ctx.atlas, tab);
+                let (r, mut d) = shop::rows(&self.meta, &self.content, &self.profile, lang, &ctx.atlas, tab);
+                // juke-box : musique ecoutee en extrait, le second appui l'achete
+                if let (shop::TAB_JUKEBOX, Some((k, _))) = (tab, self.jukebox_try) {
+                    if let (Some(line), Some(t)) = (d.get_mut(k), self.meta.jukebox.get(k)) {
+                        *line = lang.get("ui.jukebox_confirm").replace("{n}", &t.cost.to_string());
+                    }
+                }
                 let corner = Some((self.vis.icon_rupees, self.profile.rupees.to_string()));
                 (lang.get("ui.shop"), &shop::TABS[shop::SHOP], tab - shop::SHOP.start, sel, r, d, corner)
             }
@@ -2468,8 +2876,8 @@ impl Game {
                 let (range, title) = records::book(tab);
                 (lang.get(title), &records::TABS[range.clone()], tab - range.start, sel, r, d, None)
             }
-            State::Scores { tab, sel, stage, ref version } => {
-                let (r, d) = self.score_rows(ctx, tab, stage, version);
+            State::Scores { tab, sel, stage, ref version, players } => {
+                let (r, d) = self.score_rows(ctx, tab, stage, version, players);
                 (lang.get("ui.scores"), &scores::TABS[..], tab, sel, r, d, None)
             }
             State::Controls { tab, sel, wait, .. } => {
@@ -2488,6 +2896,103 @@ impl Game {
         if let (State::Records { tab: 0, .. }, Some((k, t0))) = (&self.state, self.beast) {
             self.draw_beast(ctx, list, k, (ctx.real_time - t0) as f32);
         }
+        if let (State::Records { .. }, Some((ct, k, t0))) = (&self.state, self.card) {
+            self.draw_card(ctx, list, ct, k, (ctx.real_time - t0) as f32);
+        }
+    }
+
+    /// Fiche d'une arme, d'une fusion, d'un objet ou d'un trophee : icone, description, caracteristiques
+    /// au niveau 1 et au maximum (ou bonus par niveau, ou paliers), effets et fusions.
+    fn draw_card(&self, ctx: &Ctx, list: &mut DrawList, tab: usize, k: usize, t: f32) {
+        use crate::card::Line;
+        use engine::draw::Align;
+        let atlas = &ctx.atlas;
+        let (c, icon) = match tab {
+            records::TAB_ITEMS => (crate::card::passive(&self.content, &self.lang, &self.profile, k), Some(self.vis.passives[k])),
+            records::TAB_TROPHIES => {
+                let icon = crate::trophies::families(&self.content, &self.meta, &self.profile).get(k).and_then(|f| atlas.find(f.icon, "0"));
+                (crate::card::trophy(&self.content, &self.meta, &self.lang, &self.profile, k), icon.or_else(|| atlas.find("icon_crystal", "0")))
+            }
+            _ => (crate::card::weapon(&self.content, &self.lang, &self.profile, k), Some(self.vis.weapons[k].icon)),
+        };
+        let view = ctx.view;
+        let main = atlas.font("main");
+        let white = &self.vis.white;
+        let lh = main.line_height as f32 + 1.0;
+        let width = (view.x - 16.0).min(420.0).round();
+        let inner = width - 24.0;
+        let desc = crate::hud::wrap(main, &c.desc, inner, 1.0);
+        let notes: Vec<String> = c.notes.iter().flat_map(|n| crate::hud::wrap(main, n, inner, 1.0)).collect();
+        let stats = c.lines.iter().any(|l| matches!(l, Line::Stat(_, _, b) if !b.is_empty()));
+        let rows = c.lines.len() + stats as usize;
+        let hint = self.lang.get("card.hint");
+        let height = (12.0 + 34.0 + lh + 4.0 + desc.len() as f32 * lh + 6.0 + rows as f32 * lh + 6.0 + notes.len() as f32 * lh + 4.0 + lh + 8.0).min(view.y - 8.0).round();
+        let size = Vec2::new(width, height);
+        let pos = ((view - size) * 0.5).round();
+        let u = (t / 0.15).min(1.0);
+        list.set(Space::Ui, Blend::Alpha);
+        list.probe_layer();
+        list.rect(white, Vec2::ZERO, view, [0.0, 0.0, 0.0, 0.85 * u]);
+        list.probe_panel(pos, size, "fiche");
+        list.rect(white, pos, size, [0.05, 0.035, 0.09, 0.97]);
+        let edge = if c.fusion { [0.75, 0.55, 1.0, 0.9] } else { with_alpha(GOLD, 0.9) };
+        crate::hud::frame_rect(list, white, pos, size, edge);
+        crate::hud::frame_rect(list, white, pos + Vec2::splat(2.0), size - Vec2::splat(4.0), [1.0, 1.0, 1.0, 0.15]);
+        let cx = (view.x * 0.5).round();
+        // icone agrandie, qui flotte doucement
+        if let Some(icon) = icon {
+            let f = atlas.frame(icon, 0.0);
+            let sc = (32.0 / f.w.max(f.h).max(1) as f32).floor().clamp(1.0, 3.0);
+            let bob = (t * 2.0).sin() * 1.5;
+            let at = Vec2::new(cx, pos.y + 8.0 + 16.0 + bob) + Vec2::new(f.px as f32 - f.w as f32 * 0.5, f.py as f32 - f.h as f32 * 0.5) * sc;
+            list.frame(f, at.round(), &Params::default().scale(Vec2::splat(sc)));
+        }
+        let mut y = pos.y + 12.0 + 34.0;
+        let title = if c.fusion { crate::hud::hl_fusion(&c.title) } else { c.title.clone() };
+        crate::hud::text(list, main, &title, Vec2::new(cx, y), 1.0, GOLD, Align::Center);
+        y += lh + 4.0;
+        let left = pos.x + 12.0;
+        let right = pos.x + width - 12.0;
+        let col = (pos.x + width * 0.7).round();
+        for l in &desc {
+            crate::hud::text(list, main, l, Vec2::new(left, y), 1.0, [0.86, 0.86, 0.94, 1.0], Align::Left);
+            y += lh;
+        }
+        y += 6.0;
+        if stats {
+            let dim = [0.6, 0.6, 0.72, 1.0];
+            crate::hud::text(list, main, self.lang.get("card.lv_first"), Vec2::new(col, y), 1.0, dim, Align::Right);
+            crate::hud::text(list, main, self.lang.get("card.lv_max"), Vec2::new(right, y), 1.0, dim, Align::Right);
+            y += lh;
+        }
+        for (i, l) in c.lines.iter().enumerate() {
+            // une ligne sur deux legerement eclairee (lecture du tableau)
+            if i % 2 == 0 {
+                list.rect(white, Vec2::new(left - 4.0, y - 1.0), Vec2::new(inner + 8.0, lh), [1.0, 1.0, 1.0, 0.04]);
+            }
+            match l {
+                Line::Stat(name, a, b) if b.is_empty() => {
+                    crate::hud::text(list, main, name, Vec2::new(left, y), 1.0, [0.82, 0.82, 0.92, 1.0], Align::Left);
+                    crate::hud::text(list, main, a, Vec2::new(right, y), 1.0, [0.95, 0.95, 1.0, 1.0], Align::Right);
+                }
+                Line::Stat(name, a, b) => {
+                    crate::hud::text(list, main, name, Vec2::new(left, y), 1.0, [0.82, 0.82, 0.92, 1.0], Align::Left);
+                    crate::hud::text(list, main, a, Vec2::new(col, y), 1.0, [0.95, 0.95, 1.0, 1.0], Align::Right);
+                    crate::hud::text(list, main, b, Vec2::new(right, y), 1.0, if a == b { [0.95, 0.95, 1.0, 1.0] } else { crate::hub::GREEN }, Align::Right);
+                }
+                Line::Text(name, v) => {
+                    crate::hud::text(list, main, name, Vec2::new(left, y), 1.0, [0.82, 0.82, 0.92, 1.0], Align::Left);
+                    crate::hud::text(list, main, v, Vec2::new(right, y), 1.0, [0.95, 0.85, 0.55, 1.0], Align::Right);
+                }
+            }
+            y += lh;
+        }
+        y += 6.0;
+        for l in &notes {
+            crate::hud::text(list, main, l, Vec2::new(left, y), 1.0, [0.8, 0.9, 1.0, 1.0], Align::Left);
+            y += lh;
+        }
+        crate::hud::text(list, main, hint, Vec2::new(cx, pos.y + size.y - lh - 6.0), 1.0, [0.6, 0.6, 0.72, 1.0], Align::Center);
     }
 
     /// Fiche d'un ennemi du bestiaire : le sprite a sa taille reelle en partie (echelle comprise),
@@ -2534,18 +3039,24 @@ impl Game {
             let cost = self.meta.figurine_cost(e, id);
             self.lang.get("ui.figurine_buy").replace("{n}", &cost.to_string())
         };
-        let tw = [name.as_str(), stats.as_str(), hint, fig.as_str()].iter().map(|s| main.measure(s) as f32).fold(0.0, f32::max);
-        let size = Vec2::new((w + 48.0).max(200.0).max(tw + 24.0), (h + 98.0).max(144.0)).min(view - Vec2::splat(12.0)).round();
+        // comportement et particularites (enemies.ron), une ligne chacun
+        let traits = crate::card::enemy_traits(&self.content, &self.lang, k);
+        let extra = traits.len() as f32 * 12.0;
+        let tw = [name.as_str(), stats.as_str(), hint, fig.as_str()].into_iter().chain(traits.iter().map(String::as_str)).map(|s| main.measure(s) as f32).fold(0.0, f32::max);
+        let size = Vec2::new((w + 48.0).max(200.0).max(tw + 24.0), (h + 98.0 + extra).max(144.0 + extra)).min(view - Vec2::splat(12.0)).round();
         let pos = ((view - size) * 0.5).round();
         let u = (t / 0.15).min(1.0);
-        list.rect(white, Vec2::ZERO, view, [0.0, 0.0, 0.0, 0.6 * u]);
+        list.set(Space::Ui, Blend::Alpha);
+        list.probe_layer();
+        list.rect(white, Vec2::ZERO, view, [0.0, 0.0, 0.0, 0.85 * u]);
+        list.probe_panel(pos, size, "fiche");
         list.rect(white, pos, size, [0.05, 0.035, 0.09, 0.97]);
         crate::hud::frame_rect(list, white, pos, size, with_alpha(GOLD, 0.9));
         crate::hud::frame_rect(list, white, pos + Vec2::splat(2.0), size - Vec2::splat(4.0), [1.0, 1.0, 1.0, 0.15]);
         let cx = (view.x * 0.5).round();
         crate::hud::text(list, main, &name, Vec2::new(cx, pos.y + 8.0), 1.0, if e.boss { rgb(255, 170, 170) } else { GOLD }, engine::draw::Align::Center);
         // sol : ombre, puis le sprite pose dessus ; figurine achetee : socle dore qui scintille
-        let floor = (pos.y + 26.0 + h + ((size.y - 98.0 - h) * 0.5).max(0.0)).round();
+        let floor = (pos.y + 26.0 + h + ((size.y - 98.0 - extra - h) * 0.5).max(0.0)).round();
         if owned {
             let pw = (w * 0.8 + 16.0).round();
             list.rect(white, Vec2::new(cx - pw * 0.5, floor - 2.0).round(), Vec2::new(pw, 5.0), rgb(240, 200, 80));
@@ -2569,6 +3080,10 @@ impl Game {
             list.frame(sh, Vec2::new(cx, floor), &Params::default().scale(Vec2::splat(sc)).color([1.0, 1.0, 1.0, 0.55]));
         }
         list.frame(f, Vec2::new(cx, floor), &Params::default().scale(Vec2::splat(sc)).flip(flip));
+        for (i, s) in traits.iter().enumerate() {
+            let y = pos.y + size.y - 46.0 - extra + i as f32 * 12.0;
+            crate::hud::text(list, main, s, Vec2::new(cx, y), 1.0, [0.8, 0.9, 1.0, 1.0], engine::draw::Align::Center);
+        }
         crate::hud::text(list, main, &stats, Vec2::new(cx, pos.y + size.y - 46.0), 1.0, [0.82, 0.82, 0.92, 1.0], engine::draw::Align::Center);
         crate::hud::text(list, main, &fig, Vec2::new(cx, pos.y + size.y - 32.0), 1.0, if owned { GOLD } else { [0.95, 0.85, 0.55, 1.0] }, engine::draw::Align::Center);
         crate::hud::text(list, main, hint, Vec2::new(cx, pos.y + size.y - 18.0), 1.0, [0.6, 0.6, 0.72, 1.0], engine::draw::Align::Center);
@@ -2580,6 +3095,7 @@ impl Game {
         let touch_pause = self.touch.update(&ctx.input, view, ctx.scale as f32, matches!(self.state, State::Playing));
         let pause = ctx.input.action_pressed(&self.bindings, "pause") || touch_pause;
         self.poll_publish(ctx);
+        self.tick_preview(ctx);
         let state = std::mem::replace(&mut self.state, State::Playing);
         self.state = match state {
             State::Title { mut sel } => {
@@ -2600,6 +3116,15 @@ impl Game {
                         self.sfx(ctx, "confirm");
                         self.char_select()
                     }
+                    // salle deja rejointe : retour au salon
+                    Some(TitleItem::Coop) => {
+                        self.sfx(ctx, "confirm");
+                        if self.coop.is_some() {
+                            State::Lobby { sel: 0 }
+                        } else {
+                            State::Coop { sel: 0 }
+                        }
+                    }
                     Some(TitleItem::Players) => {
                         self.sfx(ctx, "confirm");
                         self.hub_toast.1 = 0.0;
@@ -2616,12 +3141,18 @@ impl Game {
                         self.hub_toast.1 = 0.0;
                         self.slots = profiles::all_slots(&ctx.root);
                         let stage = self.stage_ids.iter().position(|s| *s == self.world.map_id).unwrap_or(0);
-                        State::Scores { tab: scores::MINE, sel: hub::TABS_ROW, stage, version: String::new() }
+                        State::Scores { tab: scores::MINE, sel: hub::TABS_ROW, stage, version: String::new(), players: 1 }
                     }
                     Some(TitleItem::Collection) => {
                         self.sfx(ctx, "confirm");
                         self.hub_toast.1 = 0.0;
                         State::Records { tab: 0, sel: hub::TABS_ROW, armed: false }
+                    }
+                    Some(TitleItem::Gallery) => {
+                        self.sfx(ctx, "confirm");
+                        self.gallery = Some(gallery::Room::new(&self.content, &self.meta, &self.profile, 0));
+                        self.play_music(ctx, GALLERY_MUSIC, 0.6);
+                        State::Gallery { wing: 0, from_title: true }
                     }
                     Some(TitleItem::Exploits) => {
                         self.sfx(ctx, "confirm");
@@ -2668,8 +3199,26 @@ impl Game {
                 }
             }
             State::CharSelect { mut page, mut sel } => {
-                let was_tabs = sel == chars::page_roster(&self.content, page).len() + 1;
-                let (pick, moved, turn) = chars::input_select(nav, view, chars::page_roster(&self.content, page).len(), &mut sel);
+                let n0 = chars::page_roster(&self.content, page).len();
+                let was_tabs = sel == n0 + 1;
+                let (pick, moved, turn) = if self.char_lock {
+                    // choix de la couleur : la grille ne suit plus la souris ; clic sur le personnage ou le
+                    // portrait = valider, sur un autre personnage = le choisir
+                    let mut pick = nav.confirm.then_some(sel);
+                    if nav.click {
+                        if let Some(k) = chars::lock_click(view, n0, self.char_top, sel, nav.mouse) {
+                            if k != sel {
+                                self.char_lock = false;
+                                self.skin_browse = None;
+                                sel = k;
+                            }
+                            pick = Some(k);
+                        }
+                    }
+                    (pick, false, 0)
+                } else {
+                    chars::input_select(nav, view, n0, &mut sel, &mut self.char_top)
+                };
                 if moved {
                     self.sfx(ctx, "cursor");
                 }
@@ -2681,6 +3230,8 @@ impl Game {
                     page = (page as i32 + turn).rem_euclid(chars::GROUPS.len() as i32) as usize;
                     let n = chars::page_roster(&self.content, page).len();
                     sel = if trigger != 0 && !was_tabs && n > 0 { 0 } else { n + 1 };
+                    self.char_top = 0;
+                    self.char_lock = false;
                     self.sfx(ctx, "cursor");
                 }
                 let ids = chars::page_roster(&self.content, page);
@@ -2689,8 +3240,12 @@ impl Game {
                 if moved || turn != 0 {
                     self.skin_browse = None;
                 }
-                // R, Y (ou clic sur une fleche du bouton des couleurs) : couleur du personnage
+                // R, Y (ou clic sur une fleche du bouton des couleurs) : couleur du personnage ; pendant le
+                // choix de la couleur, aussi gauche / droite
                 let mut side = if nav.skin { 1 } else { 0 };
+                if self.char_lock {
+                    side = if nav.left { -1 } else if nav.right { 1 } else { side };
+                }
                 if nav.click {
                     if let Some((bp, bs)) = chars::skin_button(ctx, &self.content, &self.profile, &ids, sel) {
                         let m = nav.mouse;
@@ -2720,17 +3275,24 @@ impl Game {
                         self.sfx(ctx, "cursor");
                     }
                 }
-                if nav.back {
+                if nav.back && self.char_lock {
+                    // retour a la grille
                     self.sfx(ctx, "confirm");
-                    State::Title { sel: 0 }
+                    self.char_lock = false;
+                    self.skin_browse = None;
+                    State::CharSelect { page, sel }
+                } else if nav.back || matches!(pick, Some(k) if k >= n) {
+                    self.sfx(ctx, "confirm");
+                    self.char_lock = false;
+                    if self.coop.is_some() {
+                        State::Lobby { sel: 0 }
+                    } else {
+                        State::Title { sel: 0 }
+                    }
                 } else {
                     match pick {
-                        Some(k) if k >= n => {
-                            self.sfx(ctx, "confirm");
-                            State::Title { sel: 0 }
-                        }
                         // couleur regardee pas encore achetee : A propose de l'acheter (ou le dit trop chere)
-                        Some(k) if self.skin_browse.as_ref().is_some_and(|b| b.0 == ids[k]) && !nav.click => {
+                        Some(k) if self.skin_browse.as_ref().is_some_and(|b| b.0 == ids[k]) && (!nav.click || self.char_lock) => {
                             let skin = self.skin_browse.as_ref().map_or(0, |b| b.1);
                             let def = &self.content.characters[&ids[k]];
                             match chars::skin_price(&self.meta, &self.profile, &def.skins[skin].0) {
@@ -2748,8 +3310,15 @@ impl Game {
                                 }
                             }
                         }
+                        // personnage a plusieurs couleurs, valide une premiere fois : choix de la couleur
+                        Some(k) if !self.char_lock && self.content.characters[&ids[k]].skins.len() > 1 && chars::unlocked(&self.content, &self.content.characters[&ids[k]], &self.profile) => {
+                            self.sfx(ctx, "confirm");
+                            self.char_lock = true;
+                            State::CharSelect { page, sel: k }
+                        }
                         Some(k) if chars::unlocked(&self.content, &self.content.characters[&ids[k]], &self.profile) => {
                             self.sfx(ctx, "confirm");
+                            self.char_lock = false;
                             self.skin_browse = None;
                             self.opts.character = ids[k].clone();
                             if self.profile.character != ids[k] {
@@ -2758,7 +3327,12 @@ impl Game {
                             }
                             let map = self.opts.map.clone();
                             self.set_map(ctx, &map);
-                            State::StageSelect { sel: stages::suggested(&self.stage_ids, &self.profile) }
+                            if self.coop.as_ref().is_some_and(|s| !s.is_host()) {
+                                // coop : le stage est choisi par l'hote
+                                State::Prep { tab: shop::TAB_RELICS, sel: 0 }
+                            } else {
+                                State::StageSelect { sel: stages::suggested(&self.stage_ids, &self.profile) }
+                            }
                         }
                         Some(_) => {
                             self.sfx(ctx, "error");
@@ -2850,6 +3424,11 @@ impl Game {
                             self.restart(ctx);
                             return;
                         }
+                        Some("ui.stage_select") if self.coop.is_some() => {
+                            self.sfx(ctx, "confirm");
+                            self.coop_back_to_lobby(ctx);
+                            return;
+                        }
                         Some("ui.stage_select") => {
                             self.sfx(ctx, "confirm");
                             self.quit_to_title(ctx);
@@ -2858,6 +3437,7 @@ impl Game {
                         }
                         Some(_) => {
                             self.sfx(ctx, "confirm");
+                            self.coop_close();
                             self.quit_to_title(ctx);
                             return;
                         }
@@ -2874,7 +3454,11 @@ impl Game {
             State::Records { tab, sel, armed } => self.update_records(ctx, nav, tab, sel, armed),
             State::Players { sel, armed } => self.update_players(ctx, nav, sel, armed),
             State::NameEntry { purpose, text, sel } => self.update_name(ctx, nav, purpose, text, sel),
-            State::Scores { tab, sel, stage, version } => self.update_scores(ctx, nav, tab, sel, stage, version),
+            State::Avatars { sel, setup } => self.update_avatars(ctx, nav, sel, setup),
+            State::Gallery { wing, from_title } => self.update_gallery(ctx, nav, wing, from_title, dt),
+            State::Coop { sel } => self.update_coop_menu(ctx, nav, sel),
+            State::Lobby { sel } => self.update_lobby(ctx, nav, sel),
+            State::Scores { tab, sel, stage, version, players } => self.update_scores(ctx, nav, (tab, sel, stage), version, players),
             State::Controls { tab, sel, wait, from_title } => self.update_controls(ctx, nav, tab, sel, wait, from_title, dt),
             State::About { mut sel, toast } => {
                 let toast = (toast - dt).max(0.0);
@@ -2932,6 +3516,11 @@ impl Game {
                         self.settings.fullscreen = ctx.fullscreen;
                         State::Options { sel: 0, from_title: false }
                     }
+                    // coop : pas de nouvelle partie seul
+                    Some(2) if self.coop_run() => {
+                        self.sfx(ctx, "error");
+                        State::Paused { sel }
+                    }
                     Some(2) => {
                         // personnages debloques pendant la partie : montres avant la nouvelle partie
                         let root = ctx.root.clone();
@@ -2947,6 +3536,8 @@ impl Game {
                     }
                     Some(3) => {
                         self.sfx(ctx, "confirm");
+                        // coop : quitter la partie, c'est quitter la salle
+                        self.coop_close();
                         self.quit_to_title(ctx);
                         return;
                     }
@@ -3014,6 +3605,7 @@ impl Game {
                     // Relancer : de nouveaux choix (les cartes rentrent a nouveau)
                     Some(menus::LevelPick::Reroll) => {
                         self.world.mods.rerolls -= 1;
+                        self.coop_rerolls += 1;
                         self.sfx(ctx, "reroll");
                         let offers = self.levelup_offers(ctx);
                         let sel = if self.world.mods.rerolls > 0 { sel } else { 0 };
@@ -3022,7 +3614,7 @@ impl Game {
                     // Passer : le niveau est consomme, sans rien en echange
                     Some(menus::LevelPick::Skip) => {
                         self.world.mods.skips -= 1;
-                        self.world.pending_levels = self.world.pending_levels.saturating_sub(1);
+                        self.take_level(None);
                         self.sfx(ctx, "skip");
                         self.resume(ctx);
                         return;
@@ -3037,8 +3629,7 @@ impl Game {
                             Offer::Evolve(into) => self.world.evolution_choices_all().into_iter().find(|e| e.1 == into).map(|e| (self.world.weapons[e.0].id, into)),
                             _ => None,
                         };
-                        self.world.apply_offer(offers[k]);
-                        self.world.pending_levels = self.world.pending_levels.saturating_sub(1);
+                        self.take_level(Some(offers[k]));
                         if matches!(offers[k], Offer::Heal | Offer::Rupees) {
                             self.fallback = Some(offers[k]);
                         }
@@ -3066,13 +3657,15 @@ impl Game {
                 if moved {
                     self.sfx(ctx, "cursor");
                 }
+                // demo : la carte choisie (la premiere ; --menu reward : la relique)
                 if self.opts.demo && t > 1.2 {
-                    pick = Some(0);
+                    pick = Some(sel);
                 }
                 match pick {
                     Some(k) => {
                         if let Some(id) = reward::apply(&mut self.world, &self.meta, offers[k]) {
                             self.run_relics.push(id);
+                            self.hud.relics = self.relic_icons(&ctx.atlas);
                         }
                         self.world.pending_rewards = self.world.pending_rewards.saturating_sub(1);
                         self.sfx(ctx, "pick_big");
@@ -3103,7 +3696,7 @@ impl Game {
                 match pick {
                     Some(k) => {
                         self.sfx(ctx, "pick_big");
-                        let reward = self.world.open_chest_choice(big, Some(options[k].0));
+                        let reward = self.take_chest(big, Some(options[k].0));
                         State::Chest { reward, big, t: 0.0 }
                     }
                     None => State::EvoChoice { options, big, sel, t },
@@ -3200,6 +3793,12 @@ impl Game {
                         self.sfx(ctx, "cursor");
                     }
                     match pick {
+                        // coop : retour au salon, pour la partie suivante
+                        Some(0) if self.coop.is_some() => {
+                            self.sfx(ctx, "confirm");
+                            self.coop_back_to_lobby(ctx);
+                            return;
+                        }
                         Some(0) => {
                             self.sfx(ctx, "confirm");
                             self.restart(ctx);
@@ -3207,6 +3806,7 @@ impl Game {
                         }
                         Some(_) => {
                             self.sfx(ctx, "confirm");
+                            self.coop_close();
                             self.quit_to_title(ctx);
                             return;
                         }
@@ -3278,9 +3878,46 @@ impl Game {
     }
 
     fn next_stage(&self) -> Option<String> {
+        // coop : le stage suivant se choisit dans le salon
+        if self.coop.is_some() {
+            return None;
+        }
         let k = self.stage_ids.iter().position(|s| *s == self.world.map_id)?;
         let id = self.stage_ids.get(k + 1)?;
         stages::unlocked(&self.stage_ids, &self.profile, k + 1).then(|| id.clone())
+    }
+
+    /// Coup d'epee : lame et trainee ; `cv` : visuels du heros, `hand` : sa main.
+    fn draw_swing(&self, list: &mut DrawList, atlas: &engine::assets::Atlas, cv: &crate::visuals::CharVis, sw: &sim::world::Swing, hand: Vec2, alpha: f32) {
+        let white = self.vis.white;
+        let master = self.content.weapons[sw.weapon as usize].evolved;
+        let t_r = (sw.t - DT * (1.0 - alpha)).max(0.0);
+        let blade = atlas.frame(if master { cv.weapon_master } else { cv.weapon }, 0.0);
+        let glow = if master { [0.6, 0.85, 1.0] } else { [1.0, 1.0, 0.9] };
+        list.set(Space::World, Blend::Add);
+        // croissant de lumiere le long de l'arc deja parcouru
+        let a0 = sw.angle_at(0.0);
+        let a1 = sw.angle_at(t_r);
+        let steps = 18;
+        for s in 0..=steps {
+            let u = s as f32 / steps as f32;
+            let a = a0 + (a1 - a0) * u;
+            let fade = u * u;
+            for (rr, sz, al) in [(sw.radius * 0.95, 2.0, 0.55), (sw.radius * 0.75, 1.0, 0.35)] {
+                let q = hand + Vec2::from_angle(a) * rr;
+                list.rect(&white, q.round(), Vec2::splat(sz), [glow[0], glow[1], glow[2], al * fade]);
+            }
+        }
+        for k in 1..=4 {
+            let a = sw.angle_at((t_r - k as f32 * 0.014).max(0.0));
+            let prm = Params::default().rot(a).color([0.8, 0.9, 1.0, 0.5 - k as f32 * 0.1]);
+            list.frame(blade, hand + Vec2::from_angle(a) * 4.0, &prm);
+        }
+        list.set(Space::World, Blend::Alpha);
+        let a = sw.angle_at(t_r);
+        let len_scale = sw.radius / 30.0;
+        let prm = Params::default().rot(a).scale(Vec2::new(len_scale.max(1.0), 1.0));
+        list.frame(blade, hand + Vec2::from_angle(a) * 4.0, &prm);
     }
 
     fn draw_world(&mut self, ctx: &Ctx, alpha: f32, list: &mut DrawList, cam: Vec2) {
@@ -3425,6 +4062,11 @@ impl Game {
             self.sort.push((((p.y + 65536.0) * 16.0) as u32, i as u32));
         }
         self.sort.push((((pp.y + 65536.0) * 16.0) as u32, u32::MAX));
+        // coop : allies (indices juste sous u32::MAX)
+        for (k, h) in w.others.iter().enumerate() {
+            let y = h.player.prev.lerp(h.player.pos, alpha).y;
+            self.sort.push((((y + 65536.0) * 16.0) as u32, u32::MAX - 1 - k as u32));
+        }
         // decor (les grands elements depassent : marge plus large en haut)
         self.prop_buf.clear();
         {
@@ -3449,6 +4091,10 @@ impl Game {
         let (panim, pflip) = self.vis.player.pick(player.face, player.moving);
         let pframe = *atlas.frame(panim, if player.moving { player.walk_t } else { 0.0 });
         for &(_, id) in &self.sort {
+            if id < u32::MAX && id >= u32::MAX - crate::coop::MAX as u32 {
+                self.draw_ally(list, atlas, (u32::MAX - 1 - id) as usize, alpha);
+                continue;
+            }
             if id != u32::MAX && id & PROP_BIT != 0 {
                 let p = &self.prop_buf[(id & !PROP_BIT) as usize];
                 let f = atlas.frame(self.vis.props[p.kind as usize], 0.0);
@@ -3608,43 +4254,22 @@ impl Game {
 
         // epee : lame + trainee
         if let Some(sw) = player.swing {
-            let master = self.content.weapons[sw.weapon as usize].evolved;
-            let t_r = (sw.t - DT * (1.0 - alpha)).max(0.0);
-            let blade = atlas.frame(if master { self.vis.player.weapon_master } else { self.vis.player.weapon }, 0.0);
-            let hand = pp - Vec2::new(0.0, 9.0);
-            let glow = if master { [0.6, 0.85, 1.0] } else { [1.0, 1.0, 0.9] };
-            list.set(Space::World, Blend::Add);
-            // croissant de lumiere le long de l'arc deja parcouru
-            let a0 = sw.angle_at(0.0);
-            let a1 = sw.angle_at(t_r);
-            let steps = 18;
-            for s in 0..=steps {
-                let u = s as f32 / steps as f32;
-                let a = a0 + (a1 - a0) * u;
-                let fade = u * u;
-                for (rr, sz, al) in [(sw.radius * 0.95, 2.0, 0.55), (sw.radius * 0.75, 1.0, 0.35)] {
-                    let q = hand + Vec2::from_angle(a) * rr;
-                    list.rect(&white, q.round(), Vec2::splat(sz), [glow[0], glow[1], glow[2], al * fade]);
-                }
-            }
-            for k in 1..=4 {
-                let a = sw.angle_at((t_r - k as f32 * 0.014).max(0.0));
-                let prm = Params::default().rot(a).color([0.8, 0.9, 1.0, 0.5 - k as f32 * 0.1]);
-                list.frame(blade, hand + Vec2::from_angle(a) * 4.0, &prm);
-            }
-            list.set(Space::World, Blend::Alpha);
-            let a = sw.angle_at(t_r);
-            let len_scale = sw.radius / 30.0;
-            let prm = Params::default().rot(a).scale(Vec2::new(len_scale.max(1.0), 1.0));
-            list.frame(blade, hand + Vec2::from_angle(a) * 4.0, &prm);
+            self.draw_swing(list, atlas, &self.vis.player, &sw, pp - Vec2::new(0.0, 9.0), alpha);
         }
 
-        // chaines du grappin (sous la tete)
-        let hand = pp - Vec2::new(0.0, 8.0);
-        for p in &w.projectiles {
+        // chaines du grappin (sous la tete), depuis la main de chaque joueur (allies compris)
+        let hands: Vec<Vec2> = std::iter::once(pp).chain(w.others.iter().map(|h| h.player.prev.lerp(h.player.pos, alpha))).map(|q| q - Vec2::new(0.0, 8.0)).collect();
+        let mut first = 0;
+        let owned = self.proj_ends.iter().enumerate().flat_map(|(who, &end)| {
+            let r = first.min(w.projectiles.len())..end.min(w.projectiles.len());
+            first = end;
+            w.projectiles[r].iter().map(move |p| (who, p))
+        });
+        for (who, p) in owned {
             if p.beam || !self.vis.weapons[p.weapon as usize].chain {
                 continue;
             }
+            let hand = hands[who.min(hands.len() - 1)];
             let pos = p.prev.lerp(p.pos, alpha);
             let d = pos - hand;
             let n = (d.length() / 5.0) as usize;
@@ -3740,66 +4365,70 @@ impl Game {
             }
         }
 
-        // objets en orbite (Canne de Byrna, fees)
-        for (slot, ws) in w.weapons.iter().enumerate() {
-            let def = &self.content.weapons[ws.id as usize];
-            if def.kind != WeaponKind::Orbit || ws.active <= 0.0 {
-                continue;
+        // objets en orbite (Canne de Byrna, fees) et poudre magique, autour de chaque joueur (allies compris)
+        let carriers: Vec<(&[sim::upgrades::WeaponSlot], Vec2)> =
+            std::iter::once((&w.weapons[..], pp)).chain(w.others.iter().map(|h| (&h.weapons[..], h.player.prev.lerp(h.player.pos, alpha)))).collect();
+        for &(weapons, pp) in &carriers {
+            for ws in weapons {
+                let def = &self.content.weapons[ws.id as usize];
+                if def.kind != WeaponKind::Orbit || ws.active <= 0.0 {
+                    continue;
+                }
+                let Some(anim) = self.vis.weapons[ws.id as usize].sprite else { continue };
+                let phase = ws.phase - ws.stats.speed * DT * (1.0 - alpha);
+                let a = (ws.active / 0.3).min(1.0);
+                for (k, q) in ws.orbit_points(pp - Vec2::new(0.0, 6.0), phase).into_iter().enumerate() {
+                    let f = atlas.frame(anim, wt + k as f32 * 0.13);
+                    list.frame(f, q, &Params::default().color([1.0, 1.0, 1.0, a]));
+                }
             }
-            let Some(anim) = self.vis.weapons[ws.id as usize].sprite else { continue };
-            let phase = ws.phase - ws.stats.speed * DT * (1.0 - alpha);
-            let a = (ws.active / 0.3).min(1.0);
-            for (k, q) in w.orbit_points(slot, pp - Vec2::new(0.0, 6.0), phase).into_iter().enumerate() {
-                let f = atlas.frame(anim, wt + k as f32 * 0.13);
-                list.frame(f, q, &Params::default().color([1.0, 1.0, 1.0, a]));
-            }
-        }
 
-        // poudre magique : nuage scintillant autour de Link
-        for ws in &w.weapons {
-            let def = &self.content.weapons[ws.id as usize];
-            if def.kind != WeaponKind::Aura {
-                continue;
+            // poudre magique : nuage scintillant autour de Link
+            for ws in weapons {
+                let def = &self.content.weapons[ws.id as usize];
+                if def.kind != WeaponKind::Aura {
+                    continue;
+                }
+                let Some(anim) = self.vis.weapons[ws.id as usize].sprite else { continue };
+                let r = ws.stats.area;
+                let n = ((r * 0.7) as usize).clamp(12, 48);
+                // fanal, jarre : moitie moins de grains (gros sprites de flamme)
+                let n = if def.tint.is_some() { n / 2 } else { n };
+                let tint = match def.tint {
+                    Some(t) => [t.0, t.1, t.2],
+                    None if def.evolved => [1.0, 0.7, 1.0],
+                    None => [1.0, 1.0, 1.0],
+                };
+                list.set(Space::World, Blend::Add);
+                // bord du nuage : anneau pointille qui tourne lentement (portee lisible)
+                let ring = ((r * 0.45) as usize).clamp(20, 72);
+                let edge = match def.tint {
+                    Some(t) => [t.0, t.1, t.2],
+                    None if def.evolved => [1.0, 0.45, 0.25],
+                    None => [0.75, 0.6, 1.0],
+                };
+                for s in 0..ring {
+                    let a = s as f32 / ring as f32 * TAU + rt * 0.4;
+                    let q = pp - Vec2::new(0.0, 2.0) + Vec2::new(a.cos() * r, a.sin() * r * 0.6);
+                    let al = 0.45 + 0.25 * (rt * 2.0 + s as f32 * 0.7).sin();
+                    list.rect(&white, q.round(), Vec2::splat(2.0), [edge[0], edge[1], edge[2], al]);
+                }
+                for k in 0..n {
+                    let kf = k as f32;
+                    // fanal, jarre (teinte propre) : grains sur le pourtour, pour ne pas cacher le joueur
+                    let ring_only = def.tint.is_some();
+                    let rr = if ring_only { r * (0.7 + 0.3 * (kf * 0.618).fract()) } else { r * (0.3 + 0.7 * (kf * 0.618).fract()) };
+                    let dir = if k % 2 == 0 { 1.0 } else { -1.0 };
+                    let a = kf * 2.399 + rt * (0.7 + 0.5 * (kf * 0.37).fract()) * dir;
+                    let q = pp - Vec2::new(0.0, 6.0) + Vec2::new(a.cos(), a.sin() * 0.6) * rr;
+                    let f = atlas.frame(anim, rt + kf * 0.17);
+                    let al = 0.7 + 0.3 * (rt * 3.0 + kf).sin().abs();
+                    // un grain sur trois en x2 : le nuage se lit mieux dans la foule
+                    let sc = if k % 3 == 0 && !ring_only { 2.0 } else { 1.0 };
+                    list.frame(f, q.round(), &Params { scale: Vec2::splat(sc), ..Params::default() }.color([tint[0], tint[1], tint[2], al]));
+                }
+                list.set(Space::World, Blend::Alpha);
             }
-            let Some(anim) = self.vis.weapons[ws.id as usize].sprite else { continue };
-            let r = ws.stats.area;
-            let n = ((r * 0.7) as usize).clamp(12, 48);
-            // fanal, jarre : moitie moins de grains (gros sprites de flamme)
-            let n = if def.tint.is_some() { n / 2 } else { n };
-            let tint = match def.tint {
-                Some(t) => [t.0, t.1, t.2],
-                None if def.evolved => [1.0, 0.7, 1.0],
-                None => [1.0, 1.0, 1.0],
-            };
-            list.set(Space::World, Blend::Add);
-            // bord du nuage : anneau pointille qui tourne lentement (portee lisible)
-            let ring = ((r * 0.45) as usize).clamp(20, 72);
-            let edge = match def.tint {
-                Some(t) => [t.0, t.1, t.2],
-                None if def.evolved => [1.0, 0.45, 0.25],
-                None => [0.75, 0.6, 1.0],
-            };
-            for s in 0..ring {
-                let a = s as f32 / ring as f32 * TAU + rt * 0.4;
-                let q = pp - Vec2::new(0.0, 2.0) + Vec2::new(a.cos() * r, a.sin() * r * 0.6);
-                let al = 0.45 + 0.25 * (rt * 2.0 + s as f32 * 0.7).sin();
-                list.rect(&white, q.round(), Vec2::splat(2.0), [edge[0], edge[1], edge[2], al]);
-            }
-            for k in 0..n {
-                let kf = k as f32;
-                // fanal, jarre (teinte propre) : grains sur le pourtour, pour ne pas cacher le joueur
-                let ring_only = def.tint.is_some();
-                let rr = if ring_only { r * (0.7 + 0.3 * (kf * 0.618).fract()) } else { r * (0.3 + 0.7 * (kf * 0.618).fract()) };
-                let dir = if k % 2 == 0 { 1.0 } else { -1.0 };
-                let a = kf * 2.399 + rt * (0.7 + 0.5 * (kf * 0.37).fract()) * dir;
-                let q = pp - Vec2::new(0.0, 6.0) + Vec2::new(a.cos(), a.sin() * 0.6) * rr;
-                let f = atlas.frame(anim, rt + kf * 0.17);
-                let al = 0.7 + 0.3 * (rt * 3.0 + kf).sin().abs();
-                // un grain sur trois en x2 : le nuage se lit mieux dans la foule
-                let sc = if k % 3 == 0 && !ring_only { 2.0 } else { 1.0 };
-                list.frame(f, q.round(), &Params { scale: Vec2::splat(sc), ..Params::default() }.color([tint[0], tint[1], tint[2], al]));
-            }
-            list.set(Space::World, Blend::Alpha);
         }
 
         // tirs ennemis
@@ -3988,7 +4617,10 @@ impl Game {
             match Self::edge_point(view, ui) {
                 Some((c, d)) => self.edge_arrow(ctx, list, c, d, THIEF, true),
                 None => {
-                    let s = format!("{}s", th.t.ceil() as i32);
+                    let s = match th.stolen {
+                        0 => format!("{}s", th.t.ceil() as i32),
+                        n => format!("{}s  -{n}", th.t.ceil() as i32),
+                    };
                     crate::hud::text(list, font, &s, ui + Vec2::new(0.0, 8.0), 1.0, with_alpha(THIEF, if blink { 1.0 } else { 0.7 }), engine::draw::Align::Center);
                 }
             }
@@ -4052,7 +4684,7 @@ impl Game {
                 let a = (t / 1.8).min(1.0) * 0.55;
                 list.rect(white, Vec2::ZERO, view, [0.25, 0.0, 0.0, a]);
             }
-            State::Dead { t, sel } => menus::draw_dead(list, ctx, &self.world, &self.vis, lang, *t, *sel, self.last_score),
+            State::Dead { t, sel } => menus::draw_dead(list, ctx, &self.world, &self.vis, lang, *t, *sel, self.last_score, self.last_banked),
             State::Victory { t, sel } => {
                 let items = stages::victory_items(self.next_stage().is_some());
                 let mut notes = Vec::new();
@@ -4083,6 +4715,10 @@ impl Game {
             | State::Records { .. }
             | State::Players { .. }
             | State::NameEntry { .. }
+            | State::Avatars { .. }
+            | State::Gallery { .. }
+            | State::Coop { .. }
+            | State::Lobby { .. }
             | State::Scores { .. } => {}
             State::Controls { .. } => self.draw_hub(ctx, list),
             State::Playing => {
@@ -4179,24 +4815,55 @@ impl Game {
                     let toast = if self.hub_toast.1 > 0.0 { self.hub_toast.0.as_str() } else { "" };
                     players::draw(list, ctx, &self.lang, &views, self.profile.slot, *sel, *armed, self.stage_ids.len(), toast, self.menu_t);
                 }
+                State::Gallery { .. } => {
+                    if let Some(room) = &self.gallery {
+                        let left = self.content.characters.get("link").is_some_and(|d| d.side_faces_left);
+                        gallery::draw(list, ctx, room, &self.content, &self.meta, &self.vis, &self.profile, &self.lang, left, self.menu_t);
+                    }
+                    if let Some((k, t0)) = self.beast {
+                        self.draw_beast(ctx, list, k, (ctx.real_time - t0) as f32);
+                    }
+                    if let Some((ct, k, t0)) = self.card {
+                        self.draw_card(ctx, list, ct, k, (ctx.real_time - t0) as f32);
+                    }
+                }
+                State::Coop { sel } => {
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    self.draw_coop_menu(ctx, list, *sel);
+                }
+                State::Lobby { sel } => {
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    self.draw_lobby(ctx, list, *sel);
+                }
+                State::Avatars { sel, .. } => {
+                    title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
+                    players::draw_avatars(list, ctx, &self.lang, &self.profile.name, *sel, self.menu_t);
+                }
                 State::NameEntry { purpose, text, sel } => {
                     title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
                     let (key, avatar) = match purpose {
                         NamePurpose::Create(k) => ("ui.name_new", self.free_avatar(*k)),
                         NamePurpose::Rename => ("ui.name_rename", self.profile.avatar),
+                        NamePurpose::Setup => ("ui.name_setup", self.profile.avatar),
                         NamePurpose::Pseudo { .. } => ("ui.name_pseudo", self.profile.avatar),
+                        NamePurpose::Room => ("ui.coop.code", self.profile.avatar),
                     };
-                    players::draw_name(list, ctx, &self.lang, self.lang.get(key), text, *sel, Some(avatar), self.menu_t);
+                    let hint = match purpose {
+                        NamePurpose::Setup => "ui.name_hint_setup",
+                        NamePurpose::Room => "ui.coop.code_hint",
+                        _ => "ui.name_hint",
+                    };
+                    players::draw_name(list, ctx, &self.lang, (self.lang.get(key), hint), text, *sel, Some(avatar), self.menu_t);
                 }
                 State::CharSelect { page, sel } => {
                     title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
                     let ids = chars::page_roster(&self.content, *page);
                     let browse = self.skin_browse.as_ref().filter(|b| ids.get(*sel) == Some(&b.0)).map(|b| b.1);
-                    chars::draw_select(list, ctx, &self.lang, &self.content, &self.meta, &self.profile, *page, *sel, self.menu_t, browse);
+                    chars::draw_select(list, ctx, &self.lang, &self.content, &self.meta, &self.profile, (*page, *sel, self.char_top, self.char_lock), self.menu_t, browse);
                 }
                 State::SkinBuy { page, sel, skin, ans } => {
                     title::draw_backdrop(list, ctx, &self.title_vis, self.menu_t);
-                    chars::draw_select(list, ctx, &self.lang, &self.content, &self.meta, &self.profile, *page, *sel, self.menu_t, Some(*skin));
+                    chars::draw_select(list, ctx, &self.lang, &self.content, &self.meta, &self.profile, (*page, *sel, self.char_top, true), self.menu_t, Some(*skin));
                     let ids = chars::page_roster(&self.content, *page);
                     let q = fairy_tip::question(ctx, &self.skin_question(&ids[*sel], *skin));
                     q.draw(list, ctx, &white, [self.lang.get("ui.skin_no"), self.lang.get("ui.skin_yes")], *ans);
@@ -4221,17 +4888,33 @@ impl Game {
         };
         self.cam = Some(cam);
         let cam_shaken = cam + self.juice.shake;
+        // coop : projectiles et zones des allies dessines avec ceux du joueur, le temps du dessin
+        let own = (self.world.projectiles.len(), self.world.zones.len());
+        self.proj_ends.clear();
+        self.proj_ends.push(own.0);
+        for k in 0..self.world.others.len() {
+            let (p, z) = (self.world.others[k].projectiles.clone(), self.world.others[k].zones.clone());
+            self.world.projectiles.extend(p);
+            self.world.zones.extend(z);
+            self.proj_ends.push(self.world.projectiles.len());
+        }
         self.draw_world(ctx, alpha, list, cam_shaken);
+        self.world.projectiles.truncate(own.0);
+        self.world.zones.truncate(own.1);
         self.juice.draw_over(list, &ctx.atlas, &self.vis.white);
         self.draw_stage_fx(ctx, alpha, list, cam_shaken);
         self.juice.draw_numbers(list, &ctx.atlas);
         self.draw_chest_markers(ctx, list, cam_shaken);
         self.draw_npc_markers(ctx, list, cam_shaken);
-        self.hud.banked = (bank_amount(self.world.player.rupees, false, self.meta.bank_mult(&self.profile)) as f32 * self.run_bank_mult).round() as u64;
+        self.draw_ally_tags(ctx, list, cam_shaken, alpha);
+        let mult = self.coop_rules.map_or_else(|| self.meta.bank_mult(&self.profile), |r| r.bank);
+        self.hud.banked = (bank_amount(self.world.player.rupees, false, mult) as f32 * self.run_bank_mult).round() as u64;
         self.hud.busy = !matches!(self.state, State::Playing | State::Dying(_));
         self.hud.paused = matches!(self.state, State::Paused { .. });
         self.hud.draw(list, ctx, &self.world, &self.vis, &self.lang);
+        self.draw_coop_overlay(ctx, list);
         self.draw_overlays(ctx, list);
+        self.draw_choice_timer(ctx, list);
         Frame { camera: cam_shaken, zoom: self.view_zoom, clear: [0.0, 0.0, 0.0] }
     }
 }
@@ -4239,7 +4922,7 @@ impl Game {
 impl GameTrait for Game {
     fn frame(&mut self, ctx: &mut Ctx, dt: f32) {
         self.frame_dt = dt;
-        if cfg!(target_arch = "wasm32") {
+        if RUN_CHECKPOINTS {
             let lost_focus = self.was_focused && !ctx.input.focused;
             self.was_focused = ctx.input.focused;
             if lost_focus || ctx.real_time >= self.checkpoint_at {
@@ -4278,6 +4961,7 @@ impl GameTrait for Game {
         let nav = self.nav.read(ctx, &self.bindings, dt);
         self.menu_t += dt;
         self.poll_updates();
+        self.coop_frame(ctx, dt);
         self.update_menus(ctx, &nav, dt);
         self.title_ambience(ctx);
         self.update_zoom(ctx, dt);
@@ -4293,13 +4977,20 @@ impl GameTrait for Game {
             State::Dying(_) => 0.3,
             _ => self.director.scale(),
         };
+        // coop : le temps ne ralentit pas pour un seul joueur (menus et effets compris)
+        if self.coop_run() {
+            ctx.time_scale = 1.0;
+        }
         self.juice.update(dt * ctx.time_scale, dt);
         self.hud.update(dt, &self.world);
         self.rupee_chain_t -= dt * ctx.time_scale;
         if self.rupee_chain_t <= 0.0 {
             self.rupee_chain = 0;
         }
-        self.world.view_half = ctx.view * 0.5;
+        // coop : la taille d'ecran de la partie est commune (lancement)
+        if !self.coop_run() {
+            self.world.view_half = ctx.view * 0.5;
+        }
 
         // bip de vie basse facon ALttP
         let p = &self.world.player;
@@ -4334,6 +5025,10 @@ impl GameTrait for Game {
     }
 
     fn tick(&mut self, ctx: &mut Ctx) {
+        if self.coop_run() {
+            self.coop_tick(ctx);
+            return;
+        }
         if self.state.frozen() {
             return;
         }
@@ -4353,6 +5048,13 @@ impl GameTrait for Game {
         let f = self.draw_scene(ctx, alpha, list);
         self.draw_cursor(ctx, list);
         f
+    }
+
+    /// Android en arriere-plan : le systeme peut fermer l'appli sans prevenir.
+    fn suspend(&mut self, ctx: &mut Ctx) {
+        if RUN_CHECKPOINTS {
+            self.save_run_checkpoint(ctx);
+        }
     }
 
     fn exit(&mut self, ctx: &mut Ctx) {

@@ -1418,6 +1418,29 @@ fn item_rect(view: Vec2, y: f32, w: f32) -> (Vec2, Vec2) {
     (Vec2::new(((view.x - w) * 0.5).round(), y - 3.0), Vec2::new(w, 18.0))
 }
 
+/// Liste verticale centree (texte, possible) : cadre et fleche sur la ligne choisie, lignes impossibles grisees.
+pub fn draw_items(list: &mut DrawList, ctx: &Ctx, items: &[(String, bool)], sel: usize, y_of: impl Fn(usize) -> f32) {
+    let view = ctx.view;
+    let main = ctx.atlas.font("main");
+    for (k, (label, ok)) in items.iter().enumerate() {
+        let y = y_of(k);
+        let c = match (k == sel, ok) {
+            (_, false) => [0.45, 0.45, 0.5, 0.9],
+            (true, _) => GOLD,
+            _ => SOFT,
+        };
+        if k == sel {
+            let w = main.measure(label) as f32;
+            let bw = (w + 48.0).max(160.0);
+            crate::hub::focus_frame(list, ctx, Vec2::new(((view.x - bw) * 0.5).round(), y - 3.0), Vec2::new(bw, 20.0));
+        }
+        let w = text(list, main, label, Vec2::new(view.x * 0.5, y), 1.0, c, Align::Center);
+        if k == sel {
+            text(list, main, "▶", Vec2::new(((view.x - w) * 0.5 - 14.0).round(), y), 1.0, c, Align::Left);
+        }
+    }
+}
+
 fn pause_y(view: Vec2, k: usize) -> f32 {
     (view.y * 0.36).round() + k as f32 * 22.0
 }
@@ -1790,7 +1813,7 @@ pub fn input_options(nav: &NavIn, view: Vec2, sel: &mut usize) -> (OptAction, bo
 
 /// `score` : score de la partie et record du stage.
 #[allow(clippy::too_many_arguments)]
-pub fn draw_dead(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang: &Lang, t: f32, sel: usize, score: Option<(u64, bool)>) {
+pub fn draw_dead(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang: &Lang, t: f32, sel: usize, score: Option<(u64, bool)>, banked: u64) {
     let view = ctx.view;
     let main = ctx.atlas.font("main");
     dim(list, vis, view, [0.1, 0.0, 0.02, 0.72]);
@@ -1802,6 +1825,8 @@ pub fn draw_dead(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang:
         (lang.get("ui.level_reached"), p.level.to_string()),
         (lang.get("ui.enemies_defeated"), p.kills.to_string()),
         (lang.get("ui.rupees_collected"), p.rupees.to_string()),
+        // ce que les rubis verts deviennent en banque (rouges)
+        (lang.get("ui.rupees_banked"), format!("+{banked}")),
     ];
     let w = 300.0f32.min(view.x - 40.0);
     let x0 = ((view.x - w) * 0.5).round();
@@ -1809,7 +1834,12 @@ pub fn draw_dead(list: &mut DrawList, ctx: &Ctx, world: &World, vis: &Vis, lang:
     for (k, (l, v)) in rows.iter().enumerate() {
         let y = y0 + k as f32 * 18.0;
         text(list, main, l, Vec2::new(x0, y), 1.0, SOFT, Align::Left);
-        text(list, main, v, Vec2::new(x0 + w, y), 1.0, WHITE, Align::Right);
+        let vc = match k {
+            3 => crate::stages::GREEN_RUPEE,
+            4 => rgb(255, 120, 110),
+            _ => WHITE,
+        };
+        text(list, main, v, Vec2::new(x0 + w, y), 1.0, vc, Align::Right);
     }
     let mut ny = y0 + rows.len() as f32 * 18.0;
     if let Some((s, record)) = score {
