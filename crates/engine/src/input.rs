@@ -61,6 +61,8 @@ pub struct Input {
     pad_pressed: [HashSet<Button>; 2],
     /// Codes de boutons / axes inconnus deja notes dans le journal (une fois chacun).
     pad_logged: HashSet<u32>,
+    /// Gachettes analogiques vues (valeurs intermediaires) : seules leurs valeurs comptent.
+    analog_triggers: HashSet<Button>,
     /// 0 = lecture par image (menus), 1 = lecture par pas de simulation.
     phase: usize,
     gilrs: Option<Gilrs>,
@@ -131,6 +133,7 @@ impl Input {
             pad_buttons: HashSet::new(),
             pad_pressed: Default::default(),
             pad_logged: HashSet::new(),
+            analog_triggers: HashSet::new(),
             phase: 0,
             gilrs,
             pad,
@@ -276,6 +279,9 @@ impl Input {
                         self.pad_buttons.clear();
                     }
                 }
+                // gachette analogique : gilrs deduit aussi des appuis / relachements de ses valeurs, a d'autres
+                // seuils ; les compter en plus doublerait les appuis (onglets qui defilent trop vite)
+                EventType::ButtonPressed(b, _) | EventType::ButtonReleased(b, _) if self.analog_triggers.contains(&b) => {}
                 EventType::ButtonPressed(b, code) => {
                     if b == Button::Unknown && self.pad_logged.insert(code.into_u32()) {
                         log::info!("bouton de manette sans correspondance : {code}");
@@ -294,6 +300,9 @@ impl Input {
                 }
                 // gachettes (tout ou rien) : certains pilotes n'envoient que des valeurs, pas d'appui
                 EventType::ButtonChanged(b @ (Button::LeftTrigger2 | Button::RightTrigger2), v, _) => {
+                    if v > 0.02 && v < 0.98 {
+                        self.analog_triggers.insert(b);
+                    }
                     if v > 0.5 && !self.pad_buttons.contains(&b) {
                         self.pad = Some(ev.id);
                         self.pad_buttons.insert(b);

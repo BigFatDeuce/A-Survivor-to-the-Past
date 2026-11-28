@@ -364,9 +364,13 @@ pub fn label(content: &Content, meta: &Meta, p: &Profile, lang: &Lang, room: &Ro
 }
 
 /// Socle devant Link : la fiche qu'il ouvre (onglet de la Collection et indice), s'il y en a une.
-pub fn card_of(content: &Content, p: &Profile, e: Exhibit) -> Option<(usize, usize)> {
+pub fn card_of(content: &Content, p: &Profile, room: &Room, e: Exhibit) -> Option<(usize, usize)> {
     match (e, seen(content, p, e)) {
-        (_, Shown::Hidden) | (Exhibit::Statue(_) | Exhibit::Fairy, _) => None,
+        (_, Shown::Hidden) | (Exhibit::Fairy, _) => None,
+        (Exhibit::Statue(k), _) => {
+            let id = room.chars.get(k)?;
+            chars::roster(content).iter().position(|r| r == id).map(|i| (records::CARD_CHARS, i))
+        }
         (Exhibit::Trophy(k), _) => Some((records::TAB_TROPHIES, k)),
         (Exhibit::Weapon(k), _) => Some((records::TAB_WEAPONS, k)),
         (Exhibit::Fusion(k), _) => Some((records::TAB_FUSIONS, k)),

@@ -64,6 +64,14 @@ MANIFEST = """<?xml version="1.0" encoding="utf-8"?>
 """
 
 ICONS = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
+# Android 8+ : icone adaptative (108 dp, pleine) ; sans elle le lanceur pose l'icone aux coins
+# transparents sur un disque blanc
+ADAPTIVE = """<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@android:color/black" />
+    <foreground android:drawable="@mipmap/ic_launcher_fg" />
+</adaptive-icon>
+"""
 
 
 def latest(d: Path) -> Path:
@@ -121,10 +129,14 @@ def main():
     res = work / "res"
     from PIL import Image
     icon = Image.open(ROOT / "assets/icons/icon_512.png").convert("RGBA")
+    fg = Image.open(ROOT / "assets/icons/icon_adaptive_432.png").convert("RGBA")
     for dpi, px in ICONS.items():
         d = res / f"mipmap-{dpi}"
         d.mkdir(parents=True)
         icon.resize((px, px), Image.LANCZOS).save(d / "ic_launcher.png")
+        fg.resize((px * 9 // 4, px * 9 // 4), Image.LANCZOS).save(d / "ic_launcher_fg.png")
+    (res / "mipmap-anydpi-v26").mkdir()
+    (res / "mipmap-anydpi-v26" / "ic_launcher.xml").write_text(ADAPTIVE, encoding="utf-8")
     (work / "AndroidManifest.xml").write_text(
         MANIFEST.format(package=PACKAGE, code=version_code(VERSION), version=VERSION), encoding="utf-8")
     flat = work / "res.zip"

@@ -80,11 +80,6 @@ Move Link through ever-growing hordes, pick up rupees to level up, choose one up
               ("Auto or manual attack", "Tab / R", "Y"),
               ("Pause", "Esc / P", "Start"),
               ("Fullscreen · info · screenshot", "F11 · F3 · F12", "Select · – · –")],
-        road_h="Roadmap",
-        road=[
-            'Real hand-made maps and more playable characters',
-            'More bosses with their own attacks and animations',
-        ],
         comm_h="Community",
         comm=f"""This is a project made for fun. For other projects, sharing, ideas, suggestions or bug reports, come and talk on **[Discord]({DISCORD})**.
 
@@ -149,11 +144,6 @@ Guidez Link au milieu de hordes toujours plus grandes, ramassez des rubis pour m
               ("Attaque auto ou manuelle", "Tab / R", "Y"),
               ("Pause", "Échap / P", "Start"),
               ("Plein écran · infos · capture", "F11 · F3 · F12", "Select · – · –")],
-        road_h="Feuille de route",
-        road=[
-            "De vraies cartes dessinées à la main et d'autres personnages jouables",
-            "D'autres boss avec leurs propres attaques et animations",
-        ],
         comm_h="Communauté",
         comm=f"""C'est un projet fait pour le plaisir. Pour d'autres projets, partager, proposer des idées ou signaler des bugs, rendez-vous sur le **[Discord]({DISCORD})**.
 
@@ -218,11 +208,6 @@ Steuere Link durch immer größere Horden, sammle Rubine, um aufzusteigen, wähl
               ("Auto- oder manueller Angriff", "Tab / R", "Y"),
               ("Pause", "Esc / P", "Start"),
               ("Vollbild · Info · Bildschirmfoto", "F11 · F3 · F12", "Select · – · –")],
-        road_h="Fahrplan",
-        road=[
-            'Echte, handgemachte Karten und weitere spielbare Figuren',
-            'Weitere Bosse mit eigenen Angriffen und Animationen',
-        ],
         comm_h="Community",
         comm=f"""Dies ist ein Projekt aus Spaß. Für andere Projekte, Austausch, Ideen, Vorschläge oder Fehlerberichte: komm auf den **[Discord]({DISCORD})**.
 
@@ -287,11 +272,6 @@ Guía a Link entre hordas cada vez más grandes, recoge rupias para subir de niv
               ("Ataque automático o manual", "Tab / R", "Y"),
               ("Pausa", "Esc / P", "Start"),
               ("Pantalla completa · info · captura", "F11 · F3 · F12", "Select · – · –")],
-        road_h="Hoja de ruta",
-        road=[
-            'Mapas de verdad hechos a mano y más personajes jugables',
-            'Más jefes con sus propios ataques y animaciones',
-        ],
         comm_h="Comunidad",
         comm=f"""Es un proyecto hecho por diversión. Para otros proyectos, compartir, ideas, propuestas o errores, ven al **[Discord]({DISCORD})**.
 
@@ -356,11 +336,6 @@ Guida Link tra orde sempre più grandi, raccogli rupie per salire di livello, sc
               ("Attacco automatico o manuale", "Tab / R", "Y"),
               ("Pausa", "Esc / P", "Start"),
               ("Schermo intero · info · cattura", "F11 · F3 · F12", "Select · – · –")],
-        road_h="Tabella di marcia",
-        road=[
-            'Mappe vere fatte a mano e altri personaggi giocabili',
-            'Altri boss con attacchi e animazioni propri',
-        ],
         comm_h="Comunità",
         comm=f"""È un progetto fatto per divertimento. Per altri progetti, condivisioni, idee, proposte o bug, vieni sul **[Discord]({DISCORD})**.
 
@@ -425,11 +400,6 @@ Guie Link no meio de hordas cada vez maiores, colete rupias para subir de nível
               ("Ataque automático ou manual", "Tab / R", "Y"),
               ("Pausa", "Esc / P", "Start"),
               ("Tela cheia · info · captura", "F11 · F3 · F12", "Select · – · –")],
-        road_h="Próximos passos",
-        road=[
-            'Mapas de verdade feitos à mão e mais personagens jogáveis',
-            'Mais chefes com ataques e animações próprios',
-        ],
         comm_h="Comunidade",
         comm=f"""É um projeto feito por diversão. Para outros projetos, compartilhar, ideias, sugestões ou bugs, venha para o **[Discord]({DISCORD})**.
 
@@ -494,11 +464,6 @@ Detentores de direitos: para remover um conteúdo, abram uma issue ou falem cono
               ("自動・手動攻撃の切り替え", "Tab / R", "Y"),
               ("ポーズ", "Esc / P", "Start"),
               ("全画面 · 情報 · スクリーンショット", "F11 · F3 · F12", "Select · – · –")],
-        road_h="今後の予定",
-        road=[
-            '手作りの本格的なマップと新しいプレイアブルキャラクター',
-            '独自の攻撃とアニメーションを持つボスの追加',
-        ],
         comm_h="コミュニティ",
         comm=f"""楽しみのためのプロジェクトです。ほかの作品、共有、アイデア、提案、バグ報告は **[Discord]({DISCORD})** へどうぞ。
 
@@ -612,10 +577,6 @@ def readme(code):
         f"| {' | '.join(t['ctrl_cols'])} |",
         "|---|---|---|",
         *[f"| {a} | {k} | {p} |" for a, k, p in t["ctrl"]],
-        "",
-        f"## {t['road_h']}",
-        "",
-        *[f"- {r}" for r in t["road"]],
         "",
         f"## {t['comm_h']}",
         "",

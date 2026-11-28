@@ -176,20 +176,49 @@ pub fn draw_chests(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, stake
     backdrop(list, ctx, vis, lang.get("ui.fortune.chests"), t);
     let rt = ctx.real_time as f32;
     text(list, main, &lang.get("ui.fortune.pick").replace("{n}", &stake.to_string()), Vec2::new(view.x * 0.5, TELLER_Y + 14.0), 1.0, WHITE, Align::Center);
+    let picked = opened.map(|o| o.1);
+    // suspense : 0 -> 1 pendant que le coffre choisi tremble, puis il s'ouvre
+    let s = if opened.is_some() { (t / CHEST_SUSPENSE).min(1.0) } else { 0.0 };
+    let age = t - CHEST_SUSPENSE;
     for (k, c) in chest_centers(view).into_iter().enumerate() {
-        let picked = opened.map(|o| o.1);
         let chosen = picked.map_or(k == sel, |p| p == k);
-        // le coffre choisi s'ouvre d'abord, les deux autres juste apres
-        let open = opened.is_some() && t > if picked == Some(k) { 0.15 } else { 0.7 };
-        let bob = if chosen && !open { (2.0 * (rt * 6.0).sin()).round() } else { 0.0 };
+        // le coffre choisi s'ouvre au bout du suspense, les deux autres ensuite, l'un apres l'autre
+        let open_at = if picked == Some(k) { CHEST_SUSPENSE } else { CHEST_SUSPENSE + 0.9 + 0.25 * k as f32 };
+        let open = opened.is_some() && t > open_at;
+        let mut off = Vec2::ZERO;
+        if picked == Some(k) && !open {
+            // tremble de plus en plus fort et decolle du sol
+            let q = s * s;
+            off = Vec2::new((3.0 * q * (rt * 53.0).sin()).round(), (-3.0 * q * (rt * 37.0).cos().abs() - 4.0 * q).round());
+        } else if picked == Some(k) && age < 0.25 {
+            off = Vec2::new(0.0, (-6.0 * (1.0 - age / 0.25)).round());
+        } else if chosen && !open {
+            off.y = (2.0 * (rt * 6.0).sin()).round();
+        }
+        let c = c + off;
         let (bp, bs) = chest_box(c);
-        if chosen {
+        if picked == Some(k) && !open {
+            // lumiere qui monte sous le couvercle
+            list.set(Space::Ui, Blend::Add);
+            let p = 0.5 + 0.5 * (t * (6.0 + 20.0 * s)).sin();
+            for (r, a) in [(56.0, 0.16), (40.0, 0.26), (24.0, 0.45)] {
+                disc(list, vis, c, r * (0.5 + 0.6 * s) * (0.85 + 0.25 * p), with_alpha(GOLD, a * s));
+            }
+            rays(list, vis, c, 30.0, 40.0 + 50.0 * s, rt * 2.0, 12, with_alpha(GOLD, 0.8 * s));
+            list.set(Space::Ui, Blend::Alpha);
+        } else if chosen && opened.is_none() {
             let pulse = 0.6 + 0.4 * (rt * 6.0).sin();
             list.rect(&vis.white, bp, bs, [1.0, 0.85, 0.3, 0.12 * pulse]);
             frame_rect(list, &vis.white, bp, bs, with_alpha(GOLD, pulse));
         }
+        // pendant le suspense, les autres coffres s'effacent dans l'ombre
+        let dim = if picked.is_some() && picked != Some(k) && !open { 1.0 - 0.55 * s } else { 1.0 };
         let anim = vis.fortune_chest[open as usize];
-        list.frame(ctx.atlas.frame(anim, 0.0), c + Vec2::new(0.0, bob), &Params::default().scale(Vec2::splat(CHEST_SCALE)));
+        list.frame(ctx.atlas.frame(anim, 0.0), c, &Params::default().scale(Vec2::splat(CHEST_SCALE)));
+        if dim < 1.0 {
+            let (p, sz) = (c - Vec2::splat(8.0 * CHEST_SCALE), Vec2::splat(16.0 * CHEST_SCALE));
+            list.rect(&vis.white, p, sz, [0.1, 0.03, 0.15, 1.0 - dim]);
+        }
         let label = match opened {
             Some((mults, _)) if open => {
                 let m = mults[k];
@@ -198,32 +227,137 @@ pub fn draw_chests(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, stake
                     1 => WHITE,
                     _ => GOLD,
                 };
-                // contenu qui monte du coffre
-                let rise = ((t - if picked == Some(k) { 0.15 } else { 0.7 }) / 0.3).clamp(0.0, 1.0);
+                let a = t - open_at;
+                if picked == Some(k) {
+                    burst(list, ctx, vis, c, a, m, k as u32);
+                }
+                // contenu qui jaillit du coffre (plus haut pour le coffre choisi)
+                let rise = (a / 0.35).clamp(0.0, 1.0);
+                let h = if picked == Some(k) { 34.0 } else { 10.0 };
+                let jump = h * (1.0 - (1.0 - rise) * (1.0 - rise));
                 if m > 0 {
                     let r = ctx.atlas.frame(vis.rupees[2], rt);
                     for j in 0..m {
                         let x = (j as f32 - (m - 1) as f32 * 0.5) * 12.0;
-                        list.frame(r, c + Vec2::new(x, -24.0 - 10.0 * rise), &Params::default().scale(Vec2::splat(2.0)));
+                        list.frame(r, c + Vec2::new(x, -24.0 - jump).round(), &Params::default().scale(Vec2::splat(2.0)));
                     }
                 }
                 (format!("x{m}"), col)
             }
-            _ => (format!("{}", k + 1), with_alpha(WHITE, 0.7)),
+            _ => (format!("{}", k + 1), with_alpha(WHITE, 0.7 * dim)),
         };
         text(list, main, &label.0, c + Vec2::new(0.0, bs.y * 0.5 + 4.0), 2.0, label.1, Align::Center);
     }
     if let Some((mults, pick)) = opened {
-        if t > 0.9 {
+        let a = age - 0.3;
+        if a > 0.0 {
             let g = chest_gain(stake, mults[pick]);
             let (s, col) = match g {
                 g if g > 0 => (lang.get("ui.fortune.won").replace("{n}", &g.to_string()), GOLD),
                 0 => (lang.get("ui.fortune.even").to_string(), WHITE),
                 g => (lang.get("ui.fortune.lost").replace("{n}", &(-g).to_string()), rgb(255, 120, 120)),
             };
-            text(list, main, &s, Vec2::new(view.x * 0.5, view.y - 52.0), 2.0, col, Align::Center);
+            // le resultat tombe en grand puis se pose
+            let size = crate::hud::title_scale(main, &s, view.x, if a < 0.12 { 3.0 } else { 2.0 });
+            text(list, main, &s, Vec2::new(view.x * 0.5, view.y - 52.0), size, col, Align::Center);
         }
-        continue_hint(list, ctx, lang, t);
+        continue_hint(list, ctx, lang, age);
+    }
+}
+
+/// Duree du suspense : le coffre choisi tremble et brille avant de s'ouvrir.
+pub const CHEST_SUSPENSE: f32 = 1.5;
+
+/// Pas du roulement de tambour (`cursor`) pendant un suspense de `dur` secondes : de plus en plus
+/// rapproches. Vrai quand un coup tombe entre `t - dt` et `t`.
+pub fn drumroll(t: f32, dt: f32, dur: f32) -> bool {
+    let beat = |x: f32| (9.0 * (x / dur).clamp(0.0, 1.0).powf(1.8)).floor();
+    t < dur && beat(t) > beat(t - dt)
+}
+
+/// Bruit deterministe dans [0, 1) : les etincelles sont calculees a partir du temps, sans etat.
+pub fn h(i: u32) -> f32 {
+    let mut x = i.wrapping_mul(0x9E37_79B9) ^ 0x85EB_CA6B;
+    x ^= x >> 15;
+    x = x.wrapping_mul(0x2C1B_3C6D);
+    x ^= x >> 12;
+    (x & 0xFFFF) as f32 / 65536.0
+}
+
+/// Rayons de lumiere pointilles autour de `c`, de `r0` a `r1`.
+#[allow(clippy::too_many_arguments)]
+pub fn rays(list: &mut DrawList, vis: &Vis, c: Vec2, r0: f32, r1: f32, spin: f32, n: u32, col: Color) {
+    for j in 0..n {
+        let ang = spin + j as f32 * std::f32::consts::TAU / n as f32;
+        let dir = Vec2::new(ang.cos(), ang.sin());
+        let mut d = r0;
+        while d < r1 {
+            list.rect(&vis.white, (c + dir * d).round(), Vec2::splat(2.0), with_alpha(col, col[3] * (1.0 - (d - r0) / (r1 - r0))));
+            d += 4.0;
+        }
+    }
+}
+
+/// Anneau de pixels de rayon `r`.
+pub fn ring(list: &mut DrawList, vis: &Vis, c: Vec2, r: f32, col: Color) {
+    let n = (r * 0.8).max(12.0) as u32;
+    for j in 0..n {
+        let ang = j as f32 * std::f32::consts::TAU / n as f32;
+        list.rect(&vis.white, (c + Vec2::new(ang.cos(), ang.sin()) * r).round(), Vec2::splat(2.0), col);
+    }
+}
+
+/// Eclat a l'ouverture (`a` : secondes depuis) : onde de choc, rayons et pluie de rubis pour un
+/// gain, simple bouffee grise pour un coffre vide. `m` : multiplicateur (0, 1, 3...), `seed` : graine.
+fn burst(list: &mut DrawList, ctx: &Ctx, vis: &Vis, c: Vec2, a: f32, m: u32, seed: u32) {
+    if a > 2.5 {
+        return;
+    }
+    let col = match m {
+        0 => rgb(150, 150, 170),
+        1 => WHITE,
+        _ => GOLD,
+    };
+    list.set(Space::Ui, Blend::Add);
+    // onde de choc
+    let k = (a / 0.5).min(1.0);
+    if k < 1.0 {
+        ring(list, vis, c, 10.0 + 90.0 * k, with_alpha(col, 0.8 * (1.0 - k)));
+        ring(list, vis, c, 6.0 + 55.0 * k, with_alpha(col, 0.5 * (1.0 - k)));
+    }
+    // colonne de lumiere et rayons pour un gain
+    if m > 0 {
+        let f = (1.0 - a / 1.4).max(0.0);
+        let w = 26.0 * f + 4.0;
+        list.rect(&vis.white, Vec2::new((c.x - w * 0.5).round(), 0.0), Vec2::new(w.round(), c.y), with_alpha(col, 0.3 * f));
+        rays(list, vis, c, 20.0, 50.0 + 60.0 * k, a * 1.2, if m > 1 { 16 } else { 8 }, with_alpha(col, 0.6 * f));
+    }
+    // etincelles projetees qui retombent
+    let n = if m > 1 { 40 } else { 18 };
+    for i in 0..n {
+        let s = seed * 997 + i;
+        let ang = -std::f32::consts::PI * (0.1 + 0.8 * h(s));
+        let v = 80.0 + 140.0 * h(s + 7);
+        let life = 0.8 + 0.8 * h(s + 13);
+        if a > life {
+            continue;
+        }
+        let p = c + Vec2::new(ang.cos() * v * a, ang.sin() * v * a + 160.0 * a * a);
+        list.rect(&vis.white, p.round(), Vec2::splat(2.0), with_alpha(col, 1.0 - a / life));
+    }
+    list.set(Space::Ui, Blend::Alpha);
+    // pluie de rubis pour un gros gain
+    if m > 1 {
+        let r = ctx.atlas.frame(vis.rupees[2], ctx.real_time as f32);
+        for i in 0..14u32 {
+            let s = seed * 131 + i * 3;
+            let ang = -std::f32::consts::PI * (0.2 + 0.6 * h(s));
+            let v = 110.0 + 90.0 * h(s + 1);
+            let p = c + Vec2::new(ang.cos() * v * a, ang.sin() * v * a + 220.0 * a * a);
+            if p.y < ctx.view.y + 16.0 {
+                list.frame(r, p.round(), &Params::default().scale(Vec2::splat(2.0)));
+            }
+        }
     }
 }
 
@@ -236,36 +370,75 @@ pub fn draw_double(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, win: 
     let c = table_ball(Vec2::new(view.x * 0.5, TELLER_Y + 3.0), 3.0);
     let reveal = t > DOUBLE_GAZE;
     let col = if !reveal { PURPLE } else if win { GOLD } else { rgb(255, 110, 110) };
-    // boule : disque de pixels, eclat additif qui pulse de plus en plus vite
+    // boule : disque de pixels, eclat additif qui pulse de plus en plus vite, comme un coeur qui s'emballe
     let k = (t / DOUBLE_GAZE).min(1.0);
-    let pulse = 0.5 + 0.5 * (t * (4.0 + 14.0 * k)).sin();
+    let pulse = 0.5 + 0.5 * (t * (4.0 + 22.0 * k * k)).sin();
+    let a = t - DOUBLE_GAZE;
+    let glow = if reveal { (1.0 - a / 1.5).max(0.35) } else { 0.5 + 0.5 * k };
     list.set(Space::Ui, Blend::Add);
-    for (r, a) in [(34.0, 0.12), (22.0, 0.2), (13.0, 0.4)] {
-        disc(list, vis, c, r * (0.9 + 0.2 * pulse), with_alpha(col, a * (0.5 + 0.5 * k)));
+    for (r, al) in [(46.0, 0.08), (34.0, 0.12), (22.0, 0.2), (13.0, 0.4)] {
+        disc(list, vis, c, r * (0.8 + 0.3 * pulse * k), with_alpha(col, al * glow));
     }
-    // rayons qui tournent autour de la boule
-    for j in 0..8 {
-        let ang = t * 1.5 + j as f32 * std::f32::consts::TAU / 8.0;
-        let len = 40.0 + 20.0 * k;
-        for d in (18..len as i32).step_by(4) {
-            let q = c + Vec2::new(ang.cos(), ang.sin()) * d as f32;
-            list.rect(&vis.white, q.round(), Vec2::splat(2.0), with_alpha(col, 0.35 * k * (1.0 - d as f32 / len)));
+    if !reveal {
+        // l'energie converge vers la boule, de plus en plus vite
+        for i in 0..24u32 {
+            let ph = (t * (0.8 + 1.6 * k) + h(i)).fract();
+            let ang = h(i + 50) * std::f32::consts::TAU + t * 0.7;
+            let d = 90.0 * (1.0 - ph) + 10.0;
+            list.rect(&vis.white, (c + Vec2::new(ang.cos(), ang.sin()) * d).round(), Vec2::splat(3.0), with_alpha(col, k * ph));
+        }
+        rays(list, vis, c, 18.0, 40.0 + 30.0 * k, t * (1.5 + 3.0 * k), 8, with_alpha(col, 0.35 * k));
+    } else if a < 2.5 {
+        // revelation : onde de choc et rayons, dore pour un gain ; eclats rouges pour une perte
+        let q = (a / 0.6).min(1.0);
+        if q < 1.0 {
+            ring(list, vis, c, 12.0 + 140.0 * q, with_alpha(col, 0.9 * (1.0 - q)));
+            ring(list, vis, c, 8.0 + 80.0 * q, with_alpha(col, 0.5 * (1.0 - q)));
+        }
+        if win {
+            rays(list, vis, c, 20.0, 60.0 + 80.0 * q, a * 0.8, 16, with_alpha(col, 0.6 * (1.0 - a / 2.5)));
+        }
+        for i in 0..36u32 {
+            let ang = h(i * 3 + 1) * std::f32::consts::TAU;
+            let v = 60.0 + 150.0 * h(i * 3 + 2);
+            let life = 0.7 + 0.9 * h(i * 3 + 3);
+            if a < life {
+                let p = c + Vec2::new(ang.cos() * v * a, ang.sin() * v * a + 120.0 * a * a);
+                list.rect(&vis.white, p.round(), Vec2::splat(if win { 2.0 } else { 3.0 }), with_alpha(col, 1.0 - a / life));
+            }
         }
     }
     list.set(Space::Ui, Blend::Alpha);
+    if reveal && !win {
+        // la boule se ternit
+        disc(list, vis, c, 2.6 * 3.0, [0.18, 0.12, 0.22, (a / 0.2).min(1.0) * 0.85]);
+    }
+    if reveal && win && a < 2.5 {
+        // pluie de rubis
+        let r = ctx.atlas.frame(vis.rupees[2], ctx.real_time as f32);
+        for i in 0..20u32 {
+            let ang = -std::f32::consts::PI * (0.15 + 0.7 * h(i + 300));
+            let v = 120.0 + 110.0 * h(i + 400);
+            let p = c + Vec2::new(ang.cos() * v * a, ang.sin() * v * a + 230.0 * a * a);
+            if p.y < view.y + 16.0 {
+                list.frame(r, p.round(), &Params::default().scale(Vec2::splat(2.0)));
+            }
+        }
+    }
     let msg = if reveal {
         lang.get(if win { "ui.fortune.double_win" } else { "ui.fortune.double_lose" }).to_string()
     } else {
         lang.get("ui.fortune.gazing").to_string()
     };
-    text(list, main, &msg, Vec2::new(view.x * 0.5, view.y - 52.0), if reveal { 2.0 } else { 1.0 }, if reveal { col } else { WHITE }, Align::Center);
+    let size = if !reveal { 1.0 } else { crate::hud::title_scale(main, &msg, view.x, if a < 0.12 { 3.0 } else { 2.0 }) };
+    text(list, main, &msg, Vec2::new(view.x * 0.5, view.y - 52.0), size, if reveal { col } else { WHITE }, Align::Center);
     if reveal {
         continue_hint(list, ctx, lang, t - DOUBLE_GAZE);
     }
 }
 
 /// Duree du suspense avant le resultat du quitte ou double.
-pub const DOUBLE_GAZE: f32 = 1.6;
+pub const DOUBLE_GAZE: f32 = 2.6;
 
 fn continue_hint(list: &mut DrawList, ctx: &Ctx, lang: &Lang, t: f32) {
     if t < RESULT_LOCK {
@@ -275,7 +448,7 @@ fn continue_hint(list: &mut DrawList, ctx: &Ctx, lang: &Lang, t: f32) {
     text(list, ctx.atlas.font("main"), lang.get("ui.continue"), Vec2::new(ctx.view.x * 0.5, ctx.view.y - 22.0), 1.0, with_alpha(WHITE, a), Align::Center);
 }
 
-fn disc(list: &mut DrawList, vis: &Vis, c: Vec2, r: f32, col: Color) {
+pub fn disc(list: &mut DrawList, vis: &Vis, c: Vec2, r: f32, col: Color) {
     let n = r.ceil() as i32;
     for dy in -n..=n {
         let w = (r * r - (dy as f32) * (dy as f32)).max(0.0).sqrt().round();

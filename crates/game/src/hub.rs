@@ -38,6 +38,8 @@ pub struct Row {
 
 pub struct Layout {
     pub title_y: f32,
+    /// Grand bouton en haut, a la place du titre (« Partir ! » des Preparatifs).
+    pub go: Option<(Vec2, Vec2)>,
     pub tabs: Vec<(Vec2, Vec2)>,
     /// Lignes visibles : (indice, position, taille).
     pub rows: Vec<(usize, Vec2, Vec2)>,
@@ -49,6 +51,8 @@ const ROW_H: f32 = 22.0;
 
 /// Valeur de `sel` quand le curseur est sur la rangee des onglets.
 pub const TABS_ROW: usize = usize::MAX;
+/// Valeur de `sel` quand le curseur est sur le grand bouton du haut (`Layout::go`).
+pub const GO_ROW: usize = usize::MAX - 1;
 
 /// Lignes visibles a la fois.
 fn fit(view: Vec2) -> usize {
@@ -57,10 +61,13 @@ fn fit(view: Vec2) -> usize {
     (((list_bottom - list_top) / ROW_H).floor() as usize).max(3)
 }
 
-pub fn layout(view: Vec2, ntabs: usize, nrows: usize, sel: usize) -> Layout {
+pub fn layout(view: Vec2, ntabs: usize, nrows: usize, sel: usize, go: bool) -> Layout {
     let w = (view.x - 32.0).min(560.0);
     let x0 = ((view.x - w) * 0.5).round();
     let title_y = 10.0;
+    // de la place a droite pour les rubis
+    let gw = (w - 120.0).min(300.0).round();
+    let go = go.then(|| (Vec2::new(((view.x - gw) * 0.5).round(), 4.0), Vec2::new(gw, 30.0)));
     let tab_y = 40.0;
     let tw = (w / ntabs.max(1) as f32).floor();
     let tabs = (0..ntabs).map(|k| (Vec2::new(x0 + k as f32 * tw, tab_y), Vec2::new(tw - 4.0, 20.0))).collect();
@@ -78,7 +85,7 @@ pub fn layout(view: Vec2, ntabs: usize, nrows: usize, sel: usize) -> Layout {
     let detail = (Vec2::new(x0, list_bottom + 4.0), Vec2::new(w, detail_h));
     let bw = 140.0;
     let back = (Vec2::new(((view.x - bw) * 0.5).round(), view.y - back_h - 8.0), Vec2::new(bw, back_h));
-    Layout { title_y, tabs, rows, back, detail }
+    Layout { title_y, go, tabs, rows, back, detail }
 }
 
 pub enum Input {
@@ -87,35 +94,73 @@ pub enum Input {
     /// Onglet choisi a la souris.
     Tab(usize),
     Pick(usize),
+    /// Grand bouton du haut valide.
+    Go,
     Left(usize),
     Right(usize),
     Back,
 }
 
 /// `sel` va de 0 a `nrows` (la derniere valeur est le bouton Retour), ou vaut `TABS_ROW` (onglets :
-/// gauche / droite changent d'onglet). Les gachettes (Q / E) changent d'onglet de partout.
-pub fn input(nav: &NavIn, view: Vec2, ntabs: usize, tab: usize, nrows: usize, sel: &mut usize) -> Input {
+/// gauche / droite changent d'onglet) ou `GO_ROW` (grand bouton du haut, avec `go`). Les gachettes
+/// (Q / E) changent d'onglet de partout.
+pub fn input(nav: &NavIn, view: Vec2, ntabs: usize, tab: usize, nrows: usize, sel: &mut usize, go: bool) -> Input {
     use crate::menus::{keep_scroll, wheel_scroll, List};
     let fit = fit(view);
     let r = if wheel_scroll(List::Hub, nav.wheel, nrows, fit, sel) {
         Input::Moved
     } else {
-        input_rows(nav, view, ntabs, tab, nrows, sel)
+        input_rows(nav, view, ntabs, tab, nrows, sel, go)
     };
     keep_scroll(List::Hub, nrows, fit, *sel);
     r
 }
 
-fn input_rows(nav: &NavIn, view: Vec2, ntabs: usize, tab: usize, nrows: usize, sel: &mut usize) -> Input {
-    let l = layout(view, ntabs, nrows, *sel);
+fn input_rows(nav: &NavIn, view: Vec2, ntabs: usize, tab: usize, nrows: usize, sel: &mut usize, go: bool) -> Input {
+    let l = layout(view, ntabs, nrows, *sel, go);
     let n = nrows + 1;
     let ntabs = ntabs.max(1);
+    // haut de la boucle de navigation : le grand bouton, sinon les onglets, sinon la premiere ligne
+    let top = if go { GO_ROW } else if ntabs > 1 { TABS_ROW } else { 0 };
     if nav.back {
         return Input::Back;
     }
     if nav.tab_prev || nav.tab_next {
         let d = if nav.tab_next { 1 } else { ntabs - 1 };
         return Input::Tab((tab + d) % ntabs);
+    }
+    if let Some((p, s)) = l.go {
+        if nav.click && inside(nav.mouse, p, s) {
+            return Input::Go;
+        }
+        if nav.hover.is_some_and(|m| inside(m, p, s)) && *sel != GO_ROW {
+            *sel = GO_ROW;
+            return Input::Moved;
+        }
+    }
+    if *sel == GO_ROW {
+        if let Some(m) = nav.hover {
+            let back = inside(m, l.back.0, l.back.1).then_some(nrows);
+            if let Some(k) = l.rows.iter().find(|r| inside(m, r.1, r.2)).map(|r| r.0).or(back) {
+                *sel = k;
+                return Input::Moved;
+            }
+        }
+        if nav.click {
+            for (k, &(p, s)) in l.tabs.iter().enumerate() {
+                if inside(nav.mouse, p, s) {
+                    return Input::Tab(k);
+                }
+            }
+        }
+        if nav.confirm {
+            return Input::Go;
+        }
+        if nav.up || nav.down {
+            *sel = if nav.up { nrows } else if ntabs > 1 { TABS_ROW } else { 0 };
+            return Input::Moved;
+        }
+        return Input::None;
     }
     if *sel == TABS_ROW {
         if let Some(m) = nav.hover {
@@ -138,7 +183,7 @@ fn input_rows(nav: &NavIn, view: Vec2, ntabs: usize, tab: usize, nrows: usize, s
             return Input::Tab((tab + 1) % ntabs);
         }
         if nav.up {
-            *sel = nrows;
+            *sel = if go { GO_ROW } else { nrows };
             return Input::Moved;
         }
         if nav.down {
@@ -175,13 +220,13 @@ fn input_rows(nav: &NavIn, view: Vec2, ntabs: usize, tab: usize, nrows: usize, s
             return Input::Back;
         }
     }
-    // haut depuis la premiere ligne : les onglets ; bas depuis Retour : les onglets aussi
+    // haut depuis la premiere ligne : les onglets (ou le grand bouton) ; bas depuis Retour : le haut
     if nav.up {
-        *sel = if *sel == 0 && ntabs > 1 { TABS_ROW } else { (*sel + n - 1) % n };
+        *sel = if *sel == 0 && ntabs > 1 { TABS_ROW } else if *sel == 0 && go { GO_ROW } else { (*sel + n - 1) % n };
         return Input::Moved;
     }
     if nav.down {
-        *sel = if *sel == nrows && ntabs > 1 { TABS_ROW } else { (*sel + 1) % n };
+        *sel = if *sel == nrows && top != 0 { top } else { (*sel + 1) % n };
         return Input::Moved;
     }
     if nav.left {
@@ -212,6 +257,7 @@ pub fn draw(
     sel: usize,
     detail: &str,
     back: &str,
+    go: Option<(&str, &str)>,
 ) {
     let view = ctx.view;
     let atlas = &ctx.atlas;
@@ -220,8 +266,33 @@ pub fn draw(
     list.set(Space::Ui, Blend::Alpha);
     list.probe_layer();
     list.rect(white, Vec2::ZERO, view, [0.01, 0.01, 0.05, 0.85]);
-    let l = layout(view, tabs.len(), rows.len(), sel);
-    text(list, main, title, Vec2::new(view.x * 0.5, l.title_y), 2.0, WHITE, Align::Center);
+    let l = layout(view, tabs.len(), rows.len(), sel, go.is_some());
+    match (l.go, go) {
+        // grand bouton vert a la place du titre : libelle en grand, puis la valeur (le stage)
+        (Some((p, s)), Some((label, value))) => {
+            let on = sel == GO_ROW;
+            let pulse = 0.75 + 0.25 * (ctx.real_time as f32 * 4.0).sin();
+            list.rect(white, p, s, [0.06, 0.24 * if on { pulse } else { 0.8 }, 0.1, 0.97]);
+            if on {
+                focus_frame(list, ctx, p, s);
+            } else {
+                frame_rect(list, white, p, s, with_alpha(GREEN, 0.8));
+            }
+            list.probe_panel(p, s, "partir");
+            let lw = main.measure(label) as f32 * 2.0;
+            let vw = if value.is_empty() { 0.0 } else { main.measure(value) as f32 + 10.0 };
+            let vw = if lw + vw > s.x - 16.0 { 0.0 } else { vw };
+            let x = (p.x + (s.x - lw - vw) * 0.5).round();
+            // police doublee : un pixel plus haut pour centrer l'encre des lettres (controle des ecrans)
+            text(list, main, label, Vec2::new(x, mid_y(main, p.y, s.y, 2.0) - 1.0), 2.0, if on { GOLD } else { GREEN }, Align::Left);
+            if vw > 0.0 {
+                text(list, main, value, Vec2::new(x + lw + 10.0, mid_y(main, p.y, s.y, 1.0)), 1.0, GOLD, Align::Left);
+            }
+        }
+        _ => {
+            text(list, main, title, Vec2::new(view.x * 0.5, l.title_y), 2.0, WHITE, Align::Center);
+        }
+    }
     if let Some((icon, s)) = corner {
         let x = l.tabs.last().map(|t| t.0.x + t.1.x).unwrap_or(view.x - 16.0);
         let w = text(list, main, &s, Vec2::new(x, l.title_y + 8.0), 1.0, GOLD, Align::Right);
@@ -329,5 +400,37 @@ pub fn focus_frame(list: &mut DrawList, ctx: &Ctx, p: Vec2, s: Vec2) {
         let x1 = if dx > 0.0 { x } else { x - 1.0 };
         let y1 = if dy > 0.0 { y } else { y - 5.0 };
         list.rect(white, Vec2::new(x1, y1), Vec2::new(1.0, 5.0), c);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Grand bouton du haut : dans la boucle clavier / manette (haut de la liste, sous Retour), et A le valide.
+    #[test]
+    fn go_button_in_the_loop() {
+        let view = Vec2::new(480.0, 270.0);
+        let step = |sel: &mut usize, nav: NavIn| input_rows(&nav, view, 2, 0, 3, sel, true);
+        let (up, down) = (NavIn { up: true, ..NavIn::default() }, NavIn { down: true, ..NavIn::default() });
+        let mut sel = GO_ROW;
+        assert!(matches!(step(&mut sel, NavIn { confirm: true, ..NavIn::default() }), Input::Go));
+        step(&mut sel, down);
+        assert_eq!(sel, TABS_ROW);
+        step(&mut sel, down);
+        assert_eq!(sel, 0);
+        step(&mut sel, up);
+        step(&mut sel, up);
+        assert_eq!(sel, GO_ROW);
+        step(&mut sel, up);
+        assert_eq!(sel, 3, "Retour");
+        step(&mut sel, down);
+        assert_eq!(sel, GO_ROW);
+        // sans grand bouton : rien ne change
+        let mut sel = 0;
+        input_rows(&up, view, 2, 0, 3, &mut sel, false);
+        assert_eq!(sel, TABS_ROW);
+        input_rows(&up, view, 2, 0, 3, &mut sel, false);
+        assert_eq!(sel, 3);
     }
 }

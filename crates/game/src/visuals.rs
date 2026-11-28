@@ -223,7 +223,7 @@ impl Vis {
             npc_witch: atlas.get("npc_witch", "0"),
             fortune_chest: [atlas.get("fortune_chest", "closed"), atlas.get("fortune_chest", "open")],
             potions: [atlas.get("icon_red_potion", "0"), atlas.get("icon_green_potion", "0"), atlas.get("icon_blue_potion", "0"), atlas.get("icon_bottle", "0")],
-            cursor: atlas.get("fairy", "0"),
+            cursor: atlas.get("cursor_sword", "0"),
             icon_heart: atlas.get("icon_heart", "0"),
             icon_rupees: atlas.get("icon_rupees", "0"),
             hud_heart: [atlas.get("hud_heart", "full"), atlas.get("hud_heart", "half"), atlas.get("hud_heart", "empty")],

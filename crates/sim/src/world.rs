@@ -60,8 +60,8 @@ pub enum Event {
     /// `last` : boss final de la carte.
     BossSpawned { pos: Vec2, kind: u16, last: bool },
     BossDied { pos: Vec2, kind: u16, last: bool },
-    /// Une fee (ou un allie, en coop) releve le joueur.
-    Revived { pos: Vec2, slot: u8 },
+    /// Une fee (`fairy`) ou un allie, en coop, releve le joueur.
+    Revived { pos: Vec2, slot: u8, fairy: bool },
     /// La porte de sortie apparait.
     PortalOpened { pos: Vec2 },
     /// Le joueur a franchi la porte : stage gagne.
@@ -270,7 +270,7 @@ pub struct Hero {
 /// Coop : secondes aupres d'un allie a terre pour le relever, et distance maximale entre deux joueurs.
 pub const REVIVE_TIME: f32 = 3.0;
 pub const REVIVE_RANGE: f32 = 26.0;
-pub const LEASH: f32 = 260.0;
+pub const LEASH: f32 = 520.0;
 /// Coop : secondes de protection d'un joueur qui choisit (niveau, coffre).
 pub const CHOICE_SHIELD: f32 = 10.0;
 /// Coups des joueurs sur le decor pendant un pas : (avant les evenements, apres), (centre, rayon).
@@ -795,7 +795,7 @@ impl World {
                 p.alive = true;
                 p.hp = p.max_hp * 0.5;
                 p.invuln = 2.5;
-                self.events.push(Event::Revived { pos, slot: s });
+                self.events.push(Event::Revived { pos, slot: s, fairy: false });
             }
         }
     }
@@ -1289,7 +1289,7 @@ impl World {
             self.mods.revives -= 1;
             p.hp = p.max_hp * 0.5;
             p.invuln = 2.5;
-            self.events.push(Event::Revived { pos, slot });
+            self.events.push(Event::Revived { pos, slot, fairy: true });
             for i in 0..self.horde.len() {
                 let d = self.horde.pos[i] - pos;
                 let l = d.length();

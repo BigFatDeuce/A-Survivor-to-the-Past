@@ -223,8 +223,8 @@ impl Game {
                     screens.push((format!("boutique_{tab}"), State::Shop { tab, sel: 1 }));
                 }
                 for tab in shop::PREP {
-                    screens.push((format!("preparatifs_{tab}"), State::Prep { tab, sel: 0 }));
-                    screens.push((format!("preparatifs_{tab}_ligne"), State::Prep { tab, sel: 2 }));
+                    screens.push((format!("preparatifs_{tab}"), State::Prep { tab, sel: hub::GO_ROW }));
+                    screens.push((format!("preparatifs_{tab}_ligne"), State::Prep { tab, sel: 1 }));
                 }
                 screens.push(("boutique_retour".into(), State::Shop { tab: 0, sel: 99 }));
                 for tab in 0..records::TABS.len() {
@@ -238,6 +238,10 @@ impl Game {
                 }
                 for k in 0..c.enemies.len() {
                     screens.push((format!("fiche_0_{k}"), State::Records { tab: 0, sel: 1, armed: false }));
+                    screens.push((format!("fiche_0_{k}_achat"), State::Records { tab: 0, sel: 1, armed: false }));
+                }
+                for k in 0..chars::roster(&c).len() {
+                    screens.push((format!("fiche_{}_{k}", records::CARD_CHARS), State::Records { tab: records::TAB_GALLERY, sel: 0, armed: false }));
                 }
                 screens.push(("joueurs".into(), State::Players { sel: 1, armed: false }));
                 screens.push(("joueurs_supprimer".into(), State::Players { sel: players::DELETE, armed: true }));
@@ -334,7 +338,10 @@ impl Game {
                     // fiche ouverte (« fiche_<onglet>_<element> » ; onglet 0 : bestiaire)
                     self.card = None;
                     self.beast = None;
-                    if let Some((t, k)) = name.strip_prefix("fiche_").and_then(|r| r.split_once('_')).and_then(|(t, k)| Some((t.parse::<usize>().ok()?, k.parse::<usize>().ok()?))) {
+                    // « _achat » : question d'achat de la figurine
+                    let (short, ask) = name.strip_suffix("_achat").map_or((name.as_str(), false), |s| (s, true));
+                    self.fig_ask = ask.then_some(0);
+                    if let Some((t, k)) = short.strip_prefix("fiche_").and_then(|r| r.split_once('_')).and_then(|(t, k)| Some((t.parse::<usize>().ok()?, k.parse::<usize>().ok()?))) {
                         if t == 0 {
                             self.beast = Some((k, ctx.real_time - 10.0));
                         } else {
@@ -379,6 +386,7 @@ impl Game {
         self.gallery = None;
         self.card = None;
         self.beast = None;
+        self.fig_ask = None;
         self.hud.toasts.clear();
         self.state = State::Title { sel: 0 };
         let text = rep.print();

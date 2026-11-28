@@ -99,6 +99,8 @@
         "lay_bomb":          (max_voices: 2, min_interval: 0.1, volume: 0.3, pitch_jitter: 0.05),
         "bomb_explode":      (max_voices: 3, min_interval: 0.06, volume: 0.42, pitch_jitter: 0.08),
         "cane":              (max_voices: 1, min_interval: 0.2, volume: 0.32, pitch_jitter: 0.0),
+        // tornades de l'ocarina : une seule flute a la fois (avant : volume 1 par defaut, jusqu'a 4 voix)
+        "flute_soft":        (max_voices: 1, min_interval: 1.0, volume: 0.5, pitch_jitter: 0.0),
         "fairy":             (max_voices: 1, min_interval: 0.2, volume: 0.32, pitch_jitter: 0.0),
         "quake_1":           (max_voices: 1, min_interval: 0.3, volume: 0.55, pitch_jitter: 0.0),
         "thunder":           (max_voices: 1, min_interval: 0.3, volume: 0.5, pitch_jitter: 0.0),
@@ -236,7 +238,8 @@
         "land":          ["land"],
         "lantern":       ["fire"],
         "gust_jar":      ["whirpool"],
-        "ocarina":       ["flute_1"],
+        // 0.9.1 : flute adoucie (aigus coupes, fondus : research/tools/soft_flute.sh), a mi-volume
+        "ocarina":       ["flute_soft"],
         "din_fire":      ["fire"],
         // 0.5
         "encounter":     ["secret"],

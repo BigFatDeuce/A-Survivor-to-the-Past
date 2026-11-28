@@ -107,33 +107,35 @@ impl Game {
                         let root = ctx.root.clone();
                         self.profile.save(&root);
                         self.checkpoint_at = 0.0;
-                        self.sfx(ctx, "chest_open");
-                        match m {
-                            0 => self.sfx(ctx, "error"),
-                            1 => {}
-                            _ => {
-                                self.sfx(ctx, "fortune_win");
-                                self.juice.flash([1.0, 0.9, 0.5, 0.35], 0.4);
-                            }
-                        }
+                        // les sons et l'eclat viennent a l'ouverture, apres le suspense (Opened)
                         State::Fortune { phase: Phase::Opened { stake, mults, pick: k }, sel: k, t: 0.0 }
                     }
                     None => State::Fortune { phase, sel, t },
                 }
             }
             Phase::Opened { .. } | Phase::Double { .. } => {
-                let mut lock = fortune::RESULT_LOCK;
-                if let Phase::Double { win } = phase {
-                    lock += fortune::DOUBLE_GAZE;
-                    // la boule revele le resultat
-                    if t >= fortune::DOUBLE_GAZE && t - dt < fortune::DOUBLE_GAZE {
-                        if win {
-                            self.sfx(ctx, "fortune_win");
-                            self.juice.flash([1.0, 0.9, 0.5, 0.4], 0.4);
-                        } else {
-                            self.sfx(ctx, "error");
-                            self.juice.flash([1.0, 0.3, 0.3, 0.3], 0.3);
+                let wait = if matches!(phase, Phase::Double { .. }) { fortune::DOUBLE_GAZE } else { fortune::CHEST_SUSPENSE };
+                let lock = fortune::RESULT_LOCK + wait;
+                // roulement de tambour pendant le suspense, puis le resultat
+                if fortune::drumroll(t, dt, wait) {
+                    self.sfx(ctx, "cursor");
+                }
+                if t >= wait && t - dt < wait {
+                    let win = match phase {
+                        Phase::Double { win } => win,
+                        Phase::Opened { mults, pick, .. } => {
+                            self.sfx(ctx, "chest_open");
+                            mults[pick] > 1
                         }
+                        _ => false,
+                    };
+                    let even = matches!(phase, Phase::Opened { mults, pick, .. } if mults[pick] == 1);
+                    if win {
+                        self.sfx(ctx, "chest_fanfare");
+                        self.juice.flash([1.0, 0.9, 0.5, 0.5], 0.5);
+                    } else if !even {
+                        self.sfx(ctx, if matches!(phase, Phase::Double { .. }) { "pot_break" } else { "error" });
+                        self.juice.flash([1.0, 0.3, 0.3, 0.35], 0.3);
                     }
                 }
                 if t >= lock && (nav.confirm || nav.click || nav.back || self.opts.demo) {

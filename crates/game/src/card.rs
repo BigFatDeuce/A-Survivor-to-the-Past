@@ -157,6 +157,28 @@ pub fn passive(content: &Content, lang: &Lang, p: &Profile, k: usize) -> Card {
     Card { title: lang.get(&format!("passive.{id}.name")).to_string(), fusion: false, desc: lang.get(&format!("passive.{id}.desc")).to_string(), lines, notes }
 }
 
+/// Fiche d'un personnage (statue de la galerie) : coeurs, vitesse, recharge du dash, arme de depart et
+/// ses degats au niveau 1 (bonus commun et bonus du personnage compris), puis ses avantages (vert) et
+/// defauts (rouge).
+pub fn character(content: &Content, lang: &Lang, id: &str) -> Card {
+    let Some(def) = content.characters.get(id) else {
+        return Card { title: String::new(), fusion: false, desc: String::new(), lines: Vec::new(), notes: Vec::new() };
+    };
+    let mut lines = vec![
+        Line::Text(lang.get("ui.char_health").to_string(), num(def.max_hp / 10.0)),
+        Line::Text(lang.get("ui.char_speed").to_string(), num(def.speed)),
+        Line::Text(lang.get("stat.dash_cd").to_string(), secs(def.dash.cooldown)),
+        Line::Text(lang.get("ui.char_weapon").to_string(), lang.get(&format!("weapon.{}.name", def.weapon)).to_string()),
+    ];
+    if let Some(k) = content.weapon_index(&def.weapon) {
+        let bonus: f32 = def.stats.iter().filter(|s| s.0 == sim::defs::Stat::Might).map(|s| s.1).sum();
+        let st = Stats { might: 1.0 + content.rules.damage_bonus + bonus, ..Stats::default() };
+        lines.push(Line::Text(lang.get("stat.damage").to_string(), num(resolve(&content.weapons[k as usize], 1, &st).damage)));
+    }
+    let notes = def.stats.iter().map(|&(s, v)| crate::chars::stat_colored(lang, s, v)).collect();
+    Card { title: crate::chars::name(lang, id), fusion: false, desc: crate::chars::desc(lang, def), lines, notes }
+}
+
 /// Fiche d'un trophee (galerie) : ce qu'il demande pour le prochain palier, puis chaque palier, obtenu
 /// ou avec l'avancement.
 pub fn trophy(content: &Content, meta: &Meta, lang: &Lang, p: &Profile, k: usize) -> Card {
@@ -268,6 +290,12 @@ mod tests {
             for k in 0..content.enemies.len() {
                 assert!(!enemy_traits(&content, &lang, k).is_empty());
                 texts.extend(enemy_traits(&content, &lang, k));
+            }
+            for id in crate::chars::roster(&content) {
+                let c = character(&content, &lang, &id);
+                assert!(!c.title.is_empty() && !c.desc.is_empty() && c.lines.len() == 5, "fiche de personnage {id}");
+                texts.push(c.desc);
+                texts.extend(c.lines.into_iter().map(|l| if let Line::Text(a, b) = l { format!("{a}{b}") } else { String::new() }));
             }
             assert!(texts.iter().all(|t| !t.contains('?') || t.contains("???")), "texte absent ({code})");
         }

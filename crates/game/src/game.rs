@@ -75,6 +75,8 @@ pub struct Options {
 
 /// Niveaux de zoom en partie : la vue la plus large (celle d'avant la 0.8) puis deux plus proches.
 pub const ZOOMS: [f32; 3] = [1.0, 1.25, 1.5];
+/// Duree de l'ecran de resurrection (la partie est en pause pendant ce temps, hors coop).
+const REVIVE_FX: f32 = 2.0;
 
 /// Points de reprise de la partie en cours (profil enregistre comme si elle etait abandonnee) la ou
 /// le jeu peut etre ferme sans prevenir : navigateur, Android.
@@ -299,6 +301,10 @@ pub struct Game {
     /// achat de figurine (eclat dore).
     beast: Option<(usize, f64)>,
     beast_bought: f64,
+    /// Achat de la figurine de la fiche ouverte : question posee (reponse choisie, 0 = non).
+    fig_ask: Option<usize>,
+    /// Ecran de resurrection : (temps ecoule, fee ou allie, texte) ; voir `draw_revive`.
+    revive_fx: Option<(f32, bool, String)>,
     /// Demi-taille visible des sprites de tirs ennemis (zone de contact, voir `World::shot_hit`).
     shot_hit: Vec<f32>,
     /// Classement en ligne (requetes en arriere-plan).
@@ -467,6 +473,8 @@ impl Game {
             hub_toast: (String::new(), 0.0),
             beast: None,
             beast_bought: f64::MIN,
+            fig_ask: None,
+            revive_fx: None,
             shot_hit: Vec::new(),
             online: Online::default(),
             last_score: None,
@@ -548,11 +556,14 @@ impl Game {
                 let _ = g.coop_screen(ctx, &m);
                 st
             }
-            // --menu gallery (aile des armes), gallery_<aile>, ou gallery_trophy_<n> (fiche du trophee n)
+            // --menu gallery (aile des armes), gallery_<aile>, gallery_trophy_<n> (fiche du trophee n) ou
+            // gallery_char_<id> (fiche d'un personnage)
             Some(m) if m.starts_with("gallery") => {
-                let trophy = m.strip_prefix("gallery_trophy_").and_then(|k| k.parse().ok());
-                let wing = if trophy.is_some() { 0 } else { m.strip_prefix("gallery_").and_then(|k| k.parse().ok()).unwrap_or(1) };
-                g.card = trophy.map(|k| (records::TAB_TROPHIES, k, ctx.real_time - 10.0));
+                let trophy = m.strip_prefix("gallery_trophy_").and_then(|k| k.parse().ok()).map(|k| (records::TAB_TROPHIES, k));
+                let ch = m.strip_prefix("gallery_char_").and_then(|id| chars::roster(&g.content).iter().position(|r| r == id)).map(|k| (records::CARD_CHARS, k));
+                let card = trophy.or(ch);
+                let wing = if card.is_some() { 0 } else { m.strip_prefix("gallery_").and_then(|k| k.parse().ok()).unwrap_or(1) };
+                g.card = card.map(|(t, k)| (t, k, ctx.real_time - 10.0));
                 g.gallery = Some(gallery::Room::new(&g.content, &g.meta, &g.profile, wing));
                 State::Gallery { wing, from_title: false }
             }
@@ -573,12 +584,14 @@ impl Game {
                 g.char_select()
             }
             Some("victory") => State::Victory { t: 3.0, sel: 0 },
-            // fiche de la Collection (captures) : card_<arme ou objet>, beast_<ennemi>
-            Some(m) if m.starts_with("card_") || m.starts_with("beast_") => {
+            // fiche de la Collection (captures) : card_<arme ou objet>, beast_<ennemi>, buy_<ennemi> (question
+            // d'achat de sa figurine)
+            Some(m) if m.starts_with("card_") || m.starts_with("beast_") || m.starts_with("buy_") => {
                 let (kind, id) = m.split_once('_').unwrap_or_default();
                 let c = &g.content;
                 let at = ctx.real_time - 10.0;
-                let tab = if kind == "beast" {
+                g.fig_ask = (kind == "buy").then_some(0);
+                let tab = if kind == "beast" || kind == "buy" {
                     g.beast = c.enemy_index(id).map(|k| (k as usize, at));
                     records::TAB_BESTIARY
                 } else if let Some(k) = c.weapon_index(id) {
@@ -670,8 +683,8 @@ impl Game {
             }
             Some("shop") => State::Shop { tab: 0, sel: 0 },
             // onglets de la boutique et fiche du bestiaire (captures)
-            Some("prep") => State::Prep { tab: shop::TAB_RELICS, sel: 0 },
-            Some(m) if m.starts_with("prep") => State::Prep { tab: shop::PREP.start + m[4..].parse::<usize>().unwrap_or(0).min(shop::PREP.len() - 1), sel: 1 },
+            Some("prep") => State::Prep { tab: shop::TAB_RELICS, sel: hub::GO_ROW },
+            Some(m) if m.starts_with("prep") => State::Prep { tab: shop::PREP.start + m[4..].parse::<usize>().unwrap_or(0).min(shop::PREP.len() - 1), sel: 0 },
             Some(m) if m.starts_with("shop") => State::Shop { tab: m[4..].parse::<usize>().unwrap_or(0).min(shop::SHOP.len() - 1), sel: 1 },
             Some(m) if m.starts_with("beast") => {
                 let k = m[5..].parse().unwrap_or(0);
@@ -708,6 +721,13 @@ impl Game {
             Some("banner") => {
                 let s = g.lang.get("ui.thief_spawned").to_string();
                 g.hud.banner(&s, THIEF, 60.0);
+                State::Playing
+            }
+            // ecran de resurrection (fee, ou allie en coop)
+            Some(m @ ("revive" | "revive_ally")) => {
+                let fairy = m == "revive";
+                let s = g.lang.get(if fairy { "ui.fairy_revive" } else { "ui.coop.revived_me" }).to_string();
+                g.revive_fx = Some((0.0, fairy, s));
                 State::Playing
             }
             // recueil, onglet des armes, sur le lance-pierre (indice du mini-boss s'il est verrouille)
@@ -1517,14 +1537,17 @@ impl Game {
                     self.juice.add_trauma(0.2, 0.5);
                     self.sfx(ctx, "shot_blast");
                 }
-                Event::Revived { pos, slot } => {
+                Event::Revived { pos, slot, fairy } => {
                     self.sfx(ctx, "fairy");
+                    self.sfx(ctx, "fairy_pickup");
                     let s = match self.world.coop() {
                         true if slot == self.world.local => self.lang.get("ui.coop.revived_me").to_string(),
                         true => self.lang.get("ui.coop.revived").replace("{s}", &self.hero_name(slot)),
                         false => self.lang.get("ui.fairy_revive").to_string(),
                     };
-                    self.hud.banner(&s, rgb(255, 170, 230), 2.5);
+                    // ecran plein : la partie s'arrete 2 s (sauf en coop, ou le temps est commun)
+                    self.revive_fx = Some((0.0, fairy, s));
+                    self.juice.hitstop(REVIVE_FX);
                     self.juice.flash([1.0, 0.8, 0.95, 0.6], 0.6);
                     self.juice.ring(pos - Vec2::new(0.0, 8.0), 4.0, 90.0, 0.6, rgb(255, 170, 230));
                 }
@@ -1771,6 +1794,16 @@ impl Game {
     }
 
     /// « Le Link bleu, ca te fera 500 rubis rouges. Tu le prends ? » (question d'achat d'une couleur).
+    /// Question avant l'achat d'une figurine : le nom de l'ennemi, le prix en rouge.
+    fn figurine_question(&self, k: usize) -> String {
+        let id = &self.content.enemy_ids[k];
+        let cost = self.meta.figurine_cost(&self.content.enemies[k], id);
+        self.lang
+            .get("ui.figurine_ask")
+            .replace("{n}", &crate::hud::hl(self.lang.get(&format!("enemy.{id}"))))
+            .replace("{p}", &crate::hud::hl_bad(&cost.to_string()))
+    }
+
     fn skin_question(&self, id: &str, skin: usize) -> String {
         let def = &self.content.characters[id];
         let price = chars::skin_price(&self.meta, &self.profile, &def.skins[skin].0).unwrap_or(0);
@@ -2046,26 +2079,49 @@ impl Game {
         self.sfx(ctx, "cursor");
     }
 
+    /// Onglets des Preparatifs ; en coop, un invite n'a que les reliques (l'hote regle stage et defis).
+    fn prep_book(&self) -> std::ops::Range<usize> {
+        if self.coop.as_ref().is_some_and(|s| !s.is_host()) {
+            shop::TAB_RELICS..shop::TAB_RELICS + 1
+        } else {
+            shop::PREP
+        }
+    }
+
+    /// Grand bouton des Preparatifs : libelle, valeur (le stage) et texte d'aide. En coop, il met le
+    /// joueur pret dans le salon ; l'invite ne connait pas le stage (choisi par l'hote).
+    fn prep_go(&self) -> (String, String, String) {
+        let lang = &self.lang;
+        let stage = stages::stage_name(lang, &self.opts.map);
+        let who = chars::name(lang, &self.opts.character);
+        let desc = lang.get("ui.prep_go_desc").replace("{c}", &crate::hud::hl(&who)).replace("{s}", &crate::hud::hl(&stage));
+        match &self.coop {
+            Some(s) if !s.is_host() => (lang.get("ui.coop.ready").to_string(), String::new(), lang.get("ui.coop.wait_host").to_string()),
+            Some(_) => (lang.get("ui.coop.ready").to_string(), stage, desc),
+            None => (lang.get("ui.prep_go").to_string(), stage, desc),
+        }
+    }
+
     /// Logique des menus (temps reel).
-    /// Boutique, ou Preparatifs (`prep`) : memes onglets, ligne 0 des Preparatifs = « Partir ! ».
-    /// None : la partie vient d'etre lancee.
-    fn update_shop(&mut self, ctx: &mut Ctx, nav: &NavIn, mut tab: usize, mut sel: usize, prep: bool) -> Option<State> {
-        let book = if prep { shop::PREP } else { shop::SHOP };
-        let off = prep as usize;
+    /// Boutique, ou Preparatifs (`prep`) : memes onglets ; les Preparatifs ont en plus le grand bouton
+    /// « Partir ! » en haut (`hub::GO_ROW`). None : la partie vient d'etre lancee.
+    fn update_shop(&mut self, ctx: &mut Ctx, nav: &NavIn, tab: usize, mut sel: usize, prep: bool) -> Option<State> {
+        let book = if prep { self.prep_book() } else { shop::SHOP };
+        let mut tab = if book.contains(&tab) { tab } else { book.start };
         let ntabs = book.len();
         let make = |tab, sel| if prep { State::Prep { tab, sel } } else { State::Shop { tab, sel } };
         let (rows, _) = shop::rows(&self.meta, &self.content, &self.profile, &self.lang, &ctx.atlas, tab);
-        let n = rows.len() + off;
+        let n = rows.len();
         let mut rel = tab - book.start;
-        let input = hub::input(nav, ctx.view, ntabs, rel, n, &mut sel);
+        let input = hub::input(nav, ctx.view, ntabs, rel, n, &mut sel, prep);
         let side = match input {
             hub::Input::Left(k) => Some((k, -1)),
             hub::Input::Right(k) => Some((k, 1)),
             _ => None,
         };
         if let Some((k, dir)) = side {
-            if k >= off && k < n && shop::row_uses_sides(tab, k - off) {
-                self.shop_act(ctx, tab, k - off, dir);
+            if k < n && shop::row_uses_sides(tab, k) {
+                self.shop_act(ctx, tab, k, dir);
             } else {
                 rel = (rel as i32 + dir).rem_euclid(ntabs as i32) as usize;
                 tab = book.start + rel;
@@ -2089,18 +2145,18 @@ impl Game {
             hub::Input::Tab(k) => {
                 if k != rel {
                     tab = book.start + k;
-                    if sel != hub::TABS_ROW {
+                    if sel != hub::TABS_ROW && sel != hub::GO_ROW {
                         sel = 0;
                     }
                     self.sfx(ctx, "cursor");
                 }
             }
-            hub::Input::Pick(0) if prep && self.coop.is_some() => {
+            hub::Input::Go if self.coop.is_some() => {
                 self.sfx(ctx, "confirm");
                 self.coop_set_ready(ctx);
                 return Some(State::Lobby { sel: 0 });
             }
-            hub::Input::Pick(0) if prep => {
+            hub::Input::Go => {
                 self.sfx(ctx, "confirm");
                 ctx.audio.stop_music(0.6);
                 self.restart(ctx);
@@ -2109,12 +2165,12 @@ impl Game {
             // juke-box : une musique pas encore achetee s'ecoute d'abord en extrait ; un second appui l'achete
             hub::Input::Pick(k)
                 if tab == shop::TAB_JUKEBOX
-                    && self.meta.jukebox.get(k - off).is_some_and(|t| !shop::track_owned(t, &self.profile))
-                    && self.jukebox_try.map(|t| t.0) != Some(k - off) =>
+                    && self.meta.jukebox.get(k).is_some_and(|t| !shop::track_owned(t, &self.profile))
+                    && self.jukebox_try.map(|t| t.0) != Some(k) =>
             {
-                self.preview_track(ctx, k - off);
+                self.preview_track(ctx, k);
             }
-            hub::Input::Pick(k) => self.shop_act(ctx, tab, k - off, 0),
+            hub::Input::Pick(k) => self.shop_act(ctx, tab, k, 0),
             _ => {}
         }
         Some(make(tab, sel))
@@ -2196,16 +2252,38 @@ impl Game {
         if let Some((k, _)) = self.beast {
             let id = self.content.enemy_ids[k].clone();
             let owned = self.profile.figurines.contains(&id);
+            let cost = self.meta.figurine_cost(&self.content.enemies[k], &id);
+            // achat toujours confirme (prix en rouge) ; « non » est choisi d'avance
+            if let Some(mut ans) = self.fig_ask {
+                let q = fairy_tip::question(ctx, &self.figurine_question(k));
+                let (pick, moved) = q.input(nav, &mut ans);
+                if moved {
+                    self.sfx(ctx, "cursor");
+                }
+                self.fig_ask = pick.is_none().then_some(ans);
+                match pick {
+                    Some(1) if self.profile.rupees >= cost => {
+                        self.profile.rupees -= cost;
+                        self.profile.figurines.insert(id);
+                        self.profile.save(&ctx.root);
+                        self.sfx(ctx, "buy");
+                        self.beast = Some((k, ctx.real_time - 0.5));
+                        self.beast_bought = ctx.real_time;
+                    }
+                    Some(1) => {
+                        self.sfx(ctx, "error");
+                        self.toast("ui.not_enough");
+                    }
+                    Some(_) => self.sfx(ctx, "dialog_close"),
+                    None => {}
+                }
+                return State::Records { tab, sel, armed };
+            }
             if (nav.confirm || nav.click) && !owned {
-                // figurine : A (ou un clic) l'achete, Echap ferme la fiche
-                let cost = self.meta.figurine_cost(&self.content.enemies[k], &id);
+                // figurine : A (ou un clic) propose l'achat, Echap ferme la fiche
                 if self.profile.rupees >= cost {
-                    self.profile.rupees -= cost;
-                    self.profile.figurines.insert(id);
-                    self.profile.save(&ctx.root);
-                    self.sfx(ctx, "buy");
-                    self.beast = Some((k, ctx.real_time - 0.5));
-                    self.beast_bought = ctx.real_time;
+                    self.fig_ask = Some(0);
+                    self.sfx(ctx, "dialog_open");
                 } else {
                     self.sfx(ctx, "error");
                     self.toast("ui.not_enough");
@@ -2247,7 +2325,7 @@ impl Game {
         let ntabs = range.len();
         let (rows, _) = records::rows(&self.content, &self.meta, &ctx.atlas, &self.vis, &self.profile, &self.lang, tab, armed);
         let n = rows.len();
-        let input = hub::input(nav, ctx.view, ntabs, tab - range.start, n, &mut sel);
+        let input = hub::input(nav, ctx.view, ntabs, tab - range.start, n, &mut sel, false);
         if !matches!(input, hub::Input::None | hub::Input::Pick(_)) {
             armed = false;
         }
@@ -2344,7 +2422,7 @@ impl Game {
                     }
                 }
             }
-            hub::Input::Pick(_) | hub::Input::None => {}
+            hub::Input::Pick(_) | hub::Input::None | hub::Input::Go => {}
         }
         State::Records { tab, sel, armed }
     }
@@ -2383,7 +2461,7 @@ impl Game {
         }
         let n = controls::RESET + 1;
         let mut wait = None;
-        match hub::input(nav, ctx.view, controls::TABS.len(), tab, n, &mut sel) {
+        match hub::input(nav, ctx.view, controls::TABS.len(), tab, n, &mut sel, false) {
             hub::Input::Back => {
                 self.sfx(ctx, "confirm");
                 let sel = menus::OPTIONS.iter().position(|o| *o == Opt::Controls).unwrap_or(0);
@@ -2418,7 +2496,7 @@ impl Game {
                 self.hub_toast.1 = 0.0;
                 wait = Some((k, controls::WAIT));
             }
-            hub::Input::None => {}
+            hub::Input::None | hub::Input::Go => {}
         }
         State::Controls { tab, sel, wait, from_title }
     }
@@ -2559,11 +2637,12 @@ impl Game {
         room.step(mv, dt);
         let cry = gallery::cry(&self.content, &self.profile, room);
         let near = room.near();
+        let card = if nav.confirm { near.and_then(|e| gallery::card_of(&self.content, &self.profile, room, e)) } else { None };
         if let Some(s) = cry {
             self.sfx_p(ctx, s, 0.5, 1.0);
         }
         if nav.confirm {
-            match near.and_then(|e| gallery::card_of(&self.content, &self.profile, e)) {
+            match card {
                 Some((records::TAB_BESTIARY, k)) => {
                     self.beast = Some((k, ctx.real_time));
                     self.sfx(ctx, "confirm");
@@ -2572,7 +2651,7 @@ impl Game {
                     self.card = Some((tab, k, ctx.real_time));
                     self.sfx(ctx, "confirm");
                 }
-                None if near.is_some_and(|e| !matches!(e, gallery::Exhibit::Fairy | gallery::Exhibit::Statue(_))) => self.sfx(ctx, "error"),
+                None if near.is_some_and(|e| !matches!(e, gallery::Exhibit::Fairy)) => self.sfx(ctx, "error"),
                 None => {}
             }
         }
@@ -2775,7 +2854,7 @@ impl Game {
         let n = self.score_rows(ctx, tab, stage, &version, players).0.len();
         // solo, puis coop a 2, 3 ou 4
         let step_players = |p: usize, d: i32| (p as i32 - 1 + d).rem_euclid(scores::MAX_PLAYERS as i32) as usize + 1;
-        let input = hub::input(nav, ctx.view, scores::TABS.len(), tab, n, &mut sel);
+        let input = hub::input(nav, ctx.view, scores::TABS.len(), tab, n, &mut sel, false);
         let head = scores::head(tab);
         match input {
             hub::Input::Back => {
@@ -2843,7 +2922,7 @@ impl Game {
                     None => {}
                 }
             }
-            hub::Input::Pick(_) | hub::Input::None => {}
+            hub::Input::Pick(_) | hub::Input::None | hub::Input::Go => {}
         }
         State::Scores { tab, sel, stage, version, players }
     }
@@ -2863,13 +2942,11 @@ impl Game {
                 (lang.get("ui.shop"), &shop::TABS[shop::SHOP], tab - shop::SHOP.start, sel, r, d, corner)
             }
             State::Prep { tab, sel } => {
-                let (mut r, mut d) = shop::rows(&self.meta, &self.content, &self.profile, lang, &ctx.atlas, tab);
-                let stage = stages::stage_name(lang, &self.opts.map);
-                let who = chars::name(lang, &self.opts.character);
-                r.insert(0, hub::Row { label: lang.get("ui.prep_go").to_string(), label_color: Some(hub::GREEN), value: stage.clone(), value_color: Some(GOLD), ..Default::default() });
-                d.insert(0, lang.get("ui.prep_go_desc").replace("{c}", &crate::hud::hl(&who)).replace("{s}", &crate::hud::hl(&stage)));
+                let book = self.prep_book();
+                let tab = if book.contains(&tab) { tab } else { book.start };
+                let (r, d) = shop::rows(&self.meta, &self.content, &self.profile, lang, &ctx.atlas, tab);
                 let corner = Some((self.vis.icon_rupees, self.profile.rupees.to_string()));
-                (lang.get("ui.prep"), &shop::TABS[shop::PREP], tab - shop::PREP.start, sel, r, d, corner)
+                (lang.get("ui.prep"), &shop::TABS[book.clone()], tab - book.start, sel, r, d, corner)
             }
             State::Records { tab, sel, armed } => {
                 let (r, d) = records::rows(&self.content, &self.meta, &ctx.atlas, &self.vis, &self.profile, lang, tab, armed);
@@ -2887,12 +2964,16 @@ impl Game {
             _ => return,
         };
         let tabs: Vec<String> = tabs.iter().map(|k| lang.get(k).to_string()).collect();
+        let go = matches!(self.state, State::Prep { .. }).then(|| self.prep_go());
         let detail = if self.hub_toast.1 > 0.0 {
             self.hub_toast.0.as_str()
+        } else if let (hub::GO_ROW, Some(g)) = (sel, &go) {
+            g.2.as_str()
         } else {
             details.get(sel).map(|s| s.as_str()).unwrap_or("")
         };
-        hub::draw(list, ctx, title, corner, &tabs, tab, &rows, sel, detail, lang.get("ui.back"));
+        let go_btn = go.as_ref().map(|g| (g.0.as_str(), g.1.as_str()));
+        hub::draw(list, ctx, title, corner, &tabs, tab, &rows, sel, detail, lang.get("ui.back"), go_btn);
         if let (State::Records { tab: 0, .. }, Some((k, t0))) = (&self.state, self.beast) {
             self.draw_beast(ctx, list, k, (ctx.real_time - t0) as f32);
         }
@@ -2912,6 +2993,11 @@ impl Game {
             records::TAB_TROPHIES => {
                 let icon = crate::trophies::families(&self.content, &self.meta, &self.profile).get(k).and_then(|f| atlas.find(f.icon, "0"));
                 (crate::card::trophy(&self.content, &self.meta, &self.lang, &self.profile, k), icon.or_else(|| atlas.find("icon_crystal", "0")))
+            }
+            records::CARD_CHARS => {
+                let id = chars::roster(&self.content).get(k).cloned().unwrap_or_default();
+                let icon = self.content.characters.get(&id).and_then(|d| atlas.find(&d.sprite, "idle_down"));
+                (crate::card::character(&self.content, &self.lang, &id), icon)
             }
             _ => (crate::card::weapon(&self.content, &self.lang, &self.profile, k), Some(self.vis.weapons[k].icon)),
         };
@@ -3037,7 +3123,7 @@ impl Game {
             self.lang.get("ui.figurine_owned").to_string()
         } else {
             let cost = self.meta.figurine_cost(e, id);
-            self.lang.get("ui.figurine_buy").replace("{n}", &cost.to_string())
+            self.lang.get("ui.figurine_buy").replace("{n}", &crate::hud::hl_bad(&cost.to_string()))
         };
         // comportement et particularites (enemies.ron), une ligne chacun
         let traits = crate::card::enemy_traits(&self.content, &self.lang, k);
@@ -3080,6 +3166,12 @@ impl Game {
             list.frame(sh, Vec2::new(cx, floor), &Params::default().scale(Vec2::splat(sc)).color([1.0, 1.0, 1.0, 0.55]));
         }
         list.frame(f, Vec2::new(cx, floor), &Params::default().scale(Vec2::splat(sc)).flip(flip));
+        // question d'achat ouverte : elle donne le nom et le prix, et cache le bas de la fiche
+        if let Some(ans) = self.fig_ask {
+            let q = fairy_tip::question(ctx, &self.figurine_question(k));
+            q.draw(list, ctx, white, [self.lang.get("ui.skin_no"), self.lang.get("ui.figurine_yes")], ans);
+            return;
+        }
         for (i, s) in traits.iter().enumerate() {
             let y = pos.y + size.y - 46.0 - extra + i as f32 * 12.0;
             crate::hud::text(list, main, s, Vec2::new(cx, y), 1.0, [0.8, 0.9, 1.0, 1.0], engine::draw::Align::Center);
@@ -3329,7 +3421,7 @@ impl Game {
                             self.set_map(ctx, &map);
                             if self.coop.as_ref().is_some_and(|s| !s.is_host()) {
                                 // coop : le stage est choisi par l'hote
-                                State::Prep { tab: shop::TAB_RELICS, sel: 0 }
+                                State::Prep { tab: shop::TAB_RELICS, sel: hub::GO_ROW }
                             } else {
                                 State::StageSelect { sel: stages::suggested(&self.stage_ids, &self.profile) }
                             }
@@ -3394,7 +3486,7 @@ impl Game {
                             self.sfx(ctx, "confirm");
                             let id = self.stage_ids[k].clone();
                             self.set_map(ctx, &id);
-                            State::Prep { tab: shop::TAB_RELICS, sel: 0 }
+                            State::Prep { tab: shop::TAB_RELICS, sel: hub::GO_ROW }
                         }
                         Some(_) => {
                             self.sfx(ctx, "error");
@@ -4551,16 +4643,22 @@ impl Game {
         (p - cam) * self.view_zoom + view * 0.5
     }
 
-    /// Zoom en partie : la touche Zoom (E / RB, Options > Commandes) et la loupe tactile passent au
-    /// niveau suivant, la molette rapproche ou eloigne ; la vue glisse vers le niveau choisi (garde dans
-    /// les reglages).
+    /// Zoom en partie : la touche Zoom (E / RB, Options > Commandes) rapproche, Q / LB eloigne, la loupe
+    /// tactile passe au niveau suivant (en boucle), la molette rapproche ou eloigne ; la vue glisse vers
+    /// le niveau choisi (garde dans les reglages).
     fn update_zoom(&mut self, ctx: &mut Ctx, dt: f32) {
         let n = ZOOMS.len() as u8;
         let tap = std::mem::take(&mut self.touch.zoom);
         let mut level = self.settings.zoom.min(n - 1);
         if matches!(self.state, State::Playing) {
-            if tap || ctx.input.action_pressed(&self.bindings, "zoom") {
+            if tap {
                 level = (level + 1) % n;
+            }
+            if ctx.input.action_pressed(&self.bindings, "zoom") {
+                level = (level + 1).min(n - 1);
+            }
+            if ctx.input.action_pressed(&self.bindings, "zoom_out") {
+                level = level.saturating_sub(1);
             }
             // le glisser tactile emule aussi la molette (menus) : seule la vraie molette zoome
             if ctx.input.last_device == Device::Mouse {
@@ -4643,10 +4741,72 @@ impl Game {
         }
     }
 
+    /// Resurrection (fee, ou allie en coop) : voile sombre, la fee (ou un coeur) tourne au centre
+    /// dans un halo et des rayons, etincelles qui montent, texte en grand. `t` : 0 -> `REVIVE_FX`.
+    fn draw_revive(&self, ctx: &Ctx, list: &mut DrawList, t: f32, fairy: bool, msg: &str) {
+        use crate::fortune::{disc, h, rays, ring};
+        let view = ctx.view;
+        let white = &self.vis.white;
+        let c = (view * 0.5 - Vec2::new(0.0, 16.0)).round();
+        let col = if fairy { rgb(255, 170, 230) } else { rgb(150, 240, 150) };
+        // entree et sortie en fondu
+        let a = (t / 0.2).min(1.0) * ((REVIVE_FX - t) / 0.35).clamp(0.0, 1.0);
+        list.set(Space::Ui, Blend::Alpha);
+        list.rect(white, Vec2::ZERO, view, [0.06, 0.02, 0.1, 0.6 * a]);
+        list.set(Space::Ui, Blend::Add);
+        let pulse = 0.5 + 0.5 * (t * 9.0).sin();
+        for (r, al) in [(70.0, 0.1), (48.0, 0.16), (30.0, 0.26)] {
+            disc(list, &self.vis, c, r * (0.9 + 0.1 * pulse), with_alpha(col, al * a));
+        }
+        rays(list, &self.vis, c, 36.0, 60.0 + 90.0 * (t / 0.6).min(1.0), t * 0.9, 16, with_alpha(col, 0.55 * a));
+        // ondes qui partent du centre, une toutes les 0,5 s
+        for k in 0..4 {
+            let q = (t - k as f32 * 0.5) / 0.9;
+            if (0.0..1.0).contains(&q) {
+                ring(list, &self.vis, c, 10.0 + 170.0 * q, with_alpha(col, 0.7 * (1.0 - q) * a));
+            }
+        }
+        // etincelles qui montent sur tout l'ecran
+        for i in 0..60u32 {
+            let x = h(i) * view.x;
+            let sp = 40.0 + 80.0 * h(i + 99);
+            let y = view.y - ((t * sp + h(i + 7) * view.y) % (view.y + 20.0));
+            let tw = 0.5 + 0.5 * (t * 8.0 + i as f32).sin();
+            list.rect(white, Vec2::new(x, y).round(), Vec2::splat(2.0), with_alpha(col, 0.8 * tw * a));
+        }
+        list.set(Space::Ui, Blend::Alpha);
+        // la fee tourne autour du centre en laissant une trainee ; un coeur qui bat pour un allie
+        let rt = ctx.real_time as f32;
+        if fairy {
+            let f = ctx.atlas.frame(self.vis.specials[1], rt);
+            let at = |dt: f32| {
+                let ang = (t - dt) * 4.0;
+                c + Vec2::new(ang.cos() * 44.0, ang.sin() * 16.0)
+            };
+            list.set(Space::Ui, Blend::Add);
+            for j in 1..16 {
+                list.rect(white, at(j as f32 * 0.03).round(), Vec2::splat(3.0), with_alpha(col, a * (1.0 - j as f32 / 16.0)));
+            }
+            list.set(Space::Ui, Blend::Alpha);
+            list.frame(f, at(0.0).round(), &Params::default().scale(Vec2::splat(3.0)).color([1.0, 1.0, 1.0, a]));
+        } else {
+            let f = ctx.atlas.frame(self.vis.heart_small, 0.0);
+            let s = if pulse > 0.7 { 6.0 } else { 5.0 };
+            list.frame(f, c, &Params::default().scale(Vec2::splat(s)).color([1.0, 1.0, 1.0, a]));
+        }
+        let main = ctx.atlas.font("main");
+        let size = crate::hud::title_scale(main, msg, view.x, 3.0);
+        crate::hud::text(list, main, msg, Vec2::new(view.x * 0.5, c.y + 56.0), size, with_alpha(col, a), engine::draw::Align::Center);
+    }
+
     fn draw_overlays(&self, ctx: &Ctx, list: &mut DrawList) {
         let view = ctx.view;
         let white = &self.vis.white;
         list.set(Space::Ui, Blend::Alpha);
+        if let Some((t, fairy, msg)) = &self.revive_fx {
+            self.draw_revive(ctx, list, *t, *fairy, msg);
+            list.set(Space::Ui, Blend::Alpha);
+        }
         let (c, t, d) = self.juice.flash;
         if t > 0.0 {
             list.rect(white, Vec2::ZERO, view, with_alpha(c, t / d));
@@ -4676,7 +4836,17 @@ impl Game {
             State::Unlocks { items, t, .. } => menus::draw_unlocks(list, ctx, &self.content, &self.vis, lang, items, *t),
             State::Reward { offers, sel, t } => {
                 let infos: Vec<_> = offers.iter().map(|&o| reward::info(&self.world, &self.vis, &ctx.atlas, lang, &self.meta, o)).collect();
-                menus::draw_cards_themed(list, ctx, &self.vis, lang, (lang.get("ui.reward.title"), lang.get("ui.reward.sub"), CHAMPION), &infos, *sel, *t, CHAMPION);
+                // chaque genre de butin a sa couleur : benediction (bleu ciel), special (orange) ; la
+                // relique a deja son or (gardee apres la partie)
+                let themes: Vec<_> = offers
+                    .iter()
+                    .map(|o| match o {
+                        reward::Reward::Blessing(..) => rgb(120, 200, 255),
+                        reward::Reward::Boost { .. } => rgb(255, 150, 60),
+                        reward::Reward::Relic(_) => CHAMPION,
+                    })
+                    .collect();
+                menus::draw_cards_themed(list, ctx, &self.vis, lang, (lang.get("ui.reward.title"), lang.get("ui.reward.sub"), CHAMPION), &infos, *sel, *t, CHAMPION, &themes);
             }
             State::Fortune { phase, sel, t } => self.draw_fortune(ctx, list, phase, *sel, *t),
             State::Witch { sel, t } => self.draw_witch(ctx, list, *sel, *t),
@@ -4762,8 +4932,8 @@ impl Game {
 }
 
 impl Game {
-    /// Curseur de la souris : la fee de l'ecran de selection des fichiers d'A Link to the Past, qui
-    /// flotte doucement ; pointe = centre de la fee. Cache quand on joue au clavier ou a la manette.
+    /// Curseur de la souris : l'Epee de legende, pointe en haut a gauche (point actif). Cache quand on
+    /// joue au clavier ou a la manette.
     fn draw_cursor(&self, ctx: &Ctx, list: &mut DrawList) {
         let i = &ctx.input;
         if i.last_device != Device::Mouse || !i.mouse_inside || !i.focused {
@@ -4773,7 +4943,7 @@ impl Game {
         list.set(Space::Ui, Blend::Alpha);
         let t = ctx.real_time as f32;
         let f = ctx.atlas.frame(self.vis.cursor, t);
-        // ombre puis fee
+        // ombre puis epee
         list.frame(f, m + Vec2::new(1.0, 1.0), &Params::default().color([0.0, 0.0, 0.0, 0.45]));
         list.frame(f, m, &Params::default());
     }
@@ -4965,6 +5135,12 @@ impl GameTrait for Game {
         self.update_menus(ctx, &nav, dt);
         self.title_ambience(ctx);
         self.update_zoom(ctx, dt);
+        if let Some(fx) = &mut self.revive_fx {
+            fx.0 += dt;
+            if fx.0 >= REVIVE_FX || !matches!(self.state, State::Playing | State::Paused { .. }) {
+                self.revive_fx = None;
+            }
+        }
 
         self.juice.hitstop = (self.juice.hitstop - dt).max(0.0);
         if matches!(self.state, State::Playing) {

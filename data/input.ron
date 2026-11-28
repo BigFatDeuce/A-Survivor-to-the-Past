@@ -26,7 +26,9 @@
         "skin":        [Key(KeyR), Pad(North)],
         // plein ecran : Select de la manette (F11 ou Alt+Entree au clavier)
         "fullscreen":  [Pad(Select)],
-        // zoom en partie (3 niveaux) : E, bouton de tranche droit (R1 / RB)
+        // zoom en partie (3 niveaux) : E ou bouton de tranche droit (R1 / RB) rapproche, Q ou bouton de
+        // tranche gauche (L1 / LB) eloigne
         "zoom":        [Key(KeyE), Pad(RightTrigger)],
+        "zoom_out":    [Key(KeyQ), Pad(LeftTrigger)],
     },
 )

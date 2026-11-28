@@ -205,7 +205,7 @@ dependencies = [
 
 [[package]]
 name = "assetkit"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "image",
  "serde",
@@ -707,7 +707,7 @@ dependencies = [
 
 [[package]]
 name = "engine"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "assetkit",
  "bytemuck",
@@ -845,7 +845,7 @@ checksum = "aa9a19cbb55df58761df49b23516a86d432839add4af60fc256da840f66ed35b"
 
 [[package]]
 name = "forge"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "assetkit",
  "image",
@@ -897,7 +897,7 @@ dependencies = [
 
 [[package]]
 name = "game"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "arboard",
  "assetkit",
@@ -2680,7 +2680,7 @@ checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 
 [[package]]
 name = "sim"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "glam",
  "libm",

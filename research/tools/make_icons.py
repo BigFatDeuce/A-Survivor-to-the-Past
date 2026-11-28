@@ -32,14 +32,22 @@ def lerp(c1, c2, t):
     return tuple(int(round(a + (b - a) * t)) for a, b in zip(c1, c2))
 
 
-def base(inner, outer, rim="#0c0c14"):
-    """Carre aux coins arrondis, degrade radial, liseré sombre."""
-    im = Image.new("RGBA", (N, N), (0, 0, 0, 0))
+def gradient(inner, outer, n=N):
+    """Degrade radial sur n x n, de meme echelle que l'icone de 32 (centres alignes)."""
+    im = Image.new("RGBA", (n, n), (0, 0, 0, 0))
     ci, co = hexc(inner), hexc(outer)
-    for y in range(N):
-        for x in range(N):
-            d = math.hypot(x + 0.5 - N / 2, y + 0.5 - N / 2) / (N * 0.62)
+    for y in range(n):
+        for x in range(n):
+            d = math.hypot(x + 0.5 - n / 2, y + 0.5 - n / 2) / (N * 0.62)
             im.putpixel((x, y), lerp(ci, co, min(1.0, d)))
+    return im
+
+
+def base(inner, outer, rim="#0c0c14", rounded=True):
+    """Carre aux coins arrondis, degrade radial, liseré sombre ; `rounded=False` : carre plein."""
+    im = gradient(inner, outer)
+    if not rounded:
+        return im
     # coins arrondis (rayon 4) + liseré
     mask = Image.new("L", (N, N), 0)
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, N - 1, N - 1), radius=5, fill=255)
@@ -148,8 +156,8 @@ def icon_a():
     return im
 
 
-def icon_b():
-    im = base("#5aa850", "#0e2414")
+def icon_b(rounded=True):
+    im = base("#5aa850", "#0e2414", rounded=rounded)
     px = im.load()
     # projecteur clair sous Link
     for y in range(N):

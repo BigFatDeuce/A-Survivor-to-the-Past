@@ -99,7 +99,7 @@ T = {
             ("Dash (esquive rapide)", "Espace / K", "Clic droit", "A / gâchette gauche"),
             ("Attaque automatique ou manuelle", "Tab / R", "", "Y"),
             ("Pause", "Échap / P", "", "Start"),
-            ("Zoom (3 niveaux)", "E", "", "RB / R1"),
+            ("Rapprocher / éloigner (3 niveaux)", "E / A", "Molette", "RB / LB"),
             ("Menus : valider", "Entrée / Espace / J", "Clic gauche", "A"),
             ("Menus : retour", "Échap / Retour arrière", "Clic droit", "B"),
             ("Menus : onglet précédent / suivant", "A / E", "Clic sur l'onglet", "Gâchettes"),
@@ -184,8 +184,8 @@ T = {
         coop=[
             "De **2 à 4 joueurs**, chacun sur son ordinateur, son téléphone ou son navigateur, avec la même version du "
             "jeu. Dans **Coop en ligne**, un joueur crée une salle et donne son **code de 4 lettres** ; les autres le "
-            "saisissent pour la rejoindre. Chacun choisit son personnage et sa couleur ; l'hôte choisit le stage et "
-            "lance la partie avec **ses** réglages (difficulté, Sceaux).",
+            "saisissent pour la rejoindre. Chacun choisit son personnage, sa couleur et ses reliques ; seul l'hôte "
+            "choisit le stage, la difficulté et les Sceaux, puis lance la partie.",
             "Les ennemis ont plus de vie et arrivent plus nombreux à chaque joueur. Un joueur à terre peut être "
             "**relevé** : restez trois secondes à côté de lui.",
             "Quand vous montez de niveau ou ouvrez un coffre, **la partie continue** pour les autres. Pendant votre "
@@ -397,7 +397,7 @@ T = {
             ("Dash (quick dodge)", "Space / K", "Right click", "A / left trigger"),
             ("Automatic or manual attacks", "Tab / R", "", "Y"),
             ("Pause", "Esc / P", "", "Start"),
-            ("Zoom (3 levels)", "E", "", "RB / R1"),
+            ("Zoom in / out (3 levels)", "E / Q", "Wheel", "RB / LB"),
             ("Menus: confirm", "Enter / Space / J", "Left click", "A"),
             ("Menus: back", "Esc / Backspace", "Right click", "B"),
             ("Menus: previous / next tab", "Q / E", "Click the tab", "Triggers"),
@@ -476,8 +476,8 @@ T = {
         coop=[
             "From **2 to 4 players**, each on their own computer, phone or browser, with the same game version. In "
             "**Online co-op**, one player creates a room and shares its **4-letter code**; the others type it to join. "
-            "Everyone picks a character and a color; the host chooses the stage and starts the run with **their** "
-            "settings (difficulty, Seals).",
+            "Everyone picks a character, a color and relics; only the host chooses the stage, the difficulty and "
+            "the Seals, then starts the run.",
             "Enemies get more health and come in larger numbers with each player. A fallen player can be "
             "**revived**: stay next to them for three seconds.",
             "When you level up or open a chest, **the run goes on** for the others. While you choose, your character "

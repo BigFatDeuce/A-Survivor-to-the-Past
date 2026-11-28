@@ -554,14 +554,16 @@ pub fn draw_cards(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: 
 }
 
 /// Cartes d'un choix a part (butin d'un champion) : fond, bordure, coins ornes et etiquettes a la
-/// couleur `theme`, fond de l'ecran teinte ; on ne les confond pas avec une montee de niveau.
+/// couleur de chaque carte (`themes`, une par carte : le genre de butin), fond de l'ecran teinte de
+/// `theme` ; on ne les confond pas avec une montee de niveau.
 #[allow(clippy::too_many_arguments)]
-pub fn draw_cards_themed(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: (&str, &str, Color), infos: &[OfferInfo], sel: usize, t: f32, theme: Color) {
-    draw_cards_ex(list, ctx, vis, lang, head, infos, sel, t, 0.0, Some(theme));
+pub fn draw_cards_themed(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: (&str, &str, Color), infos: &[OfferInfo], sel: usize, t: f32, theme: Color, themes: &[Color]) {
+    draw_cards_ex(list, ctx, vis, lang, head, infos, sel, t, 0.0, Some((theme, themes)));
 }
 
 #[allow(clippy::too_many_arguments)]
-fn draw_cards_ex(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: (&str, &str, Color), infos: &[OfferInfo], sel: usize, t: f32, extra: f32, theme: Option<Color>) {
+fn draw_cards_ex(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: (&str, &str, Color), infos: &[OfferInfo], sel: usize, t: f32, extra: f32, themes: Option<(Color, &[Color])>) {
+    let theme = themes.map(|t| t.0);
     let view = ctx.view;
     let atlas = &ctx.atlas;
     let main = atlas.font("main");
@@ -578,6 +580,7 @@ fn draw_cards_ex(list: &mut DrawList, ctx: &Ctx, vis: &Vis, lang: &Lang, head: (
     let locked = t < LEVELUP_LOCK;
     let rt = ctx.real_time as f32;
     for (k, ((pos, size), info)) in rects.into_iter().zip(infos).enumerate() {
+        let theme = themes.map(|(c, v)| v.get(k).copied().unwrap_or(c));
         // fusion possible avec un objet (ou une arme) deja possede : la carte brille en rose
         let star = info.fusion;
         let fusion = info.evo.iter().any(|e| e.2) && !info.keep && star == 0;

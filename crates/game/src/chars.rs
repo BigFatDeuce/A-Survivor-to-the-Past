@@ -122,15 +122,75 @@ pub fn hint(lang: &Lang, def: &CharacterDef) -> String {
     }
 }
 
-/// Description d'un personnage ; sans texte propre (sprites du Randomizer), son arme de depart.
-/// Ni origine ni auteur ici : ils sont dans CREDITS.md (demande du 27/11/2026).
+/// Description d'un personnage ; sans texte propre (sprites du Randomizer), celle tiree de ses
+/// statistiques (`auto_desc`). Ni origine ni auteur ici : ils sont dans CREDITS.md (demande du 27/11/2026).
 pub fn desc(lang: &Lang, def: &CharacterDef) -> String {
     let d = lang.get(&format!("char.{}.desc", def.id));
     if !d.is_empty() {
         return d.to_string();
     }
-    let w = lang.get(&format!("weapon.{}.name", def.weapon));
-    lang.get("ui.char_starts").replace("{w}", &crate::hud::hl(w))
+    auto_desc(lang, def)
+}
+
+/// Description dans le style des fiches ecrites (« Mage noir : sorts plus larges..., mais seulement 4
+/// coeurs ») : un role, ses deux plus grandes forces, puis son plus grand defaut, tires des statistiques
+/// (bonus, coeurs et vitesse de marche par rapport a Link). L'arme de depart est deja affichee a cote.
+pub fn auto_desc(lang: &Lang, def: &CharacterDef) -> String {
+    // (cle, poids comparable entre statistiques) : poids positif = avantage
+    let mut traits: Vec<(&str, f32)> = def
+        .stats
+        .iter()
+        .map(|&(s, v)| match s {
+            Stat::Might => ("might", v),
+            Stat::Area => ("area", v),
+            Stat::Cooldown => ("cooldown", -v),
+            Stat::Amount => ("amount", v * 0.2),
+            Stat::Duration => ("duration", v),
+            Stat::Speed => ("speed", v),
+            Stat::MoveSpeed => ("move_speed", v),
+            Stat::MaxHp => ("max_hp", v / 10.0 * 0.15),
+            Stat::Armor => ("armor", v * 0.15),
+            Stat::Magnet => ("magnet", v),
+            Stat::DashCooldown => ("dash_cd", -v),
+            Stat::Regen => ("regen", v),
+            Stat::Luck => ("luck", v),
+            Stat::Growth => ("growth", v),
+        })
+        .collect();
+    let hearts = (def.max_hp / 10.0).round();
+    if hearts <= 4.0 {
+        traits.push(("hearts_low", -0.3));
+    } else if hearts >= 8.0 {
+        traits.push(("hearts_high", 0.3));
+    }
+    if def.speed <= 80.0 {
+        traits.push(("slow", -0.08));
+    } else if def.speed >= 92.0 {
+        traits.push(("fast", 0.08));
+    }
+    traits.sort_by(|a, b| b.1.abs().total_cmp(&a.1.abs()));
+    let phrase = |&(k, w): &(&str, f32)| lang.get(&format!("char.auto.{k}.{}", if w > 0.0 { "good" } else { "bad" })).replace("{n}", &hearts.to_string());
+    let goods: Vec<String> = traits.iter().filter(|t| t.1 > 0.0).take(2).map(phrase).collect();
+    let bad = traits.iter().find(|t| t.1 < 0.0).map(phrase);
+    let role = match traits.iter().find(|t| t.1 > 0.0).map(|t| t.0) {
+        Some("might") => "brute",
+        Some("area" | "duration") => "mage",
+        Some("cooldown" | "speed" | "amount") => "gunner",
+        Some("max_hp" | "armor" | "regen" | "hearts_high") => "tank",
+        Some("move_speed" | "dash_cd" | "fast") => "scout",
+        Some(_) => "hunter",
+        None => "all",
+    };
+    let form = match (goods.is_empty(), &bad) {
+        (false, Some(_)) => "char.auto.full",
+        (false, None) => "char.auto.good",
+        (true, Some(_)) => "char.auto.bad",
+        (true, None) => "char.auto.none",
+    };
+    lang.get(form)
+        .replace("{r}", lang.get(&format!("char.auto.role.{role}")))
+        .replace("{g}", &goods.join(lang.get("char.auto.and")))
+        .replace("{b}", bad.as_deref().unwrap_or(""))
 }
 
 /// Fiche courte (boutique) : coeurs, vitesse, puis avantages en vert et defauts en rouge.
@@ -139,13 +199,20 @@ pub fn stats_line(lang: &Lang, def: &CharacterDef) -> String {
         format!("{} {}", lang.get("ui.char_health"), (def.max_hp / 10.0).round() as u32),
         format!("{} {}", lang.get("ui.char_speed"), def.speed.round() as u32),
     ];
-    for &(s, v) in &def.stats {
-        let line = menus::stat_text(lang, s, v);
-        // une recharge plus courte est un avantage (meme regle que la fiche du choix du personnage)
-        let good = if matches!(s, Stat::Cooldown | Stat::DashCooldown) { v < 0.0 } else { v > 0.0 };
-        parts.push(if good { crate::hud::hl_good(&line) } else { crate::hud::hl_bad(&line) });
-    }
+    parts.extend(def.stats.iter().map(|&(s, v)| stat_colored(lang, s, v)));
     parts.join(", ")
+}
+
+/// Bonus de depart en vert (avantage) ou en rouge (defaut) ; une recharge plus courte est un avantage
+/// (meme regle que la fiche du choix du personnage).
+pub fn stat_colored(lang: &Lang, s: Stat, v: f32) -> String {
+    let line = menus::stat_text(lang, s, v);
+    let good = if matches!(s, Stat::Cooldown | Stat::DashCooldown) { v < 0.0 } else { v > 0.0 };
+    if good {
+        crate::hud::hl_good(&line)
+    } else {
+        crate::hud::hl_bad(&line)
+    }
 }
 
 /// Personnages qui viennent d'etre debloques (entre deux etats du profil).

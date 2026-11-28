@@ -17,6 +17,8 @@ pub const TAB_GALLERY: usize = 4;
 pub const TAB_TROPHIES: usize = 5;
 pub const TAB_STATS: usize = 6;
 pub const TAB_SAVE: usize = 7;
+/// Fiches des personnages (statues de la galerie) : pas un onglet, l'indice est dans `chars::roster`.
+pub const CARD_CHARS: usize = 100;
 
 /// Ecran d'un onglet : ses onglets voisins et son titre (0.6.4 : l'ancien Profil est partage en deux).
 pub fn book(tab: usize) -> (std::ops::Range<usize>, &'static str) {
@@ -75,6 +77,11 @@ pub fn card_items(content: &Content, meta: &crate::meta::Meta, p: &Profile, tab:
     if tab == TAB_TROPHIES {
         let all: Vec<usize> = (0..crate::trophies::families(content, meta, p).len()).collect();
         return (all.clone(), all);
+    }
+    if tab == CARD_CHARS {
+        let ids = crate::chars::roster(content);
+        let known = (0..ids.len()).filter(|&k| crate::chars::unlocked(content, &content.characters[&ids[k]], p)).collect();
+        return ((0..ids.len()).collect(), known);
     }
     let all: Vec<usize> = if tab == TAB_ITEMS { (0..content.passives.len()).collect() } else { armory_weapons(content, tab == TAB_FUSIONS) };
     let known = all

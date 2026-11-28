@@ -19,31 +19,31 @@ OUT = ROOT / "site"
 UI = {
     "en": dict(download="Download", web="Play in your browser", soon=f"Alpha {rd.VERSION} for Windows, Linux, macOS, handhelds (PortMaster, experimental), Android and the browser",
                discord="Join the Discord", github="Source code", lang="Language", nav_what="The game",
-               nav_shots="Screenshots", nav_evo="Evolutions", nav_road="Roadmap", horde="A horde at 3:30", manual="Instruction booklet (PDF)",
+               nav_shots="Screenshots", nav_evo="Evolutions", nav_play="Play", horde="A horde at 3:30", manual="Instruction booklet (PDF)",
                nav_scores="Leaderboard", scores_h="World leaderboard"),
     "fr": dict(download="Télécharger", web="Jouer dans le navigateur", soon=f"Alpha {rd.VERSION} pour Windows, Linux, macOS, consoles portables (PortMaster, expérimental), Android et le navigateur",
                discord="Rejoindre le Discord", github="Code source", lang="Langue", nav_what="Le jeu",
-               nav_shots="Captures", nav_evo="Évolutions", nav_road="Feuille de route", horde="Une horde à 3:30", manual="Livret d'instructions (PDF)",
+               nav_shots="Captures", nav_evo="Évolutions", nav_play="Jouer", horde="Une horde à 3:30", manual="Livret d'instructions (PDF)",
                nav_scores="Classement", scores_h="Classement mondial"),
     "de": dict(download="Herunterladen", web="Im Browser spielen", soon=f"Alpha {rd.VERSION} für Windows, Linux, macOS, Handhelds (PortMaster, experimentell), Android und den Browser",
                discord="Zum Discord", github="Quellcode", lang="Sprache", nav_what="Das Spiel",
-               nav_shots="Bilder", nav_evo="Entwicklungen", nav_road="Fahrplan", horde="Eine Horde bei 3:30", manual="Spielanleitung (PDF)",
+               nav_shots="Bilder", nav_evo="Entwicklungen", nav_play="Spielen", horde="Eine Horde bei 3:30", manual="Spielanleitung (PDF)",
                nav_scores="Rangliste", scores_h="Weltrangliste"),
     "es": dict(download="Descargar", web="Jugar en el navegador", soon=f"Alfa {rd.VERSION} para Windows, Linux, macOS, portátiles (PortMaster, experimental), Android y el navegador",
                discord="Únete al Discord", github="Código fuente", lang="Idioma", nav_what="El juego",
-               nav_shots="Capturas", nav_evo="Evoluciones", nav_road="Hoja de ruta", horde="Una horda a los 3:30", manual="Manual de instrucciones (PDF)",
+               nav_shots="Capturas", nav_evo="Evoluciones", nav_play="Jugar", horde="Una horda a los 3:30", manual="Manual de instrucciones (PDF)",
                nav_scores="Clasificación", scores_h="Clasificación mundial"),
     "it": dict(download="Scarica", web="Gioca nel browser", soon=f"Alfa {rd.VERSION} per Windows, Linux, macOS, console portatili (PortMaster, sperimentale), Android e il browser",
                discord="Entra nel Discord", github="Codice sorgente", lang="Lingua", nav_what="Il gioco",
-               nav_shots="Immagini", nav_evo="Evoluzioni", nav_road="Tabella di marcia", horde="Un'orda a 3:30", manual="Libretto di istruzioni (PDF)",
+               nav_shots="Immagini", nav_evo="Evoluzioni", nav_play="Gioca", horde="Un'orda a 3:30", manual="Libretto di istruzioni (PDF)",
                nav_scores="Classifica", scores_h="Classifica mondiale"),
     "pt": dict(download="Baixar", web="Jogar no navegador", soon=f"Alfa {rd.VERSION} para Windows, Linux, macOS, portáteis (PortMaster, experimental), Android e o navegador",
                discord="Entrar no Discord", github="Código-fonte", lang="Idioma", nav_what="O jogo",
-               nav_shots="Imagens", nav_evo="Evoluções", nav_road="Próximos passos", horde="Uma horda aos 3:30", manual="Manual de instruções (PDF)",
+               nav_shots="Imagens", nav_evo="Evoluções", nav_play="Jogar", horde="Uma horda aos 3:30", manual="Manual de instruções (PDF)",
                nav_scores="Classificação", scores_h="Classificação mundial"),
     "ja": dict(download="ダウンロード", web="ブラウザでプレイ", soon=f"アルファ {rd.VERSION}：Windows・Linux・macOS・携帯機（PortMaster、試験版）・Android・ブラウザ",
                discord="Discord に参加", github="ソースコード", lang="言語", nav_what="ゲーム",
-               nav_shots="スクリーンショット", nav_evo="進化", nav_road="今後の予定", horde="3:30 の大群", manual="取扱説明書（PDF）",
+               nav_shots="スクリーンショット", nav_evo="進化", nav_play="プレイ", horde="3:30 の大群", manual="取扱説明書（PDF）",
                nav_scores="ランキング", scores_h="せかいランキング"),
 }
 
@@ -113,7 +113,6 @@ def strings(code):
         "shots_h": md(t["shots_h"]), "filters_cap": md(t["filters_cap"]),
         "play_h": md(t["play_h"]), "play": paras(play),
         "ctrl_h": md(t["ctrl_h"]), "ctrl": ctrl,
-        "road_h": md(t["road_h"]), "road": "".join(f"<li>{md(r)}</li>" for r in t["road"]),
         "comm_h": md(t["comm_h"]), "comm": paras(t["comm"].split("\n\n")[0]),
         "legal_h": md(t["legal_h"]), "legal": paras(t["legal"]),
         "horde": md(u["horde"]),
@@ -143,7 +142,7 @@ PAGE = """<!doctype html>
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" type="image/png" href="img/icon_192.png" sizes="192x192">
-<link rel="apple-touch-icon" href="img/icon_192.png">
+<link rel="apple-touch-icon" href="img/icon_full_180.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -154,7 +153,7 @@ PAGE = """<!doctype html>
     <a href="#shots" data-i="ui_nav_shots">{ui_nav_shots}</a>
     <a href="#evo" data-i="ui_nav_evo">{ui_nav_evo}</a>
     <a href="#scores" data-i="ui_nav_scores">{ui_nav_scores}</a>
-    <a href="#road" data-i="ui_nav_road">{ui_nav_road}</a>
+    <a href="#play" data-i="ui_nav_play">{ui_nav_play}</a>
   </nav>
   <label class="lang"><span class="sr" data-i="ui_lang">{ui_lang}</span>
     <select id="lang">{lang_options}</select>
@@ -212,11 +211,9 @@ PAGE = """<!doctype html>
   <p id="lb-legend" class="soon"></p>
 </section>
 
-<section id="road" class="panel">
+<section id="play" class="panel">
   <h2 data-i="play_h">{play_h}</h2>
   <div data-i="play">{play}</div>
-  <h2 data-i="road_h">{road_h}</h2>
-  <ul data-i="road">{road}</ul>
   <h2 data-i="comm_h">{comm_h}</h2>
   <div data-i="comm">{comm}</div>
   <p class="cta"><a class="btn discord" href="{discord}" rel="noopener" data-i="ui_discord">{ui_discord}</a></p>
@@ -497,6 +494,7 @@ def main():
         shutil.copy(ROOT / f"media/{f}.png", OUT / f"img/{f}.png")
     for s in (64, 192):
         shutil.copy(ROOT / f"assets/icons/icon_{s}.png", OUT / f"img/icon_{s}.png")
+    shutil.copy(ROOT / "assets/icons/icon_full_180.png", OUT / "img/icon_full_180.png")
     shutil.copy(ROOT / "assets/icons/favicon.ico", OUT / "favicon.ico")
     all_s = {c: strings(c) for c, _ in rd.LANGS}
     en_chars = board_strings("en", None)["chars"]

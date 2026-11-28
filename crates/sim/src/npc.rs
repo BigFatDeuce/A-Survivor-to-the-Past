@@ -22,8 +22,8 @@ pub struct Npc {
 }
 
 pub const WITCH_LIFE: f32 = 30.0;
-/// Arrivee de la sorciere : entre 2 et 5 minutes de partie.
-pub const WITCH_WINDOW: (f32, f32) = (120.0, 300.0);
+/// Arrivee de la sorciere : entre 2 et 3 minutes de partie.
+pub const WITCH_WINDOW: (f32, f32) = (120.0, 180.0);
 const TOUCH: f32 = 16.0;
 
 impl World {

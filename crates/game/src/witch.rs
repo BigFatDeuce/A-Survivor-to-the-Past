@@ -44,10 +44,10 @@ const MALUS: [(Stat, f32, f32); 9] = [
     (Stat::Growth, -0.05, -0.12),
 ];
 
-/// Prix de base (rubis verts, qualite 1, a 5 min, stage 1, difficulte normale). Mesure en demo : ~80
-/// rubis a 2:00, ~150 a 3:00, ~300 a 4:30 ; une potion moyenne (qualite ~1,2) coute ~150 a 5:00 et
-/// ~240 a 2:00, une tres bonne (qualite 3) ~375 a 5:00 et ~600 a 2:00.
-const BASE_PRICE: f32 = 125.0;
+/// Prix de base (rubis verts, qualite 1, a 5 min, stage 1, difficulte normale), x1,5 en 0.9.1
+/// (avant 125, mesures en demo : ~80 rubis a 2:00, ~150 a 3:00, ~300 a 4:30 ; une potion moyenne (qualite ~1,2) coute ~150 a 5:00 et
+/// ~240 a 2:00, une tres bonne (qualite 3) ~375 a 5:00 et ~600 a 2:00).
+const BASE_PRICE: f32 = 187.5;
 
 /// Arrondi des statistiques entieres (coeurs par demi-coeur, armure a l'unite).
 fn snap(s: Stat, v: f32) -> f32 {
